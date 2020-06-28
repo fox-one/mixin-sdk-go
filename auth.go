@@ -6,6 +6,16 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+const (
+	ScopeProfileRead   = "PROFILE:READ"
+	ScopePhoneRead     = "PHONE:READ"
+	ScopeContactRead   = "CONTACTS:READ"
+	ScopeAssetsRead    = "ASSETS:READ"
+	ScopeSnapshotsRead = "SNAPSHOTS:READ"
+
+	ScopeFull = "FULL"
+)
+
 type Signer interface {
 	SignToken(signature, requestID string, exp time.Duration) string
 	EncryptPin(pin string) string
