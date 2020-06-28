@@ -73,7 +73,7 @@ func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration)
 		"exp": time.Now().Add(exp).Unix(),
 		"jti": requestID,
 		"sig": signature,
-		"scp": "FULL",
+		"scp": ScopeFull,
 	}
 
 	if k.Scope != "" {
