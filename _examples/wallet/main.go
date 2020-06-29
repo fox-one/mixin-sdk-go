@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"flag"
 	"log"
@@ -74,5 +76,28 @@ func main() {
 			log.Printf("read snapshot: %v", err)
 			return
 		}
+	}
+
+	// create sub wallet
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
+	if err != nil {
+		log.Printf("CreateUser: %v", err)
+		return
+	}
+
+	log.Println("create sub user", sub.UserID)
+
+	// set pin
+	newPin := mixin.RandomPin()
+	subClient, _ := mixin.NewFromKeystore(subStore)
+	if err := subClient.ModifyPin(ctx, "", newPin); err != nil {
+		log.Printf("ModifyPin: %v", err)
+		return
+	}
+
+	if err := subClient.VerifyPin(ctx, newPin); err != nil {
+		log.Printf("sub user VerifyPin: %v", err)
+		return
 	}
 }

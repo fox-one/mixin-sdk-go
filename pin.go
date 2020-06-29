@@ -14,8 +14,11 @@ func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 
 func (c *Client) ModifyPin(ctx context.Context, pin, newPin string) error {
 	body := map[string]interface{}{
-		"old_pin": c.EncryptPin(pin),
-		"pin":     c.EncryptPin(newPin),
+		"pin": c.EncryptPin(newPin),
+	}
+
+	if pin != "" {
+		body["old_pin"] = c.EncryptPin(pin)
 	}
 
 	return c.Post(ctx, "/pin/update", body, nil)
