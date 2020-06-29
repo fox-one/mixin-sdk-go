@@ -18,9 +18,9 @@ type TransferInput struct {
 	OpponentKey string `json:"opponent_key,omitempty"`
 }
 
-func (c *Client) Transfer(ctx context.Context, input TransferInput, pin string) (*Snapshot, error) {
+func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {
 	body := struct {
-		TransferInput
+		*TransferInput
 		Pin string
 	}{
 		TransferInput: input,

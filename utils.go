@@ -42,3 +42,7 @@ func RandomPin() string {
 
 	return strconv.FormatUint(c, 10)
 }
+
+func RandomTraceID() string {
+	return newUUID()
+}
