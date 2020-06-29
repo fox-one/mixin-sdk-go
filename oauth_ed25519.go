@@ -3,7 +3,6 @@ package mixin
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -21,12 +20,13 @@ type OauthKeystore struct {
 }
 
 func AuthorizeEd25519(ctx context.Context, clientID, clientSecret string, code string, verifier string, privateKey ed25519.PrivateKey) (*OauthKeystore, error) {
+	public := privateKey.Public().(ed25519.PublicKey)
 	params := map[string]interface{}{
 		"client_id":     clientID,
 		"client_secret": clientSecret,
 		"code":          code,
 		"code_verifier": verifier,
-		"ed25519":       privateKey.Public(),
+		"ed25519":       ed25519Encoding.EncodeToString(public),
 	}
 
 	resp, err := Request(ctx).SetBody(params).Post("/oauth/token")
@@ -40,7 +40,7 @@ func AuthorizeEd25519(ctx context.Context, clientID, clientSecret string, code s
 	}
 
 	key.ClientID = clientID
-	key.PrivateKey = base64.StdEncoding.EncodeToString(privateKey)
+	key.PrivateKey = ed25519Encoding.EncodeToString(privateKey)
 
 	return &key, nil
 }
@@ -58,14 +58,14 @@ func AuthFromOauthKeystore(store *OauthKeystore) (*OauthKeystoreAuth, error) {
 		signMethod:    Ed25519SigningMethod,
 	}
 
-	sign, err := base64.StdEncoding.DecodeString(store.PrivateKey)
+	sign, err := ed25519Encoding.DecodeString(store.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
 
 	auth.signKey = (ed25519.PrivateKey)(sign)
 
-	verify, err := base64.StdEncoding.DecodeString(store.VerifyKey)
+	verify, err := ed25519Encoding.DecodeString(store.VerifyKey)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (o *OauthKeystoreAuth) SignToken(signature, requestID string, exp time.Dura
 		"jti": requestID,
 	}
 
-	token, err := jwt.NewWithClaims(Ed25519SigningMethod, jwtMap).SignedString(o.signKey)
+	token, err := jwt.NewWithClaims(o.signMethod, jwtMap).SignedString(o.signKey)
 	if err != nil {
 		panic(err)
 	}
