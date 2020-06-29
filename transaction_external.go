@@ -21,7 +21,7 @@ type ExternalTransaction struct {
 	Threshold       int64           `json:"threshold"`
 }
 
-func ReadExternalTranactions(ctx context.Context, assetID, destination, tag string) ([]*ExternalTransaction, error) {
+func ReadExternalTransactions(ctx context.Context, assetID, destination, tag string) ([]*ExternalTransaction, error) {
 	params := make(map[string]string)
 	if destination != "" {
 		params["destination"] = destination
