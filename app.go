@@ -39,7 +39,7 @@ func (c *Client) ReadApp(ctx context.Context, appID string) (*App, error) {
 	return user.App, nil
 }
 
-func (c *Client) FetchFavoriteApps(ctx context.Context, userID string) ([]*FavoriteApp, error) {
+func (c *Client) ReadFavoriteApps(ctx context.Context, userID string) ([]*FavoriteApp, error) {
 	uri := fmt.Sprintf("/users/%s/app/favorite", userID)
 
 	var apps []*FavoriteApp
