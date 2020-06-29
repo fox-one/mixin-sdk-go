@@ -5,6 +5,12 @@ Golang sdk for Mixin Network & Mixin Messenger
 
 `go get github.com/fox-one/mixin-sdk-go`
 
+## Features
+
+* **comprehensive** most of the Mixin Network & Mixin Messenger api supported
+* **Security** verify Response `X-Request-ID` & signature automatically
+* **Flexible** initialize [Client](https://github.com/fox-one/mixin-sdk-go/blob/master/client.go) from `keystore`, `ed25519_oauth_token` or `access_token`
+
 ## Examples
 
 See [_examples/](https://github.com/fox-one/mixin-sdk-go/blob/master/_examples/) for a variety of examples.
