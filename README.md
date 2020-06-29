@@ -27,7 +27,7 @@ func main() {
 		ClientID:   "",
 		SessionID:  "",
 		PrivateKey: "",
-        PinToken: "",
+		PinToken: "",
 	}
 
 	client, err := mixin.NewFromKeystore(s)
