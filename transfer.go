@@ -13,6 +13,9 @@ type TransferInput struct {
 	Amount     decimal.Decimal `json:"amount,omitempty"`
 	TraceID    string          `json:"trace_id,omitempty"`
 	Memo       string          `json:"memo,omitempty"`
+
+	// OpponentKey used for raw transaction
+	OpponentKey string `json:"opponent_key,omitempty"`
 }
 
 func (c *Client) Transfer(ctx context.Context, input TransferInput, pin string) (*Snapshot, error) {
