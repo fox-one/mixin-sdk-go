@@ -209,7 +209,7 @@ func tick(ctx context.Context, conn *websocket.Conn) {
 
 func writeMessage(coon *websocket.Conn, action string, params map[string]interface{}) error {
 	blazeMessage, err := json.Marshal(BlazeMessage{
-		Id:     newRequestID(),
+		Id:     newUUID(),
 		Action: action,
 		Params: params,
 	})
