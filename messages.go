@@ -104,34 +104,13 @@ type (
 )
 
 type MessageRequest struct {
-	ConversationID   string      `json:"conversation_id"`
-	RecipientID      string      `json:"recipient_id"`
-	MessageID        string      `json:"message_id"`
-	Category         string      `json:"category"`
-	Data             interface{} `json:"data"`
-	RepresentativeID string      `json:"representative_id,omitempty"`
-	QuoteMessageID   string      `json:"quote_message_id,omitempty"`
-}
-
-type messageRequestJSON MessageRequest
-
-func (req MessageRequest) MarshalJSON() ([]byte, error) {
-	m := messageRequestJSON(req)
-
-	switch v := m.Data.(type) {
-	case []byte:
-	case string:
-		m.Data = []byte(v)
-	default:
-		data, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-
-		m.Data = data
-	}
-
-	return json.Marshal(m)
+	ConversationID   string `json:"conversation_id"`
+	RecipientID      string `json:"recipient_id"`
+	MessageID        string `json:"message_id"`
+	Category         string `json:"category"`
+	Data             string `json:"data"`
+	RepresentativeID string `json:"representative_id,omitempty"`
+	QuoteMessageID   string `json:"quote_message_id,omitempty"`
 }
 
 func (c *Client) SendMessages(ctx context.Context, messages []*MessageRequest) error {

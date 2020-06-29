@@ -89,5 +89,9 @@ func UnmarshalResponse(resp *resty.Response, v interface{}) error {
 		return err
 	}
 
-	return json.Unmarshal(data, v)
+	if v != nil {
+		return json.Unmarshal(data, v)
+	}
+
+	return nil
 }
