@@ -67,7 +67,7 @@ func (c *Client) ReadUsers(ctx context.Context, ids ...string) ([]*User, error) 
 	return users, nil
 }
 
-func (c *Client) FetchFriends(ctx context.Context) ([]*User, error) {
+func (c *Client) ReadFriends(ctx context.Context) ([]*User, error) {
 	var users []*User
 	if err := c.Get(ctx, "/friends", nil, &users); err != nil {
 		return nil, err
