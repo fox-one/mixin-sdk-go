@@ -2,6 +2,10 @@ package mixin
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"time"
 )
@@ -18,6 +22,7 @@ type User struct {
 	CreatedAt      time.Time `json:"created_at,omitempty"`
 	IsVerified     bool      `json:"is_verified,omitempty"`
 	SessionID      string    `json:"session_id,omitempty"`
+	PinToken       string    `json:"pin_token,omitempty"`
 	CodeID         string    `json:"code_id,omitempty"`
 	CodeURL        string    `json:"code_url,omitempty"`
 	HasPin         bool      `json:"has_pin,omitempty"`
@@ -74,4 +79,54 @@ func (c *Client) FetchFriends(ctx context.Context) ([]*User, error) {
 // deprecated. Use ReadUser() instead
 func (c *Client) SearchUser(ctx context.Context, identityNumber string) (*User, error) {
 	return c.ReadUser(ctx, identityNumber)
+}
+
+func (c *Client) CreateUser(ctx context.Context, key *rsa.PrivateKey, fullname string) (*User, *Keystore, error) {
+	pub, err := x509.MarshalPKIXPublicKey(key.Public())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	paras := map[string]interface{}{
+		"session_secret": base64.StdEncoding.EncodeToString(pub),
+		"full_name":      fullname,
+	}
+
+	var user User
+	if err := c.Post(ctx, "/users", paras, &user); err != nil {
+		return nil, nil, err
+	}
+
+	return &user, newKeystoreFromUser(&user, key), nil
+}
+
+func newKeystoreFromUser(user *User, privateKey *rsa.PrivateKey) *Keystore {
+	pk := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+
+	return &Keystore{
+		ClientID:   user.UserID,
+		SessionID:  user.SessionID,
+		PinToken:   user.PinToken,
+		PrivateKey: string(pk),
+	}
+}
+
+func (c *Client) ModifyProfile(ctx context.Context, fullname, avatarBase64 string) (*User, error) {
+	params := map[string]interface{}{}
+	if fullname != "" {
+		params["full_name"] = fullname
+	}
+	if avatarBase64 != "" {
+		params["avatar_base64"] = avatarBase64
+	}
+
+	var user User
+	if err := c.Post(ctx, "/me", params, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
