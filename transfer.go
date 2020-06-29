@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/shopspring/decimal"
 )
@@ -29,6 +30,17 @@ func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string)
 
 	var snapshot Snapshot
 	if err := c.Post(ctx, "/transfers", body, &snapshot); err != nil {
+		return nil, err
+	}
+
+	return &snapshot, nil
+}
+
+func (c *Client) ReadTransfer(ctx context.Context, traceID string) (*Snapshot, error) {
+	uri := fmt.Sprintf("/transfers/tarce/%s", traceID)
+
+	var snapshot Snapshot
+	if err := c.Get(ctx, uri, nil, &snapshot); err != nil {
 		return nil, err
 	}
 

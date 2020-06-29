@@ -8,6 +8,7 @@ import (
 // mixin error codes https://developers.mixin.one/api/alpha-mixin-network/errors/
 const (
 	Unauthorized        = 401
+	EndpointNotFound    = 404
 	InsufficientBalance = 20117
 	PinIncorrect        = 20119
 	InsufficientFee     = 20124
