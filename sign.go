@@ -31,7 +31,7 @@ func SignRequest(r *http.Request) string {
 
 	var body []byte
 	if r.GetBody != nil {
-		if b, err := r.GetBody(); err == nil {
+		if b, _ := r.GetBody(); b != nil {
 			body, _ = ioutil.ReadAll(b)
 			_ = b.Close()
 		}

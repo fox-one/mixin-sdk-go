@@ -26,7 +26,12 @@ type User struct {
 }
 
 func (c *Client) UserMe(ctx context.Context) (*User, error) {
-	return c.ReadUser(ctx, "me")
+	var user User
+	if err := c.Get(ctx, "/me", nil, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func UserMe(ctx context.Context, accessToken string) (*User, error) {

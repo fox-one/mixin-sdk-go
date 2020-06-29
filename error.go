@@ -7,11 +7,11 @@ import (
 
 // mixin error codes https://developers.mixin.one/api/alpha-mixin-network/errors/
 const (
-	// RequestFailed request failed
-	RequestFailed = 1000000
-
-	// InvalidTraceID invalid trace
-	InvalidTraceID = 20125
+	Unauthorized        = 401
+	InsufficientBalance = 20117
+	PinIncorrect        = 20119
+	InsufficientFee     = 20124
+	InvalidTraceID      = 20125
 )
 
 type Error struct {
