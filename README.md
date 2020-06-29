@@ -1,2 +1,63 @@
 # mixin-sdk-go
-Golang sdk for Mixin Network &amp; Mixin Messenger
+Golang sdk for Mixin Network & Mixin Messenger
+
+## Install
+
+`go get github.com/fox-one/mixin-sdk-go`
+
+## Examples
+
+See [_examples/](https://github.com/fox-one/mixin-sdk-go/blob/master/_examples/) for a variety of examples.
+
+**Quick Start**
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/fox-one/mixin-sdk-go"
+)
+
+func main() {
+	ctx := context.Background()
+	s := &mixin.Keystore{
+		ClientID:   "",
+		SessionID:  "",
+		PrivateKey: "",
+        PinToken: "",
+	}
+
+	client, err := mixin.NewFromKeystore(s)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	user, err := client.UserMe(ctx)
+	if err != nil {
+		log.Printf("UserMe: %v", err)
+		return
+	}
+
+	log.Println("user id", user.UserID)
+}
+```
+
+## Error handling?
+
+check error code by `mixin.IsErrorCodes`
+
+```go
+if _, err := client.UserMe(ctx); err != nil {
+    switch {
+    case mixin.IsErrorCodes(err,mixin.Unauthorized,mixin.EndpointNotFound):
+    	// handle unauthorized error
+    case mixin.IsErrorCodes(err,mixin.InsufficientBalance):
+        // handle insufficient balance error
+    default:
+    }
+}
+```
+
