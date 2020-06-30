@@ -25,6 +25,11 @@ func UseBlazeHost(host string) {
 }
 
 func init() {
+	if _, ok := os.LookupEnv("MIXIN_SDK_USE_ZEROMESH"); ok {
+		UseApiHost(ZeromeshApiHost)
+		UseBlazeHost(ZeromeshBlazeHost)
+	}
+
 	if host, ok := os.LookupEnv("MIXIN_SDK_API_HOST"); ok && host != "" {
 		UseApiHost(host)
 	}
