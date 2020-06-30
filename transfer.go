@@ -37,7 +37,7 @@ func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string)
 }
 
 func (c *Client) ReadTransfer(ctx context.Context, traceID string) (*Snapshot, error) {
-	uri := fmt.Sprintf("/transfers/tarce/%s", traceID)
+	uri := fmt.Sprintf("/transfers/trace/%s", traceID)
 
 	var snapshot Snapshot
 	if err := c.Get(ctx, uri, nil, &snapshot); err != nil {
