@@ -18,7 +18,7 @@ func TestUploadAttachment(t *testing.T) {
 	attachment, err := c.CreateAttachment(ctx)
 	require.Nil(t, err, "create attachment")
 
-	data := make([]byte, 0, 64)
+	data := make([]byte, 128)
 	_, _ = rand.Read(data)
 
 	err = UploadAttachment(ctx, attachment, data)
