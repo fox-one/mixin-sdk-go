@@ -72,6 +72,16 @@ func main() {
 
 		log.Println("transfer done", snapshot.SnapshotID, snapshot.Memo)
 
+		transfer, err := client.ReadTransfer(ctx, snapshot.TraceID)
+		if err != nil {
+			log.Printf("ReadTransfer: %v", err)
+			return
+		}
+
+		if transfer.SnapshotID != snapshot.SnapshotID {
+			log.Printf("expect %v but got %v", snapshot.SnapshotID, transfer.SnapshotID)
+		}
+
 		if _, err := client.ReadSnapshot(ctx, snapshot.SnapshotID); err != nil {
 			log.Printf("read snapshot: %v", err)
 			return
@@ -96,7 +106,13 @@ func main() {
 		return
 	}
 
-	if err := subClient.VerifyPin(ctx, newPin); err != nil {
+	anotherPin := mixin.RandomPin()
+	if err := subClient.ModifyPin(ctx, newPin, anotherPin); err != nil {
+		log.Printf("ModifyPin with pin: %v", err)
+		return
+	}
+
+	if err := subClient.VerifyPin(ctx, anotherPin); err != nil {
 		log.Printf("sub user VerifyPin: %v", err)
 		return
 	}
