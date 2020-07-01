@@ -49,3 +49,14 @@ func (c *Client) ReadFavoriteApps(ctx context.Context, userID string) ([]*Favori
 
 	return apps, nil
 }
+
+func (c *Client) FavoriteApp(ctx context.Context, appID string) (*FavoriteApp, error) {
+	uri := fmt.Sprintf("/apps/%s/favorite", appID)
+
+	var app FavoriteApp
+	if err := c.Post(ctx, uri, nil, &app); err != nil {
+		return nil, err
+	}
+
+	return &app, nil
+}
