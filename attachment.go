@@ -36,8 +36,9 @@ func (c *Client) ShowAttachment(ctx context.Context, id string) (*Attachment, er
 
 	return &attachment, nil
 }
-func UploadAttachment(ctx context.Context, attachment *Attachment, file []byte) error {
-	req, err := http.NewRequest("PUT", attachment.UploadURL, bytes.NewReader(file))
+
+func UploadAttachmentTo(ctx context.Context, uploadURL string, file []byte) error {
+	req, err := http.NewRequest("PUT", uploadURL, bytes.NewReader(file))
 	if err != nil {
 		return err
 	}
@@ -61,4 +62,8 @@ func UploadAttachment(ctx context.Context, attachment *Attachment, file []byte) 
 	}
 
 	return nil
+}
+
+func UploadAttachment(ctx context.Context, attachment *Attachment, file []byte) error {
+	return UploadAttachmentTo(ctx, attachment.UploadURL, file)
 }
