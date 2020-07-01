@@ -53,8 +53,8 @@ func NewFromOauthKeystore(keystore *OauthKeystore) (*Client, error) {
 }
 
 func (c *Client) Request(ctx context.Context) *resty.Request {
-	ctx = WithSigner(ctx, c.Signer)
 	ctx = WithVerifier(ctx, c.Verifier)
+	ctx = WithSigner(ctx, c.Signer)
 	return Request(ctx)
 }
 
