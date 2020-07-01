@@ -35,6 +35,10 @@ var httpClient = resty.New().
 		return nil
 	}).
 	OnAfterResponse(func(c *resty.Client, r *resty.Response) error {
+		if r.IsError() {
+			return nil
+		}
+
 		if err := checkResponseRequestID(r); err != nil {
 			return err
 		}
