@@ -93,6 +93,10 @@ func (k *KeystoreAuth) EncryptPin(pin string) string {
 		panic(errors.New("keystore: pin_token required"))
 	}
 
+	if err := ValidatePinPattern(pin); err != nil {
+		panic(err)
+	}
+
 	pinByte := []byte(pin)
 	timeBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(timeBytes, uint64(time.Now().Unix()))
