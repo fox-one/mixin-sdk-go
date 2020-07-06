@@ -1,3 +1,5 @@
+<img align="right" width="256px" src="https://raw.githubusercontent.com/fox-one/mixin-sdk-go/master/logo/gopher.png">
+
 # mixin-sdk-go
 Golang sdk for Mixin Network & Mixin Messenger
 
