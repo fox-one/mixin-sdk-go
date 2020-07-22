@@ -37,6 +37,8 @@ func (c *Client) ShowAttachment(ctx context.Context, id string) (*Attachment, er
 	return &attachment, nil
 }
 
+var uploadClient = &http.Client{}
+
 func UploadAttachmentTo(ctx context.Context, uploadURL string, file []byte) error {
 	req, err := http.NewRequest("PUT", uploadURL, bytes.NewReader(file))
 	if err != nil {
@@ -47,7 +49,7 @@ func UploadAttachmentTo(ctx context.Context, uploadURL string, file []byte) erro
 	req.Header.Add("x-amz-acl", "public-read")
 	req.Header.Add("Content-Length", strconv.Itoa(len(file)))
 
-	resp, err := httpClient.GetClient().Do(req)
+	resp, err := uploadClient.Do(req)
 	if resp != nil {
 		_, _ = io.Copy(ioutil.Discard, resp.Body)
 		_ = resp.Body.Close()
