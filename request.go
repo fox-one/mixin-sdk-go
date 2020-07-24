@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	xRequestID           = http.CanonicalHeaderKey("X-Request-ID")
+	xRequestID           = http.CanonicalHeaderKey("x-request-id")
 	xIntegrityToken      = http.CanonicalHeaderKey("x-integrity-token")
-	xForceAuthentication = http.CanonicalHeaderKey("X-Force-Authentication")
+	xForceAuthentication = http.CanonicalHeaderKey("x-force-authentication")
 )
 
 var httpClient = resty.New().
