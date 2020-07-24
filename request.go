@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	xRequestID      = http.CanonicalHeaderKey("X-Request-ID")
-	xIntegrityToken = http.CanonicalHeaderKey("x-integrity-token")
+	xRequestID           = http.CanonicalHeaderKey("X-Request-ID")
+	xIntegrityToken      = http.CanonicalHeaderKey("x-integrity-token")
+	xForceAuthentication = http.CanonicalHeaderKey("X-Force-Authentication")
 )
 
 var httpClient = resty.New().
@@ -32,6 +33,7 @@ var httpClient = resty.New().
 		if s, ok := ctx.Value(signerKey).(Signer); ok {
 			token := s.SignToken(SignRequest(r), requestID, time.Minute)
 			r.Header.Set("Authorization", "Bearer "+token)
+			r.Header.Set(xForceAuthentication, "true")
 		}
 
 		return nil
