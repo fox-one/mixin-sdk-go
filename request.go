@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,6 +16,8 @@ var (
 	xRequestID           = http.CanonicalHeaderKey("x-request-id")
 	xIntegrityToken      = http.CanonicalHeaderKey("x-integrity-token")
 	xForceAuthentication = http.CanonicalHeaderKey("x-force-authentication")
+
+	ErrResponseVerifyFailed = errors.New("response verify failed")
 )
 
 var httpClient = resty.New().
@@ -49,7 +52,7 @@ var httpClient = resty.New().
 
 		if v, ok := r.Request.Context().Value(verifierKey).(Verifier); ok {
 			if err := v.Verify(r); err != nil {
-				return err
+				return ErrResponseVerifyFailed
 			}
 		}
 

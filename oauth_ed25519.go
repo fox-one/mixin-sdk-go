@@ -100,6 +100,9 @@ func (o *OauthKeystoreAuth) EncryptPin(pin string) string {
 
 func (o *OauthKeystoreAuth) Verify(resp *resty.Response) error {
 	verifyToken := resp.Header().Get(xIntegrityToken)
+	if verifyToken == "" && IsErrorCodes(UnmarshalResponse(resp, nil), Unauthorized) {
+		return nil
+	}
 
 	var claim struct {
 		jwt.StandardClaims
