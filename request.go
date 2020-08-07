@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"golang.org/x/net/http2"
 )
 
 var (
@@ -23,7 +22,6 @@ var (
 var httpClient = resty.New().
 	SetHeader("Content-Type", "application/json").
 	SetHostURL(DefaultApiHost).
-	SetTransport(&http2.Transport{}).
 	SetTimeout(10 * time.Second).
 	SetPreRequestHook(func(c *resty.Client, r *http.Request) error {
 		ctx := r.Context()
@@ -58,6 +56,10 @@ var httpClient = resty.New().
 
 		return nil
 	})
+
+func GetClient() *http.Client {
+	return httpClient.GetClient()
+}
 
 func checkResponseRequestID(r *resty.Response) error {
 	expect := r.Request.Header.Get(xRequestID)
