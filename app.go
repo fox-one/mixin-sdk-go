@@ -31,12 +31,35 @@ type (
 )
 
 func (c *Client) ReadApp(ctx context.Context, appID string) (*App, error) {
-	user, err := c.ReadUser(ctx, appID)
-	if err != nil {
+	var app App
+	uri := fmt.Sprintf("/apps/%s", appID)
+	if err := c.Get(ctx, uri, nil, &app); err != nil {
 		return nil, err
 	}
 
-	return user.App, nil
+	return &app, nil
+}
+
+type UpdateAppRequest struct {
+	RedirectURI      string   `json:"redirect_uri,omitempty"`
+	HomeURI          string   `json:"home_uri,omitempty"`
+	Name             string   `json:"name,omitempty"`
+	Description      string   `json:"description,omitempty"`
+	IconBase64       string   `json:"icon_base64,omitempty"`
+	SessionSecret    string   `json:"session_secret,omitempty"`
+	Category         string   `json:"category,omitempty"`
+	Capabilities     []string `json:"capabilities,omitempty"`
+	ResourcePatterns []string `json:"resource_patterns,omitempty"`
+}
+
+func (c *Client) UpdateApp(ctx context.Context, appID string, req UpdateAppRequest) (*App, error) {
+	var app App
+	uri := fmt.Sprintf("/apps/%s", appID)
+	if err := c.Post(ctx, uri, req, &app); err != nil {
+		return nil, err
+	}
+
+	return &app, nil
 }
 
 func (c *Client) ReadFavoriteApps(ctx context.Context, userID string) ([]*FavoriteApp, error) {
