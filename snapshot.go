@@ -49,6 +49,10 @@ func (s *Snapshot) UnmarshalJSON(b []byte) error {
 		sj.Memo = sj.Data
 	}
 
+	if sj.AssetID == "" && sj.Asset != nil {
+		sj.AssetID = sj.Asset.AssetID
+	}
+
 	*s = (Snapshot)(sj.snapshotJSON)
 	return nil
 }
