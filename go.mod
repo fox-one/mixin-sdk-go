@@ -10,6 +10,5 @@ require (
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/shopspring/decimal v1.2.0
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20200513185701-a91f0712d120
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sync v0.0.0-20200930132711-30421366ff76
 )
