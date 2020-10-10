@@ -55,7 +55,7 @@ func (c *Client) ReadGhostKeys(ctx context.Context, receivers []string, index in
 		return nil, err
 	}
 
-	var resp TransactionOutput
+	var resp GhostKeys
 	if err := c.Post(ctx, "/outputs", data, &resp); err != nil {
 		return nil, err
 	}

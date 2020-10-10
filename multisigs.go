@@ -6,6 +6,22 @@ import (
 	"time"
 )
 
+const (
+	UTXOStateUnspent = "unspent"
+	UTXOStateSigned  = "signed"
+	UTXOStateSpent   = "spent"
+)
+
+const (
+	MultisigActionSign   = "sign"
+	MultisigActionUnlock = "unlock"
+)
+
+const (
+	MultisigStateInitial = "initial"
+	MultisigStateSigned  = "signed"
+)
+
 type (
 	MultisigUTXO struct {
 		Type            string    `json:"type"`
@@ -13,7 +29,7 @@ type (
 		UTXOID          string    `json:"utxo_id"`
 		AssetID         string    `json:"asset_id"`
 		TransactionHash string    `json:"transaction_hash"`
-		OutputIndex     int64     `json:"output_index"`
+		OutputIndex     int       `json:"output_index"`
 		Amount          string    `json:"amount"`
 		Threshold       int64     `json:"threshold"`
 		Members         []string  `json:"members"`
@@ -31,7 +47,7 @@ type (
 		UserID          string    `json:"user_id"`
 		AssetID         string    `json:"asset_id"`
 		Amount          string    `json:"amount"`
-		Threshold       int64     `json:"threshold"`
+		Threshold       int       `json:"threshold"`
 		Senders         []string  `json:"senders"`
 		Receivers       []string  `json:"receivers"`
 		Signers         []string  `json:"signers"`
@@ -43,6 +59,26 @@ type (
 		CreatedAt       time.Time `json:"created_at"`
 		UpdatedAt       time.Time `json:"updated_at"`
 		CodeID          string    `json:"code_id"`
+	}
+
+	Input struct {
+		Hash  string `json:"hash"`
+		Index int64  `json:"index"`
+	}
+
+	Output struct {
+		Mask   string   `json:"mask"`
+		Keys   []string `json:"keys"`
+		Amount string   `json:"amount"`
+		Script string   `json:"script"`
+	}
+
+	Transaction struct {
+		Inputs  []*Input  `json:"inputs"`
+		Outputs []*Output `json:"outputs"`
+		Asset   string    `json:"asset"`
+		Extra   string    `json:"extra"`
+		Hash    string    `json:"hash"`
 	}
 )
 
@@ -103,7 +139,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
 	uri := "/multisigs/" + reqID + "/sign"
 	params := map[string]string{
-		"pin": pin,
+		"pin": c.EncryptPin(pin),
 	}
 
 	var req MultisigRequest
@@ -125,9 +161,14 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 }
 
 // UnlockMultisig unlock a multisig request
-func (c *Client) UnlockMultisig(ctx context.Context, reqID string) error {
-	uri := "/multisigs/" + reqID + "/unlock"
-	if err := c.Post(ctx, uri, nil, nil); err != nil {
+func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
+	var (
+		uri    = "/multisigs/" + reqID + "/unlock"
+		params = map[string]string{
+			"pin": c.EncryptPin(pin),
+		}
+	)
+	if err := c.Post(ctx, uri, params, nil); err != nil {
 		return err
 	}
 
