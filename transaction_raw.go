@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -21,8 +22,8 @@ type RawTransaction struct {
 	SnapshotAt      time.Time `json:"snapshot_at"`
 }
 
-// TransactionOutput transaction output
-type TransactionOutput struct {
+// GhostKeys transaction ghost keys
+type GhostKeys struct {
 	Mask string   `json:"mask"`
 	Keys []string `json:"keys"`
 }
@@ -45,13 +46,17 @@ func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string)
 	return &resp, nil
 }
 
-func (c *Client) MakeTransactionOutput(ctx context.Context, ids ...string) (*TransactionOutput, error) {
-	if len(ids) == 0 {
-		ids = []string{c.ClientID}
+func (c *Client) ReadGhostKeys(ctx context.Context, receivers []string, index int) (*GhostKeys, error) {
+	data, err := json.Marshal(map[string]interface{}{
+		"receivers": receivers,
+		"index":     index,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	var resp TransactionOutput
-	if err := c.Post(ctx, "/outputs", ids, &resp); err != nil {
+	var resp GhostKeys
+	if err := c.Post(ctx, "/outputs", data, &resp); err != nil {
 		return nil, err
 	}
 
