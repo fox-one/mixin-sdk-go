@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -90,7 +91,7 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
 	}
 
 	var utxos []*MultisigUTXO
