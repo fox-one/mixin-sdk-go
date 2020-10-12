@@ -34,6 +34,7 @@ type (
 	}
 
 	TransactionInput struct {
+		Memo    string
 		Inputs  []*MultisigUTXO
 		Outputs []struct {
 			Receivers []string
@@ -116,6 +117,7 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 
 	var tx Transaction
 	tx.Asset = input.Asset()
+	tx.Extra = input.Memo
 	// add inputs
 	for _, input := range input.Inputs {
 		tx.Inputs = append(tx.Inputs, &Input{
@@ -197,6 +199,9 @@ func TransactionFromRaw(raw string) (*Transaction, error) {
 func (t *Transaction) DumpTransaction() string {
 	asset, _ := crypto.HashFromString(t.Asset)
 	tx := common.NewTransaction(asset)
+	if t.Extra != "" {
+		tx.Extra = []byte(t.Extra)
+	}
 	for _, utxo := range t.Inputs {
 		h, _ := crypto.HashFromString(utxo.Hash)
 		tx.AddInput(h, int(utxo.Index))

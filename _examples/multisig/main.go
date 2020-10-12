@@ -12,6 +12,7 @@ import (
 	"github.com/MixinNetwork/mixin/common"
 	"github.com/MixinNetwork/mixin/crypto"
 	"github.com/fox-one/mixin-sdk-go"
+	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 	"golang.org/x/crypto/sha3"
 )
@@ -43,6 +44,30 @@ func main() {
 
 	go sumbitTransactionLoop(ctx, client)
 
+	me, err := client.UserMe(ctx)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	{
+		if _, err := client.Transaction(ctx, &mixin.TransferInput{
+			AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+			Amount:  decimal.NewFromFloat(1),
+			TraceID: uuid.Must(uuid.NewV4()).String(),
+			Memo:    "send to multisig",
+			OpponentMultisig: struct {
+				Receivers []string
+				Threshold int64
+			}{
+				Receivers: []string{client.ClientID, me.App.CreatorID},
+				Threshold: 1,
+			},
+		}, *pin); err != nil {
+			log.Panicln(err)
+		}
+		time.Sleep(time.Second * 5)
+	}
+
 	var (
 		utxo   *mixin.MultisigUTXO
 		offset time.Time
@@ -71,6 +96,7 @@ func main() {
 	}
 
 	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
+		Memo:   "multisig test",
 		Inputs: []*mixin.MultisigUTXO{utxo},
 		Outputs: []struct {
 			Receivers []string
@@ -169,7 +195,8 @@ func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 				if output.State == mixin.UTXOStateSigned && output.SignedBy != "" {
 					tx, err := mixin.SendRawTransaction(ctx, output.SignedTx)
 					if err != nil {
-						log.Panicf("ReadMultisigOutputs: %v", err)
+						log.Printf("ReadMultisigOutputs: %v\n", err)
+						continue
 					}
 					log.Printf("submit transaction: %v", tx.Hash)
 				}
