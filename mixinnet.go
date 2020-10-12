@@ -9,14 +9,14 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-var mixinnetClient = resty.New().
+var mixinNetClient = resty.New().
 	SetHeader("Content-Type", "application/json").
 	SetHostURL(DefaultMixinNetHost).
 	SetTimeout(10 * time.Second)
 
 func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	var tx Transaction
-	if err := mixinnetRPC(ctx, map[string]interface{}{
+	if err := callMixinNetRPC(ctx, map[string]interface{}{
 		"method": "sendrawtransaction",
 		"params": []interface{}{raw},
 	}, &tx); err != nil {
@@ -27,7 +27,7 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 
 func GetTransaction(ctx context.Context, hash string) (*Transaction, error) {
 	var tx Transaction
-	if err := mixinnetRPC(ctx, map[string]interface{}{
+	if err := callMixinNetRPC(ctx, map[string]interface{}{
 		"method": "gettransaction",
 		"params": []interface{}{hash},
 	}, &tx); err != nil {
@@ -36,8 +36,8 @@ func GetTransaction(ctx context.Context, hash string) (*Transaction, error) {
 	return &tx, nil
 }
 
-func mixinnetRPC(ctx context.Context, params interface{}, resp interface{}) error {
-	r, err := mixinnetClient.R().SetBody(params).Post("")
+func callMixinNetRPC(ctx context.Context, params interface{}, resp interface{}) error {
+	r, err := mixinNetClient.R().SetContext(ctx).SetBody(params).Post("")
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func DecodeMixinNetResponse(resp *resty.Response) ([]byte, error) {
 	}
 
 	if body.Error != nil {
-		return nil, fmt.Errorf("ERROR %s", body.Error)
+		return nil, fmt.Errorf("MIXIN NET RPC ERROR %s", body.Error)
 	}
 
 	return body.Data, nil
