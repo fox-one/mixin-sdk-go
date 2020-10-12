@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"time"
+
+	"github.com/MixinNetwork/mixin/common"
+	"github.com/shopspring/decimal"
 )
 
 // RawTransaction raw transaction
@@ -26,6 +29,15 @@ type RawTransaction struct {
 type GhostKeys struct {
 	Mask string   `json:"mask"`
 	Keys []string `json:"keys"`
+}
+
+func (g GhostKeys) DumpOutput(threshold int, amount decimal.Decimal) *Output {
+	return &Output{
+		Mask:   g.Mask,
+		Keys:   g.Keys,
+		Amount: amount.Truncate(8).String(),
+		Script: common.NewThresholdScript(uint8(threshold)).String(),
+	}
 }
 
 func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string) (*RawTransaction, error) {

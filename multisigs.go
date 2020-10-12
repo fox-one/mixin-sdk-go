@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -24,21 +26,21 @@ const (
 
 type (
 	MultisigUTXO struct {
-		Type            string    `json:"type"`
-		UserID          string    `json:"user_id"`
-		UTXOID          string    `json:"utxo_id"`
-		AssetID         string    `json:"asset_id"`
-		TransactionHash string    `json:"transaction_hash"`
-		OutputIndex     int       `json:"output_index"`
-		Amount          string    `json:"amount"`
-		Threshold       int64     `json:"threshold"`
-		Members         []string  `json:"members"`
-		Memo            string    `json:"memo"`
-		State           string    `json:"state"`
-		CreatedAt       time.Time `json:"created_at"`
-		UpdatedAt       time.Time `json:"updated_at"`
-		SignedBy        string    `json:"signed_by"`
-		SignedTx        string    `json:"signed_tx"`
+		Type            string          `json:"type"`
+		UserID          string          `json:"user_id"`
+		UTXOID          string          `json:"utxo_id"`
+		AssetID         string          `json:"asset_id"`
+		TransactionHash string          `json:"transaction_hash"`
+		OutputIndex     int             `json:"output_index"`
+		Amount          decimal.Decimal `json:"amount"`
+		Threshold       int64           `json:"threshold"`
+		Members         []string        `json:"members"`
+		Memo            string          `json:"memo"`
+		State           string          `json:"state"`
+		CreatedAt       time.Time       `json:"created_at"`
+		UpdatedAt       time.Time       `json:"updated_at"`
+		SignedBy        string          `json:"signed_by"`
+		SignedTx        string          `json:"signed_tx"`
 	}
 
 	MultisigRequest struct {
@@ -59,26 +61,6 @@ type (
 		CreatedAt       time.Time `json:"created_at"`
 		UpdatedAt       time.Time `json:"updated_at"`
 		CodeID          string    `json:"code_id"`
-	}
-
-	Input struct {
-		Hash  string `json:"hash"`
-		Index int64  `json:"index"`
-	}
-
-	Output struct {
-		Mask   string   `json:"mask"`
-		Keys   []string `json:"keys"`
-		Amount string   `json:"amount"`
-		Script string   `json:"script"`
-	}
-
-	Transaction struct {
-		Inputs  []*Input  `json:"inputs"`
-		Outputs []*Output `json:"outputs"`
-		Asset   string    `json:"asset"`
-		Extra   string    `json:"extra"`
-		Hash    string    `json:"hash"`
 	}
 )
 

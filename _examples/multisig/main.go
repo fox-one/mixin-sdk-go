@@ -12,6 +12,7 @@ import (
 	"github.com/MixinNetwork/mixin/common"
 	"github.com/MixinNetwork/mixin/crypto"
 	"github.com/fox-one/mixin-sdk-go"
+	"github.com/shopspring/decimal"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -69,15 +70,29 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
-	ghosts, err := client.ReadGhostKeys(ctx, []string{client.ClientID}, 0)
+	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
+		Inputs: []*mixin.MultisigUTXO{utxo},
+		Outputs: []struct {
+			Receivers []string
+			Threshold int
+			Amount    decimal.Decimal
+		}{
+			{
+				[]string{client.ClientID},
+				1,
+				utxo.Amount,
+			},
+		},
+	})
+
 	if err != nil {
-		log.Panicf("ReadGhostKeys: %v", err)
+		log.Panicf("MakeMultisigTransaction: %v", err)
 	}
 
-	tx := buildTransaction(utxo, ghosts)
+	raw := tx.DumpTransaction()
 
 	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, tx)
+		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
 		if err != nil {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
@@ -91,7 +106,7 @@ func main() {
 	}
 
 	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, tx)
+		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
 		if err != nil {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
@@ -102,7 +117,7 @@ func main() {
 		}
 
 		if len(req.Signers) < req.Threshold {
-			req, err = client.CreateMultisig(ctx, mixin.MultisigActionUnlock, tx)
+			req, err = client.CreateMultisig(ctx, mixin.MultisigActionUnlock, raw)
 			if err != nil {
 				log.Panicf("CreateMultisig: unlock %v", err)
 			}
@@ -115,7 +130,7 @@ func main() {
 	}
 
 	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, tx)
+		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
 		if err != nil {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
@@ -125,6 +140,7 @@ func main() {
 			log.Panicf("CreateMultisig: %v", err)
 		}
 	}
+	time.Sleep(time.Second * 10)
 }
 
 func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
@@ -177,7 +193,7 @@ func buildTransaction(utxo *mixin.MultisigUTXO, ghosts *mixin.GhostKeys) string 
 		}
 		tx.Outputs = append(tx.Outputs, &common.Output{
 			Type:   common.TransactionTypeScript,
-			Amount: common.NewIntegerFromString(utxo.Amount),
+			Amount: common.NewIntegerFromString(utxo.Amount.String()),
 			Keys:   keys,
 			Script: common.NewThresholdScript(1),
 			Mask:   mask,
