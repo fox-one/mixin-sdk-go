@@ -20,7 +20,7 @@ func UseApiHost(host string) {
 }
 
 func UseMixinNetHost(host string) {
-	mixinnetClient.HostURL = host
+	mixinNetClient.HostURL = host
 }
 
 var blazeHost = DefaultBlazeHost
