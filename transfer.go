@@ -17,6 +17,11 @@ type TransferInput struct {
 
 	// OpponentKey used for raw transaction
 	OpponentKey string `json:"opponent_key,omitempty"`
+
+	OpponentMultisig struct {
+		Receivers []string
+		Threshold int64
+	}
 }
 
 func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {

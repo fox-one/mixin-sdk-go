@@ -42,12 +42,20 @@ func (g GhostKeys) DumpOutput(threshold int, amount decimal.Decimal) *Output {
 
 func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string) (*RawTransaction, error) {
 	paras := map[string]interface{}{
-		"asset_id":     in.AssetID,
-		"opponent_key": in.OpponentKey,
-		"amount":       in.Amount,
-		"trace_id":     in.TraceID,
-		"memo":         in.Memo,
-		"pin":          c.EncryptPin(pin),
+		"asset_id": in.AssetID,
+		"amount":   in.Amount,
+		"trace_id": in.TraceID,
+		"memo":     in.Memo,
+		"pin":      c.EncryptPin(pin),
+	}
+
+	if in.OpponentKey != "" {
+		paras["opponent_key"] = in.OpponentKey
+	} else {
+		paras["opponent_multisig"] = map[string]interface{}{
+			"receivers": in.OpponentMultisig.Receivers,
+			"threshold": in.OpponentMultisig.Threshold,
+		}
 	}
 
 	var resp RawTransaction
