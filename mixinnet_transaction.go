@@ -43,6 +43,22 @@ type (
 	}
 )
 
+func (i *TransactionInput) AppendUTXO(utxo *MultisigUTXO) {
+	i.Inputs = append(i.Inputs, utxo)
+}
+
+func (i *TransactionInput) AppendOutput(receivers []string, threshold int, amount decimal.Decimal) {
+	i.Outputs = append(i.Outputs, struct {
+		Receivers []string
+		Threshold int
+		Amount    decimal.Decimal
+	}{
+		Receivers: receivers,
+		Threshold: threshold,
+		Amount:    amount,
+	})
+}
+
 func (i *TransactionInput) Asset() string {
 	if len(i.Inputs) == 0 {
 		return ""
