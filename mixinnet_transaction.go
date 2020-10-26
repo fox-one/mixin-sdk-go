@@ -214,11 +214,13 @@ func (t *Transaction) DumpTransaction() string {
 			key, _ := crypto.KeyFromString(k)
 			keys[i] = key
 		}
+		var script common.Script
+		script.UnmarshalJSON([]byte(fmt.Sprintf(`"%s"`, output.Script)))
 		tx.Outputs = append(tx.Outputs, &common.Output{
 			Type:   common.TransactionTypeScript,
 			Amount: common.NewIntegerFromString(output.Amount),
 			Keys:   keys,
-			Script: common.NewThresholdScript(1),
+			Script: script,
 			Mask:   mask,
 		})
 	}

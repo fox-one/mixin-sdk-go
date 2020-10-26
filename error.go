@@ -13,6 +13,7 @@ const (
 	PinIncorrect        = 20119
 	InsufficientFee     = 20124
 	InvalidTraceID      = 20125
+	InvalidReceivers    = 20150
 )
 
 type Error struct {

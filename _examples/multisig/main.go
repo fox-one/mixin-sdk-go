@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -49,24 +51,39 @@ func main() {
 		log.Panicln(err)
 	}
 
-	{
-		if _, err := client.Transaction(ctx, &mixin.TransferInput{
-			AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-			Amount:  decimal.NewFromFloat(1),
-			TraceID: uuid.Must(uuid.NewV4()).String(),
-			Memo:    "send to multisig",
-			OpponentMultisig: struct {
-				Receivers []string
-				Threshold int64
-			}{
-				Receivers: []string{client.ClientID, me.App.CreatorID},
-				Threshold: 1,
-			},
-		}, *pin); err != nil {
-			log.Panicln(err)
-		}
-		time.Sleep(time.Second * 5)
+	// create sub wallet
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
+	if err != nil {
+		log.Printf("CreateUser: %v", err)
+		return
 	}
+
+	log.Println("create sub user", sub.UserID)
+
+	subClient, _ := mixin.NewFromKeystore(subStore)
+	if err := subClient.ModifyPin(ctx, "", *pin); err != nil {
+		log.Printf("CreateUser: %v", err)
+		return
+	}
+
+	h, err := client.Transaction(ctx, &mixin.TransferInput{
+		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+		Amount:  decimal.NewFromFloat(1),
+		TraceID: uuid.Must(uuid.NewV4()).String(),
+		Memo:    "send to multisig",
+		OpponentMultisig: struct {
+			Receivers []string
+			Threshold int64
+		}{
+			Receivers: []string{subClient.ClientID, client.ClientID, me.App.CreatorID},
+			Threshold: 2,
+		},
+	}, *pin)
+	if err != nil {
+		log.Panicln(err)
+	}
+	time.Sleep(time.Second * 5)
 
 	var (
 		utxo   *mixin.MultisigUTXO
@@ -81,7 +98,7 @@ func main() {
 
 		for _, output := range outputs {
 			offset = output.UpdatedAt
-			if output.State == mixin.UTXOStateUnspent {
+			if output.TransactionHash == h.TransactionHash {
 				utxo = output
 				break
 			}
@@ -95,6 +112,11 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
+	amount := utxo.Amount.Div(decimal.NewFromFloat(2)).Truncate(8)
+	if amount.IsZero() {
+		amount = utxo.Amount
+	}
+
 	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
 		Memo:   "multisig test",
 		Inputs: []*mixin.MultisigUTXO{utxo},
@@ -106,7 +128,7 @@ func main() {
 			{
 				[]string{client.ClientID},
 				1,
-				utxo.Amount,
+				amount,
 			},
 		},
 	})
@@ -123,11 +145,19 @@ func main() {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
 
-		if len(req.Signers) < req.Threshold {
-			err = client.CancelMultisig(ctx, req.RequestID)
-			if err != nil {
-				log.Panicf("CancelMultisig: %v", err)
-			}
+		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
+		if err != nil {
+			log.Panicf("CreateMultisig: %v", err)
+		}
+
+		req, err = subClient.CreateMultisig(ctx, mixin.MultisigActionUnlock, raw)
+		if err != nil {
+			log.Panicf("CreateMultisig: sign %v", err)
+		}
+
+		err = subClient.CancelMultisig(ctx, req.RequestID)
+		if err != nil {
+			log.Panicf("CancelMultisig: %v", err)
 		}
 	}
 
@@ -171,11 +201,10 @@ func main() {
 
 func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 	const (
-		limit = 10
+		limit = 50
 	)
 
 	var (
-		offset   time.Time
 		sleepDur = time.Second
 	)
 
@@ -185,13 +214,12 @@ func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 			return
 
 		case <-time.After(sleepDur):
-			outputs, err := client.ReadMultisigOutputs(ctx, offset, limit)
+			outputs, err := client.ReadMultisigs(ctx, time.Time{}, limit)
 			if err != nil {
 				log.Panicf("ReadMultisigOutputs: %v", err)
 			}
 
 			for _, output := range outputs {
-				offset = output.UpdatedAt
 				if output.State == mixin.UTXOStateSigned && output.SignedBy != "" {
 					tx, err := mixin.SendRawTransaction(ctx, output.SignedTx)
 					if err != nil {
