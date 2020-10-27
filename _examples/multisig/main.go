@@ -195,6 +195,16 @@ func main() {
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
+
+		req, err = subClient.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
+		if err != nil {
+			log.Panicf("CreateMultisig: sign %v", err)
+		}
+
+		req, err = subClient.SignMultisig(ctx, req.RequestID, *pin)
+		if err != nil {
+			log.Panicf("CreateMultisig: %v", err)
+		}
 	}
 	time.Sleep(time.Second * 10)
 }

@@ -26,11 +26,12 @@ type (
 	}
 
 	Transaction struct {
-		Inputs  []*Input  `json:"inputs"`
-		Outputs []*Output `json:"outputs"`
-		Asset   string    `json:"asset"`
-		Extra   string    `json:"extra"`
-		Hash    string    `json:"hash"`
+		Inputs   []*Input  `json:"inputs"`
+		Outputs  []*Output `json:"outputs"`
+		Asset    string    `json:"asset"`
+		Extra    string    `json:"extra"`
+		Hash     string    `json:"hash,omitempty" msgpack:"-"`
+		Snapshot string    `json:"snapshot,omitempty" msgpack:"-"`
 	}
 
 	TransactionInput struct {

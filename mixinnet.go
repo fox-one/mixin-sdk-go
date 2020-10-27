@@ -2,10 +2,12 @@ package mixin
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"strings"
 	"time"
 
+	"github.com/MixinNetwork/mixin/common"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -20,6 +22,13 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 		"method": "sendrawtransaction",
 		"params": []interface{}{raw},
 	}, &tx); err != nil {
+		if IsErrorCodes(err, InvalidOutputKey) {
+			if bts, err := hex.DecodeString(raw); err == nil {
+				if tx, err := common.UnmarshalVersionedTransaction(bts); err == nil {
+					return GetTransaction(ctx, tx.PayloadHash().String())
+				}
+			}
+		}
 		return nil, err
 	}
 	return &tx, nil
@@ -47,7 +56,7 @@ func callMixinNetRPC(ctx context.Context, params interface{}, resp interface{}) 
 
 func DecodeMixinNetResponse(resp *resty.Response) ([]byte, error) {
 	var body struct {
-		Error interface{}     `json:"error,omitempty"`
+		Error string          `json:"error,omitempty"`
 		Data  json.RawMessage `json:"data,omitempty"`
 	}
 
@@ -59,8 +68,8 @@ func DecodeMixinNetResponse(resp *resty.Response) ([]byte, error) {
 		return nil, createError(resp.StatusCode(), resp.StatusCode(), err.Error())
 	}
 
-	if body.Error != nil {
-		return nil, fmt.Errorf("MIXIN NET RPC ERROR %s", body.Error)
+	if body.Error != "" {
+		return nil, parseMixinNetError(body.Error)
 	}
 
 	return body.Data, nil
@@ -77,4 +86,21 @@ func UnmarshalMixinNetResponse(resp *resty.Response, v interface{}) error {
 	}
 
 	return nil
+}
+
+func parseMixinNetError(errMsg string) error {
+	if strings.HasPrefix(errMsg, "invalid output key ") {
+		return createError(202, InvalidOutputKey, errMsg)
+	}
+
+	if strings.HasPrefix(errMsg, "input locked for transaction ") {
+		return createError(202, InputLocked, errMsg)
+	}
+
+	if strings.HasPrefix(errMsg, "invalid tx signature number ") ||
+		strings.HasPrefix(errMsg, "invalid signature keys ") {
+		return createError(202, InvalidSignature, errMsg)
+	}
+
+	return createError(202, 202, errMsg)
 }

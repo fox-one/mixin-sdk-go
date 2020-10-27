@@ -14,6 +14,10 @@ const (
 	InsufficientFee     = 20124
 	InvalidTraceID      = 20125
 	InvalidReceivers    = 20150
+
+	InvalidOutputKey = 2000001
+	InputLocked      = 2000002
+	InvalidSignature = 2000003
 )
 
 type Error struct {
