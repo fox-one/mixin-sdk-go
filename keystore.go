@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -22,6 +23,10 @@ type Keystore struct {
 	PrivateKey string `json:"private_key"`
 	PinToken   string `json:"pin_token"`
 	Scope      string `json:"scope"`
+
+	// seq is increasing number
+	iter uint64
+	mux  sync.Mutex
 }
 
 type KeystoreAuth struct {
@@ -88,6 +93,19 @@ func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration)
 	return token
 }
 
+func (k *KeystoreAuth) sequence() uint64 {
+	k.mux.Lock()
+	defer k.mux.Unlock()
+
+	if iter := uint64(time.Now().UnixNano()); iter > k.iter {
+		k.iter = iter
+	} else {
+		k.iter += 1
+	}
+
+	return k.iter
+}
+
 func (k *KeystoreAuth) EncryptPin(pin string) string {
 	if k.pinCipher == nil {
 		panic(errors.New("keystore: pin_token required"))
@@ -102,7 +120,7 @@ func (k *KeystoreAuth) EncryptPin(pin string) string {
 	binary.LittleEndian.PutUint64(timeBytes, uint64(time.Now().Unix()))
 	pinByte = append(pinByte, timeBytes...)
 	iteratorBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(iteratorBytes, uint64(time.Now().UnixNano()))
+	binary.LittleEndian.PutUint64(iteratorBytes, k.sequence())
 	pinByte = append(pinByte, iteratorBytes...)
 	padding := aes.BlockSize - len(pinByte)%aes.BlockSize
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
