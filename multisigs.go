@@ -30,10 +30,10 @@ type (
 		UserID          string          `json:"user_id"`
 		UTXOID          string          `json:"utxo_id"`
 		AssetID         string          `json:"asset_id"`
-		TransactionHash string          `json:"transaction_hash"`
+		TransactionHash Hash            `json:"transaction_hash"`
 		OutputIndex     int             `json:"output_index"`
 		Amount          decimal.Decimal `json:"amount"`
-		Threshold       int64           `json:"threshold"`
+		Threshold       uint8           `json:"threshold"`
 		Members         []string        `json:"members"`
 		Memo            string          `json:"memo"`
 		State           string          `json:"state"`
@@ -49,20 +49,24 @@ type (
 		UserID          string    `json:"user_id"`
 		AssetID         string    `json:"asset_id"`
 		Amount          string    `json:"amount"`
-		Threshold       int       `json:"threshold"`
+		Threshold       uint8     `json:"threshold"`
 		Senders         []string  `json:"senders"`
 		Receivers       []string  `json:"receivers"`
 		Signers         []string  `json:"signers"`
 		Memo            string    `json:"memo"`
 		Action          string    `json:"action"`
 		State           string    `json:"state"`
-		TransactionHash string    `json:"transaction_hash"`
+		TransactionHash Hash      `json:"transaction_hash"`
 		RawTransaction  string    `json:"raw_transaction"`
 		CreatedAt       time.Time `json:"created_at"`
 		UpdatedAt       time.Time `json:"updated_at"`
 		CodeID          string    `json:"code_id"`
 	}
 )
+
+func (utxo MultisigUTXO) Asset() Hash {
+	return NewHash([]byte(utxo.AssetID))
+}
 
 // ReadMultisigs return a list of multisig utxos
 func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int) ([]*MultisigUTXO, error) {

@@ -11,12 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/MixinNetwork/mixin/common"
-	"github.com/MixinNetwork/mixin/crypto"
 	"github.com/fox-one/mixin-sdk-go"
 	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
-	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -98,7 +95,7 @@ func main() {
 
 		for _, output := range outputs {
 			offset = output.UpdatedAt
-			if output.TransactionHash == h.TransactionHash {
+			if hex.EncodeToString(output.TransactionHash[:]) == h.TransactionHash {
 				utxo = output
 				break
 			}
@@ -122,7 +119,7 @@ func main() {
 		Inputs: []*mixin.MultisigUTXO{utxo},
 		Outputs: []struct {
 			Receivers []string
-			Threshold int
+			Threshold uint8
 			Amount    decimal.Decimal
 		}{
 			{
@@ -137,7 +134,10 @@ func main() {
 		log.Panicf("MakeMultisigTransaction: %v", err)
 	}
 
-	raw := tx.DumpTransaction()
+	raw, err := tx.DumpTransactionPayload()
+	if err != nil {
+		log.Panicf("DumpTransaction: %v", err)
+	}
 
 	{
 		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
@@ -172,7 +172,7 @@ func main() {
 			log.Panicf("CreateMultisig: %v", err)
 		}
 
-		if len(req.Signers) < req.Threshold {
+		if len(req.Signers) < int(req.Threshold) {
 			req, err = client.CreateMultisig(ctx, mixin.MultisigActionUnlock, raw)
 			if err != nil {
 				log.Panicf("CreateMultisig: unlock %v", err)
@@ -211,7 +211,7 @@ func main() {
 
 func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 	const (
-		limit = 50
+		limit = 100
 	)
 
 	var (
@@ -242,27 +242,4 @@ func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 			sleepDur = time.Second
 		}
 	}
-}
-
-func buildTransaction(utxo *mixin.MultisigUTXO, ghosts *mixin.GhostKeys) string {
-	tx := common.NewTransaction(crypto.Hash(sha3.Sum256([]byte(utxo.AssetID))))
-	{
-		h, _ := crypto.HashFromString(utxo.TransactionHash)
-		tx.AddInput(h, utxo.OutputIndex)
-
-		mask, _ := crypto.KeyFromString(ghosts.Mask)
-		var keys = make([]crypto.Key, len(ghosts.Keys))
-		for i, k := range ghosts.Keys {
-			key, _ := crypto.KeyFromString(k)
-			keys[i] = key
-		}
-		tx.Outputs = append(tx.Outputs, &common.Output{
-			Type:   common.TransactionTypeScript,
-			Amount: common.NewIntegerFromString(utxo.Amount.String()),
-			Keys:   keys,
-			Script: common.NewThresholdScript(1),
-			Mask:   mask,
-		})
-	}
-	return hex.EncodeToString(tx.AsLatestVersion().Marshal())
 }
