@@ -20,7 +20,7 @@ type TransferInput struct {
 
 	OpponentMultisig struct {
 		Receivers []string
-		Threshold int64
+		Threshold uint8
 	}
 }
 

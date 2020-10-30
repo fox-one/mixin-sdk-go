@@ -2,7 +2,9 @@ package mixin
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -68,6 +70,15 @@ func (utxo MultisigUTXO) Asset() Hash {
 	return NewHash([]byte(utxo.AssetID))
 }
 
+func HashMembers(ids []string) string {
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	var in string
+	for _, id := range ids {
+		in = in + id
+	}
+	return NewHash([]byte(in)).String()
+}
+
 // ReadMultisigs return a list of multisig utxos
 func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int) ([]*MultisigUTXO, error) {
 	params := make(map[string]string)
@@ -88,7 +99,7 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 }
 
 // ReadMultisigOutputs return a list of multisig outputs, including unspent, signed, spent utxos
-func (c *Client) ReadMultisigOutputs(ctx context.Context, offset time.Time, limit int) ([]*MultisigUTXO, error) {
+func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*MultisigUTXO, error) {
 	params := make(map[string]string)
 	if !offset.IsZero() {
 		params["offset"] = offset.UTC().Format(time.RFC3339Nano)
@@ -96,6 +107,14 @@ func (c *Client) ReadMultisigOutputs(ctx context.Context, offset time.Time, limi
 
 	if limit > 0 {
 		params["limit"] = fmt.Sprint(limit)
+	}
+
+	if len(members) > 0 {
+		if threshold < 1 || int(threshold) >= len(members) {
+			return nil, errors.New("invalid members")
+		}
+		params["members"] = HashMembers(members)
+		params["threshold"] = fmt.Sprint(threshold)
 	}
 
 	var utxos []*MultisigUTXO
