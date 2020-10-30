@@ -41,8 +41,6 @@ func main() {
 		log.Panicln(err)
 	}
 
-	go sumbitTransactionLoop(ctx, client)
-
 	me, err := client.UserMe(ctx)
 	if err != nil {
 		log.Panicln(err)
@@ -64,6 +62,11 @@ func main() {
 		return
 	}
 
+	members := []string{subClient.ClientID, client.ClientID, me.App.CreatorID}
+	var threshold uint8 = 2
+
+	go sumbitTransactionLoop(ctx, client, members, threshold)
+
 	h, err := client.Transaction(ctx, &mixin.TransferInput{
 		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
 		Amount:  decimal.NewFromFloat(1),
@@ -71,10 +74,10 @@ func main() {
 		Memo:    "send to multisig",
 		OpponentMultisig: struct {
 			Receivers []string
-			Threshold int64
+			Threshold uint8
 		}{
-			Receivers: []string{subClient.ClientID, client.ClientID, me.App.CreatorID},
-			Threshold: 2,
+			Receivers: members,
+			Threshold: threshold,
 		},
 	}, *pin)
 	if err != nil {
@@ -88,7 +91,7 @@ func main() {
 	)
 	const limit = 10
 	for utxo == nil {
-		outputs, err := client.ReadMultisigOutputs(ctx, offset, limit)
+		outputs, err := client.ReadMultisigOutputs(ctx, members, threshold, offset, limit)
 		if err != nil {
 			log.Panicf("ReadMultisigOutputs: %v", err)
 		}
@@ -209,7 +212,7 @@ func main() {
 	time.Sleep(time.Second * 10)
 }
 
-func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
+func sumbitTransactionLoop(ctx context.Context, client *mixin.Client, members []string, threshold uint8) {
 	const (
 		limit = 100
 	)
@@ -224,7 +227,7 @@ func sumbitTransactionLoop(ctx context.Context, client *mixin.Client) {
 			return
 
 		case <-time.After(sleepDur):
-			outputs, err := client.ReadMultisigs(ctx, time.Time{}, limit)
+			outputs, err := client.ReadMultisigOutputs(ctx, members, threshold, time.Time{}, limit)
 			if err != nil {
 				log.Panicf("ReadMultisigOutputs: %v", err)
 			}
