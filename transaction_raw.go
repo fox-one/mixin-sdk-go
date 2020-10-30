@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/MixinNetwork/mixin/common"
 	"github.com/shopspring/decimal"
 )
 
@@ -20,23 +19,23 @@ type RawTransaction struct {
 	Memo            string    `json:"memo"`
 	State           string    `json:"state"`
 	CreatedAt       time.Time `json:"created_at"`
-	TransactionHash string    `json:"transaction_hash"`
-	SnapshotHash    string    `json:"snapshot_hash"`
+	TransactionHash string    `json:"transaction_hash,omitempty"`
+	SnapshotHash    string    `json:"snapshot_hash,omitempty"`
 	SnapshotAt      time.Time `json:"snapshot_at"`
 }
 
 // GhostKeys transaction ghost keys
 type GhostKeys struct {
-	Mask string   `json:"mask"`
-	Keys []string `json:"keys"`
+	Mask Key   `json:"mask"`
+	Keys []Key `json:"keys"`
 }
 
-func (g GhostKeys) DumpOutput(threshold int, amount decimal.Decimal) *Output {
+func (g GhostKeys) DumpOutput(threshold uint8, amount decimal.Decimal) *Output {
 	return &Output{
 		Mask:   g.Mask,
 		Keys:   g.Keys,
-		Amount: amount.Truncate(8).String(),
-		Script: common.NewThresholdScript(uint8(threshold)).String(),
+		Amount: NewIntegerFromDecimal(amount),
+		Script: NewThresholdScript(threshold),
 	}
 }
 

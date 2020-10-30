@@ -2,12 +2,10 @@ package mixin
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"strings"
 	"time"
 
-	"github.com/MixinNetwork/mixin/common"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -23,9 +21,9 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 		"params": []interface{}{raw},
 	}, &tx); err != nil {
 		if IsErrorCodes(err, InvalidOutputKey) {
-			if bts, err := hex.DecodeString(raw); err == nil {
-				if tx, err := common.UnmarshalVersionedTransaction(bts); err == nil {
-					return GetTransaction(ctx, tx.PayloadHash().String())
+			if tx, err := TransactionFromRaw(raw); err == nil {
+				if h, err := tx.TransactionHash(); err == nil {
+					return GetTransaction(ctx, h.String())
 				}
 			}
 		}

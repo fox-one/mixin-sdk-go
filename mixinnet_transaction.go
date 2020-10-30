@@ -6,32 +6,54 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/MixinNetwork/mixin/common"
-	"github.com/MixinNetwork/mixin/crypto"
 	"github.com/shopspring/decimal"
-	"golang.org/x/crypto/sha3"
+	"github.com/vmihailenco/msgpack"
+)
+
+const (
+	TxVersion = 0x01
 )
 
 type (
+	MintData struct {
+		Group  string  `json:"group"`
+		Batch  uint64  `json:"batch"`
+		Amount Integer `json:"amount"`
+	}
+
+	DepositData struct {
+		Chain           Hash    `json:"chain"`
+		AssetKey        string  `json:"asset"`
+		TransactionHash string  `json:"transaction"`
+		OutputIndex     uint64  `json:"index"`
+		Amount          Integer `json:"amount"`
+	}
+
 	Input struct {
-		Hash  string `json:"hash"`
-		Index int64  `json:"index"`
+		Hash    *Hash        `json:"hash,omitempty"`
+		Index   int          `json:"index,omitempty"`
+		Genesis []byte       `json:"genesis,omitempty"`
+		Deposit *DepositData `json:"deposit,omitempty"`
+		Mint    *MintData    `json:"mint,omitempty"`
 	}
 
 	Output struct {
-		Mask   string   `json:"mask"`
-		Keys   []string `json:"keys"`
-		Amount string   `json:"amount"`
-		Script string   `json:"script"`
+		Type   uint8   `json:"type"`
+		Amount Integer `json:"amount"`
+		Keys   []Key   `json:"keys,omitempty"`
+		Script Script  `json:"script"`
+		Mask   Key     `json:"mask,omitempty"`
 	}
 
 	Transaction struct {
-		Inputs   []*Input  `json:"inputs"`
-		Outputs  []*Output `json:"outputs"`
-		Asset    string    `json:"asset"`
-		Extra    string    `json:"extra"`
-		Hash     string    `json:"hash,omitempty" msgpack:"-"`
-		Snapshot string    `json:"snapshot,omitempty" msgpack:"-"`
+		Hash       *Hash         `json:"hash,omitempty" msgpack:"-"`
+		Version    uint8         `json:"version"`
+		Asset      Hash          `json:"asset"`
+		Inputs     []*Input      `json:"inputs"`
+		Outputs    []*Output     `json:"outputs"`
+		Extra      []byte        `json:"extra,omitempty"`
+		Signatures [][]Signature `json:"signatures,omitempty" msgpack:",omitempty"`
+		Snapshot   *Hash         `json:"snapshot,omitempty" msgpack:"-"`
 	}
 
 	TransactionInput struct {
@@ -39,20 +61,54 @@ type (
 		Inputs  []*MultisigUTXO
 		Outputs []struct {
 			Receivers []string
-			Threshold int
+			Threshold uint8
 			Amount    decimal.Decimal
 		}
 	}
 )
 
+func (t *Transaction) DumpTransaction() (string, error) {
+	bts, err := msgpack.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(bts), nil
+}
+
+func (t *Transaction) DumpTransactionPayload() (string, error) {
+	sigs := t.Signatures
+	t.Signatures = nil
+	bts, err := msgpack.Marshal(t)
+	t.Signatures = sigs
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(bts), nil
+}
+
+func (t *Transaction) TransactionHash() (Hash, error) {
+	if t.Hash == nil {
+		bts, err := msgpack.Marshal(t)
+		if err != nil {
+			return Hash{}, err
+		}
+
+		h := NewHash(bts)
+		t.Hash = &h
+	}
+	return *t.Hash, nil
+}
+
 func (i *TransactionInput) AppendUTXO(utxo *MultisigUTXO) {
 	i.Inputs = append(i.Inputs, utxo)
 }
 
-func (i *TransactionInput) AppendOutput(receivers []string, threshold int, amount decimal.Decimal) {
+func (i *TransactionInput) AppendOutput(receivers []string, threshold uint8, amount decimal.Decimal) {
 	i.Outputs = append(i.Outputs, struct {
 		Receivers []string
-		Threshold int
+		Threshold uint8
 		Amount    decimal.Decimal
 	}{
 		Receivers: receivers,
@@ -61,12 +117,11 @@ func (i *TransactionInput) AppendOutput(receivers []string, threshold int, amoun
 	})
 }
 
-func (i *TransactionInput) Asset() string {
+func (i *TransactionInput) Asset() Hash {
 	if len(i.Inputs) == 0 {
-		return ""
+		return Hash{}
 	}
-	s := sha3.Sum256([]byte(i.Inputs[0].AssetID))
-	return hex.EncodeToString(s[:])
+	return i.Inputs[0].Asset()
 }
 
 func (i *TransactionInput) TotalInputAmount() decimal.Decimal {
@@ -89,8 +144,7 @@ func (i *TransactionInput) Validate() error {
 	)
 
 	for _, input := range i.Inputs {
-		s := sha3.Sum256([]byte(input.AssetID))
-		if asset != hex.EncodeToString(s[:]) {
+		if asset != input.Asset() {
 			return errors.New("invalid input utxo, asset not matched")
 		}
 
@@ -111,7 +165,7 @@ func (i *TransactionInput) Validate() error {
 	}
 
 	for _, output := range i.Outputs {
-		if output.Threshold == 0 || output.Threshold > len(output.Receivers) {
+		if output.Threshold == 0 || int(output.Threshold) > len(output.Receivers) {
 			return fmt.Errorf("invalid output threshold: %d", output.Threshold)
 		}
 
@@ -132,14 +186,16 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		return nil, err
 	}
 
-	var tx Transaction
-	tx.Asset = input.Asset()
-	tx.Extra = input.Memo
+	var tx = Transaction{
+		Version: TxVersion,
+		Asset:   input.Asset(),
+		Extra:   []byte(input.Memo),
+	}
 	// add inputs
 	for _, input := range input.Inputs {
 		tx.Inputs = append(tx.Inputs, &Input{
-			Hash:  input.TransactionHash,
-			Index: int64(input.OutputIndex),
+			Hash:  &input.TransactionHash,
+			Index: input.OutputIndex,
 		})
 	}
 
@@ -150,7 +206,7 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 			return nil, err
 		}
 
-		tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(output.Threshold, output.Amount))
+		tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(uint8(output.Threshold), output.Amount))
 	}
 
 	// refund the change
@@ -165,7 +221,7 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 				return nil, err
 			}
 
-			tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(int(input.Inputs[0].Threshold), change))
+			tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(uint8(input.Inputs[0].Threshold), change))
 		}
 	}
 
@@ -178,68 +234,9 @@ func TransactionFromRaw(raw string) (*Transaction, error) {
 		return nil, err
 	}
 
-	ver, err := common.UnmarshalVersionedTransaction(bts)
-	if err != nil {
+	var tx Transaction
+	if err := msgpack.Unmarshal(bts, &tx); err != nil {
 		return nil, err
 	}
-
-	var tx = Transaction{
-		Inputs:  make([]*Input, len(ver.Inputs)),
-		Outputs: make([]*Output, len(ver.Outputs)),
-		Asset:   ver.Asset.String(),
-		Extra:   string(ver.Extra),
-		Hash:    ver.PayloadHash().String(),
-	}
-
-	for i, input := range ver.Inputs {
-		tx.Inputs[i] = &Input{
-			Hash:  input.Hash.String(),
-			Index: int64(input.Index),
-		}
-	}
-	for i, output := range ver.Outputs {
-		o := &Output{
-			Mask:   output.Mask.String(),
-			Keys:   make([]string, len(output.Keys)),
-			Amount: output.Amount.String(),
-			Script: output.Script.String(),
-		}
-		for i, k := range output.Keys {
-			o.Keys[i] = k.String()
-		}
-		tx.Outputs[i] = o
-	}
-
 	return &tx, nil
-}
-
-func (t *Transaction) DumpTransaction() string {
-	asset, _ := crypto.HashFromString(t.Asset)
-	tx := common.NewTransaction(asset)
-	if t.Extra != "" {
-		tx.Extra = []byte(t.Extra)
-	}
-	for _, utxo := range t.Inputs {
-		h, _ := crypto.HashFromString(utxo.Hash)
-		tx.AddInput(h, int(utxo.Index))
-	}
-
-	for _, output := range t.Outputs {
-		mask, _ := crypto.KeyFromString(output.Mask)
-		var keys = make([]crypto.Key, len(output.Keys))
-		for i, k := range output.Keys {
-			key, _ := crypto.KeyFromString(k)
-			keys[i] = key
-		}
-		var script common.Script
-		script.UnmarshalJSON([]byte(fmt.Sprintf(`"%s"`, output.Script)))
-		tx.Outputs = append(tx.Outputs, &common.Output{
-			Type:   common.TransactionTypeScript,
-			Amount: common.NewIntegerFromString(output.Amount),
-			Keys:   keys,
-			Script: script,
-			Mask:   mask,
-		})
-	}
-	return hex.EncodeToString(tx.AsLatestVersion().Marshal())
 }
