@@ -44,23 +44,23 @@ type (
 	}
 
 	MultisigRequest struct {
-		Type            string    `json:"type"`
-		RequestID       string    `json:"request_id"`
-		UserID          string    `json:"user_id"`
-		AssetID         string    `json:"asset_id"`
-		Amount          string    `json:"amount"`
-		Threshold       uint8     `json:"threshold"`
-		Senders         []string  `json:"senders"`
-		Receivers       []string  `json:"receivers"`
-		Signers         []string  `json:"signers"`
-		Memo            string    `json:"memo"`
-		Action          string    `json:"action"`
-		State           string    `json:"state"`
-		TransactionHash Hash      `json:"transaction_hash"`
-		RawTransaction  string    `json:"raw_transaction"`
-		CreatedAt       time.Time `json:"created_at"`
-		UpdatedAt       time.Time `json:"updated_at"`
-		CodeID          string    `json:"code_id"`
+		Type            string          `json:"type"`
+		RequestID       string          `json:"request_id"`
+		UserID          string          `json:"user_id"`
+		AssetID         string          `json:"asset_id"`
+		Amount          decimal.Decimal `json:"amount"`
+		Threshold       uint8           `json:"threshold"`
+		Senders         []string        `json:"senders"`
+		Receivers       []string        `json:"receivers"`
+		Signers         []string        `json:"signers"`
+		Memo            string          `json:"memo"`
+		Action          string          `json:"action"`
+		State           string          `json:"state"`
+		TransactionHash Hash            `json:"transaction_hash"`
+		RawTransaction  string          `json:"raw_transaction"`
+		CreatedAt       time.Time       `json:"created_at"`
+		UpdatedAt       time.Time       `json:"updated_at"`
+		CodeID          string          `json:"code_id"`
 	}
 )
 
