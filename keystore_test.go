@@ -39,6 +39,28 @@ func TestKeystoreAuth(t *testing.T) {
 	assert.Equal(t, s.ClientID, me.UserID, "client id should be same")
 }
 
+func TestEd25519KeystoreAuth(t *testing.T) {
+	path := "./testdata/keystore_ed25519.json"
+	f, err := os.Open(path)
+	require.Nil(t, err, "open path: %v", path)
+
+	defer f.Close()
+
+	var store Keystore
+	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
+
+	auth, err := AuthEd25519FromKeystore(&store)
+	require.Nil(t, err, "auth from keystore")
+
+	sig := SignRaw("GET", "/me", nil)
+	token := auth.SignToken(sig, newRequestID(), time.Minute)
+
+	me, err := UserMe(context.TODO(), token)
+	require.Nil(t, err, "UserMe")
+
+	assert.Equal(t, store.ClientID, me.UserID, "client id should be same")
+}
+
 func decodePinFromTestData(t *testing.T) string {
 	path := "./testdata/keystore.json"
 	f, err := os.Open(path)
