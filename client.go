@@ -28,7 +28,7 @@ func NewFromKeystore(keystore *Keystore) (*Client, error) {
 	return c, nil
 }
 
-// NewFromEd25519Keystore initializes a client with a Ed25519 signer.
+// NewFromEd25519Keystore initializes a client with an Ed25519 signer.
 // You should make sure that the keystore is of Ed25519.
 func NewFromEd25519Keystore(keystore *Keystore) (*Client, error) {
 	auth, err := AuthEd25519FromKeystore(keystore)
