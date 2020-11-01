@@ -16,4 +16,4 @@ demo/demo*
 
 .idea
 .vscode
-/testdata/keystore.json
+/testdata/keystore*.json

@@ -2,6 +2,8 @@ package mixin
 
 import (
 	"context"
+	"crypto"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -81,10 +83,20 @@ func (c *Client) SearchUser(ctx context.Context, identityNumber string) (*User, 
 	return c.ReadUser(ctx, identityNumber)
 }
 
-func (c *Client) CreateUser(ctx context.Context, key *rsa.PrivateKey, fullname string) (*User, *Keystore, error) {
-	pub, err := x509.MarshalPKIXPublicKey(key.Public())
-	if err != nil {
-		return nil, nil, err
+func (c *Client) CreateUser(ctx context.Context, key crypto.Signer, fullname string) (*User, *Keystore, error) {
+	publicKey := key.Public()
+	var pub []byte
+	switch k := publicKey.(type) {
+	case ed25519.PublicKey:
+		pub = k
+	case *rsa.PublicKey:
+		var err error
+		pub, err = x509.MarshalPKIXPublicKey(publicKey)
+		if err != nil {
+			return nil, nil, err
+		}
+	default:
+		return nil, nil, fmt.Errorf("unexpected public key type: %T", key)
 	}
 
 	paras := map[string]interface{}{
@@ -100,17 +112,24 @@ func (c *Client) CreateUser(ctx context.Context, key *rsa.PrivateKey, fullname s
 	return &user, newKeystoreFromUser(&user, key), nil
 }
 
-func newKeystoreFromUser(user *User, privateKey *rsa.PrivateKey) *Keystore {
-	pk := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	})
+func newKeystoreFromUser(user *User, privateKey crypto.PrivateKey) *Keystore {
+	var pk string
+	switch k := privateKey.(type) {
+	case ed25519.PrivateKey:
+		pk = ed25519Encoding.EncodeToString(k)
+	case *rsa.PrivateKey:
+		s := pem.EncodeToMemory(&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(k),
+		})
+		pk = string(s)
+	}
 
 	return &Keystore{
 		ClientID:   user.UserID,
 		SessionID:  user.SessionID,
 		PinToken:   user.PinToken,
-		PrivateKey: string(pk),
+		PrivateKey: pk,
 	}
 }
 

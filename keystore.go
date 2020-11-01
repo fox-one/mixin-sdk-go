@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -15,6 +17,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/curve25519"
 )
 
 type Keystore struct {
@@ -68,6 +71,51 @@ func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	}
 
 	return auth, nil
+}
+
+// AuthEd25519FromKeystore produces a signer using a ed25519 keystore.
+func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
+	auth := &KeystoreAuth{
+		Keystore:   store,
+		signMethod: Ed25519SigningMethod,
+	}
+	signKey, err := ed25519Encoding.DecodeString(store.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	auth.signKey = ed25519.PrivateKey(signKey)
+
+	if store.PinToken != "" {
+		token, err := base64.StdEncoding.DecodeString(store.PinToken)
+		if err != nil {
+			return nil, err
+		}
+
+		var keyBytes, curve, pub [32]byte
+		privateKeyToCurve25519(&curve, ed25519.PrivateKey(signKey))
+		copy(pub[:], token[:])
+		curve25519.ScalarMult(&keyBytes, &curve, &pub)
+
+		pinCipher, err := aes.NewCipher(keyBytes[:])
+		if err != nil {
+			return nil, err
+		}
+
+		auth.pinCipher = pinCipher
+	}
+	return auth, nil
+}
+
+func privateKeyToCurve25519(curve25519Private *[32]byte, privateKey ed25519.PrivateKey) {
+	h := sha512.New()
+	h.Write(privateKey.Seed())
+	digest := h.Sum(nil)
+
+	digest[0] &= 248
+	digest[31] &= 127
+	digest[31] |= 64
+
+	copy(curve25519Private[:], digest)
 }
 
 func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
