@@ -43,7 +43,7 @@ func TestCreateUser(t *testing.T) {
 	user, keystore, err = botClient.CreateUser(context.TODO(), ed25519PriKey, "name-ed25519")
 	require.NoError(err, "create a user with a Ed25519 key")
 
-	ed25519UserClient, err := NewFromEd25519Keystore(keystore)
+	ed25519UserClient, err := NewFromKeystore(keystore)
 	require.NoError(err, "Ed25519 user client")
 	me, err = ed25519UserClient.UserMe(context.TODO())
 	require.NoError(err, "read the Ed25519 user")
