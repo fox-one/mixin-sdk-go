@@ -47,7 +47,7 @@ func (urlScheme) Pay(input *TransferInput) string {
 	return u.String()
 }
 
-func (urlScheme) Code(code string) string {
+func (urlScheme) Codes(code string) string {
 	u := url.URL{
 		Scheme: Scheme,
 		Host:   "codes",
