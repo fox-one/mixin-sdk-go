@@ -26,7 +26,7 @@ func NewFromKeystore(keystore *Keystore) (*Client, error) {
 	} else if _, err := ed25519Encoding.DecodeString(keystore.PrivateKey); err == nil {
 		auth, err = AuthEd25519FromKeystore(keystore)
 		if err != nil {
-			return nil, fmt.Errorf("Ed25519 keystore: %w", err)
+			return nil, fmt.Errorf("ed25519 keystore: %w", err)
 		}
 	} else {
 		return nil, fmt.Errorf("unexpected private key format")

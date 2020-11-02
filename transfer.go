@@ -19,9 +19,9 @@ type TransferInput struct {
 	OpponentKey string `json:"opponent_key,omitempty"`
 
 	OpponentMultisig struct {
-		Receivers []string
-		Threshold uint8
-	}
+		Receivers []string `json:"receivers,omitempty"`
+		Threshold uint8    `json:"threshold,omitempty"`
+	} `json:"opponent_multisig,omitempty"`
 }
 
 func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {
