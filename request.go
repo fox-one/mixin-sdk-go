@@ -92,7 +92,6 @@ func DecodeResponse(resp *resty.Response) ([]byte, error) {
 	if body.Error != nil && body.Error.Code > 0 {
 		return nil, body.Error
 	}
-
 	return body.Data, nil
 }
 
