@@ -22,17 +22,18 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	}, &tx); err != nil {
 		if IsErrorCodes(err, InvalidOutputKey) {
 			if tx, err := TransactionFromRaw(raw); err == nil {
-				if h, err := tx.TransactionHash(); err == nil {
-					return GetTransaction(ctx, h.String())
+				h, _ := tx.TransactionHash()
+				if tx, err := GetTransaction(ctx, h); err == nil && tx.Asset.HasValue() {
+					return tx, nil
 				}
 			}
 		}
 		return nil, err
 	}
-	return &tx, nil
+	return GetTransaction(ctx, *tx.Hash)
 }
 
-func GetTransaction(ctx context.Context, hash string) (*Transaction, error) {
+func GetTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 	var tx Transaction
 	if err := callMixinNetRPC(ctx, map[string]interface{}{
 		"method": "gettransaction",

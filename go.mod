@@ -3,6 +3,7 @@ module github.com/fox-one/mixin-sdk-go
 go 1.15
 
 require (
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible

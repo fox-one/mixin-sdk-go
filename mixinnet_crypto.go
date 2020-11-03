@@ -1,6 +1,8 @@
 package mixin
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -16,10 +18,10 @@ const (
 )
 
 type (
-	Script    []uint8
-	Hash      [32]byte
-	Key       [32]byte
-	Signature [64]byte
+	Script []uint8
+	Hash   [32]byte
+
+	TransactionExtra []byte
 )
 
 // Script
@@ -89,6 +91,11 @@ func HashFromString(src string) (Hash, error) {
 	return hash, nil
 }
 
+func (h Hash) HasValue() bool {
+	zero := Hash{}
+	return bytes.Compare(h[:], zero[:]) != 0
+}
+
 func (h Hash) String() string {
 	return hex.EncodeToString(h[:])
 }
@@ -113,67 +120,28 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Key
+// Transaction Extra
 
-func KeyFromString(s string) (Key, error) {
-	var key Key
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		return key, err
-	}
-	if len(b) != len(key) {
-		return key, fmt.Errorf("invalid key size %d", len(b))
-	}
-	copy(key[:], b)
-	return key, nil
+func (e TransactionExtra) String() string {
+	return base64.StdEncoding.EncodeToString(e[:])
 }
 
-func (k Key) String() string {
-	return hex.EncodeToString(k[:])
+func (e TransactionExtra) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(e.String())), nil
 }
 
-func (k Key) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(k.String())), nil
-}
-
-func (k *Key) UnmarshalJSON(b []byte) error {
+func (e *TransactionExtra) UnmarshalJSON(b []byte) error {
 	unquoted, err := strconv.Unquote(string(b))
 	if err != nil {
 		return err
 	}
 	data, err := hex.DecodeString(string(unquoted))
 	if err != nil {
-		return err
+		if data, err = base64.StdEncoding.DecodeString(string(unquoted)); err != nil {
+			return err
+		}
 	}
-	if len(data) != len(k) {
-		return fmt.Errorf("invalid key length %d", len(data))
-	}
-	copy(k[:], data)
-	return nil
-}
 
-// Signature
-
-func (s Signature) String() string {
-	return hex.EncodeToString(s[:])
-}
-
-func (s Signature) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(s.String())), nil
-}
-
-func (s *Signature) UnmarshalJSON(b []byte) error {
-	unquoted, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	data, err := hex.DecodeString(string(unquoted))
-	if err != nil {
-		return err
-	}
-	if len(data) != len(s) {
-		return fmt.Errorf("invalid signature length %d", len(data))
-	}
-	copy(s[:], data)
+	*e = data
 	return nil
 }

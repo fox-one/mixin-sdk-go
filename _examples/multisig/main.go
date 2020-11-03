@@ -73,8 +73,8 @@ func main() {
 		TraceID: uuid.Must(uuid.NewV4()).String(),
 		Memo:    "send to multisig",
 		OpponentMultisig: struct {
-			Receivers []string
-			Threshold uint8
+			Receivers []string `json:"receivers,omitempty"`
+			Threshold uint8    `json:"threshold,omitempty"`
 		}{
 			Receivers: members,
 			Threshold: threshold,
