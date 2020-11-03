@@ -46,14 +46,14 @@ type (
 	}
 
 	Transaction struct {
-		Hash       *Hash         `json:"hash,omitempty" msgpack:"-"`
-		Version    uint8         `json:"version"`
-		Asset      Hash          `json:"asset"`
-		Inputs     []*Input      `json:"inputs"`
-		Outputs    []*Output     `json:"outputs"`
-		Extra      []byte        `json:"extra,omitempty"`
-		Signatures [][]Signature `json:"signatures,omitempty" msgpack:",omitempty"`
-		Snapshot   *Hash         `json:"snapshot,omitempty" msgpack:"-"`
+		Hash       *Hash            `json:"hash,omitempty" msgpack:"-"`
+		Version    uint8            `json:"version"`
+		Asset      Hash             `json:"asset"`
+		Inputs     []*Input         `json:"inputs"`
+		Outputs    []*Output        `json:"outputs"`
+		Extra      TransactionExtra `json:"extra,omitempty"`
+		Signatures [][]Signature    `json:"signatures,omitempty" msgpack:",omitempty"`
+		Snapshot   *Hash            `json:"snapshot,omitempty" msgpack:"-"`
 	}
 
 	TransactionInput struct {

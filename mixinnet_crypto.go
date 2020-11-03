@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -20,6 +21,8 @@ type (
 	Script    []uint8
 	Hash      [32]byte
 	Signature [64]byte
+
+	TransactionExtra []byte
 )
 
 // Script
@@ -141,5 +144,31 @@ func (s *Signature) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("invalid signature length %d", len(data))
 	}
 	copy(s[:], data)
+	return nil
+}
+
+// Transaction Extra
+
+func (e TransactionExtra) String() string {
+	return base64.StdEncoding.EncodeToString(e[:])
+}
+
+func (e TransactionExtra) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(e.String())), nil
+}
+
+func (e *TransactionExtra) UnmarshalJSON(b []byte) error {
+	unquoted, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	data, err := hex.DecodeString(string(unquoted))
+	if err != nil {
+		if data, err = base64.StdEncoding.DecodeString(string(unquoted)); err != nil {
+			return err
+		}
+	}
+
+	*e = data
 	return nil
 }

@@ -26,15 +26,15 @@ type (
 
 func NewMixinnetAddress(rand io.Reader, public ...bool) *MixinnetAddress {
 	var a = MixinnetAddress{
-		PublicSpendKey: NewKey(rand),
-		PublicViewKey:  NewKey(rand),
+		PrivateSpendKey: NewKey(rand),
+		PrivateViewKey:  NewKey(rand),
 	}
 
-	a.PublicSpendKey = a.PrivateSpendKey.Public()
 	if len(public) > 0 && public[0] {
 		a.PrivateViewKey = a.PublicSpendKey.DeterministicHashDerive()
-		a.PublicViewKey = a.PrivateViewKey.Public()
 	}
+	a.PublicSpendKey = a.PrivateSpendKey.Public()
+	a.PublicViewKey = a.PrivateViewKey.Public()
 
 	return &a
 }
@@ -116,13 +116,13 @@ func (a MixinnetAddress) CreateUTXO(outputIndex int, amount decimal.Decimal) *Ou
 //	1. 该 transaction 只有一个 input ，且该 input 的类型为普通转账类型, 即 Hash 不为空
 //	2. 该 input 对应的 utxo 只有一个 keys， 即 不是多签地址 转出
 //	3. 该 input 的 mask & keys 可以使用该地址的 private view 和 public spend 碰撞通过
-func VerifyTransaction(ctx context.Context, addr MixinnetAddress, txHash Hash) (bool, error) {
+func VerifyTransaction(ctx context.Context, addr *MixinnetAddress, txHash Hash) (bool, error) {
 	if !addr.PrivateViewKey.HasValue() || !addr.PublicSpendKey.HasValue() {
 		return false, errors.New("invalid address: must contains both private view key and public spend key")
 	}
 
 	tx, err := GetTransaction(ctx, txHash)
-	if err != nil || tx == nil {
+	if err != nil || !tx.Asset.HasValue() {
 		return false, err
 	}
 
@@ -131,7 +131,7 @@ func VerifyTransaction(ctx context.Context, addr MixinnetAddress, txHash Hash) (
 	}
 
 	preTx, err := GetTransaction(ctx, *tx.Inputs[0].Hash)
-	if err != nil {
+	if err != nil || !preTx.Asset.HasValue() {
 		return false, err
 	}
 
