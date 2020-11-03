@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -18,7 +19,6 @@ const (
 type (
 	Script    []uint8
 	Hash      [32]byte
-	Key       [32]byte
 	Signature [64]byte
 )
 
@@ -89,6 +89,11 @@ func HashFromString(src string) (Hash, error) {
 	return hash, nil
 }
 
+func (h Hash) HasValue() bool {
+	zero := Hash{}
+	return bytes.Compare(h[:], zero[:]) != 0
+}
+
 func (h Hash) String() string {
 	return hex.EncodeToString(h[:])
 }
@@ -110,45 +115,6 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("invalid hash length %d", len(data))
 	}
 	copy(h[:], data)
-	return nil
-}
-
-// Key
-
-func KeyFromString(s string) (Key, error) {
-	var key Key
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		return key, err
-	}
-	if len(b) != len(key) {
-		return key, fmt.Errorf("invalid key size %d", len(b))
-	}
-	copy(key[:], b)
-	return key, nil
-}
-
-func (k Key) String() string {
-	return hex.EncodeToString(k[:])
-}
-
-func (k Key) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(k.String())), nil
-}
-
-func (k *Key) UnmarshalJSON(b []byte) error {
-	unquoted, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	data, err := hex.DecodeString(string(unquoted))
-	if err != nil {
-		return err
-	}
-	if len(data) != len(k) {
-		return fmt.Errorf("invalid key length %d", len(data))
-	}
-	copy(k[:], data)
 	return nil
 }
 

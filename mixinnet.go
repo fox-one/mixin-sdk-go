@@ -23,7 +23,7 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 		if IsErrorCodes(err, InvalidOutputKey) {
 			if tx, err := TransactionFromRaw(raw); err == nil {
 				if h, err := tx.TransactionHash(); err == nil {
-					return GetTransaction(ctx, h.String())
+					return GetTransaction(ctx, h)
 				}
 			}
 		}
@@ -32,7 +32,7 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	return &tx, nil
 }
 
-func GetTransaction(ctx context.Context, hash string) (*Transaction, error) {
+func GetTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 	var tx Transaction
 	if err := callMixinNetRPC(ctx, map[string]interface{}{
 		"method": "gettransaction",
