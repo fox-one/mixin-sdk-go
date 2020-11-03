@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -68,33 +69,32 @@ type (
 )
 
 func (t *Transaction) DumpTransaction() (string, error) {
-	bts, err := msgpack.Marshal(t)
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf).UseCompactEncoding(true)
+	err := enc.Encode(t)
 	if err != nil {
 		return "", err
 	}
 
-	return hex.EncodeToString(bts), nil
+	return hex.EncodeToString(buf.Bytes()), nil
 }
 
 func (t *Transaction) DumpTransactionPayload() (string, error) {
 	sigs := t.Signatures
 	t.Signatures = nil
-	bts, err := msgpack.Marshal(t)
+	raw, err := t.DumpTransaction()
 	t.Signatures = sigs
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(bts), nil
+	return raw, err
 }
 
 func (t *Transaction) TransactionHash() (Hash, error) {
 	if t.Hash == nil {
-		bts, err := msgpack.Marshal(t)
+		raw, err := t.DumpTransactionPayload()
 		if err != nil {
 			return Hash{}, err
 		}
 
+		bts, _ := hex.DecodeString(raw)
 		h := NewHash(bts)
 		t.Hash = &h
 	}

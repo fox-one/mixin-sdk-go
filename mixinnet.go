@@ -30,7 +30,7 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 		}
 		return nil, err
 	}
-	return &tx, nil
+	return GetTransaction(ctx, *tx.Hash)
 }
 
 func GetTransaction(ctx context.Context, hash Hash) (*Transaction, error) {

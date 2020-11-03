@@ -18,9 +18,8 @@ const (
 )
 
 type (
-	Script    []uint8
-	Hash      [32]byte
-	Signature [64]byte
+	Script []uint8
+	Hash   [32]byte
 
 	TransactionExtra []byte
 )
@@ -118,32 +117,6 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("invalid hash length %d", len(data))
 	}
 	copy(h[:], data)
-	return nil
-}
-
-// Signature
-
-func (s Signature) String() string {
-	return hex.EncodeToString(s[:])
-}
-
-func (s Signature) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Quote(s.String())), nil
-}
-
-func (s *Signature) UnmarshalJSON(b []byte) error {
-	unquoted, err := strconv.Unquote(string(b))
-	if err != nil {
-		return err
-	}
-	data, err := hex.DecodeString(string(unquoted))
-	if err != nil {
-		return err
-	}
-	if len(data) != len(s) {
-		return fmt.Errorf("invalid signature length %d", len(data))
-	}
-	copy(s[:], data)
 	return nil
 }
 
