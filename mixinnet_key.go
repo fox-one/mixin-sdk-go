@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/fox-one/mixin-sdk-go/edwards25519"
@@ -13,6 +14,19 @@ import (
 type (
 	Key [32]byte
 )
+
+func NewKey(randReader io.Reader) Key {
+	var (
+		seed = make([]byte, 64)
+		s    = 0
+	)
+
+	for s < len(seed) {
+		n, _ := randReader.Read(seed[s:])
+		s += n
+	}
+	return NewKeyFromSeed(seed)
+}
 
 func NewKeyFromSeed(seed []byte) Key {
 	var key [32]byte
@@ -102,6 +116,32 @@ func (k *Key) MultScalar(outputIndex int) *Key {
 	hash = NewHash(hash[:])
 	copy(src[32:], hash[:])
 	key := NewKeyFromSeed(src[:])
+	return &key
+}
+
+func DeriveGhostPublicKey(r, A, B *Key, outputIndex int) *Key {
+	var point1, point2 edwards25519.ExtendedGroupElement
+	var point3 edwards25519.CachedGroupElement
+	var point4 edwards25519.CompletedGroupElement
+	var point5 edwards25519.ProjectiveGroupElement
+
+	tmp := [32]byte(*B)
+	point1.FromBytes(&tmp)
+	scalar := KeyMultPubPriv(A, r).MultScalar(outputIndex).HashScalar()
+	edwards25519.GeScalarMultBase(&point2, scalar)
+	point2.ToCached(&point3)
+	edwards25519.GeAdd(&point4, &point1, &point3)
+	point4.ToProjective(&point5)
+	point5.ToBytes(&tmp)
+	key := Key(tmp)
+	return &key
+}
+
+func DeriveGhostPrivateKey(R, a, b *Key, outputIndex int) *Key {
+	scalar := KeyMultPubPriv(R, a).MultScalar(outputIndex).HashScalar()
+	tmp := [32]byte(*b)
+	edwards25519.ScAdd(&tmp, &tmp, scalar)
+	key := Key(tmp)
 	return &key
 }
 

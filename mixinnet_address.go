@@ -3,8 +3,17 @@ package mixin
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
+	"io"
+	"strconv"
+	"strings"
+
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/shopspring/decimal"
 )
+
+const MainNetworkID = "XIN"
 
 type (
 	MixinnetAddress struct {
@@ -15,14 +24,92 @@ type (
 	}
 )
 
-func NewPublicAddress(publicSpend Key) MixinnetAddress {
+func NewMixinnetAddress(rand io.Reader, public ...bool) *MixinnetAddress {
+	var a = MixinnetAddress{
+		PublicSpendKey: NewKey(rand),
+		PublicViewKey:  NewKey(rand),
+	}
+
+	a.PublicSpendKey = a.PrivateSpendKey.Public()
+	if len(public) > 0 && public[0] {
+		a.PrivateViewKey = a.PublicSpendKey.DeterministicHashDerive()
+		a.PublicViewKey = a.PrivateViewKey.Public()
+	}
+
+	return &a
+}
+
+func NewMixinnetAddressFromString(s string) (MixinnetAddress, error) {
+	var a MixinnetAddress
+	if !strings.HasPrefix(s, MainNetworkID) {
+		return a, errors.New("invalid address network")
+	}
+	data := base58.Decode(s[len(MainNetworkID):])
+	if len(data) != 68 {
+		return a, errors.New("invalid address format")
+	}
+	checksum := NewHash(append([]byte(MainNetworkID), data[:64]...))
+	if !bytes.Equal(checksum[:4], data[64:]) {
+		return a, errors.New("invalid address checksum")
+	}
+	copy(a.PublicSpendKey[:], data[:32])
+	copy(a.PublicViewKey[:], data[32:])
+	return a, nil
+}
+
+func NewMixinnetAddressFromPublicSpend(publicSpend Key) *MixinnetAddress {
 	var a = MixinnetAddress{
 		PublicSpendKey: publicSpend,
 	}
 	a.PrivateViewKey = publicSpend.DeterministicHashDerive()
 	a.PublicViewKey = a.PrivateViewKey.Public()
 
-	return a
+	return &a
+}
+
+func (a MixinnetAddress) String() string {
+	data := append([]byte(MainNetworkID), a.PublicSpendKey[:]...)
+	data = append(data, a.PublicViewKey[:]...)
+	checksum := NewHash(data)
+	data = append(a.PublicSpendKey[:], a.PublicViewKey[:]...)
+	data = append(data, checksum[:4]...)
+	return MainNetworkID + base58.Encode(data)
+}
+
+func (a MixinnetAddress) Hash() Hash {
+	return NewHash(append(a.PublicSpendKey[:], a.PublicViewKey[:]...))
+}
+
+func (a MixinnetAddress) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(a.String())), nil
+}
+
+func (a *MixinnetAddress) UnmarshalJSON(b []byte) error {
+	unquoted, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	m, err := NewMixinnetAddressFromString(unquoted)
+	if err != nil {
+		return err
+	}
+	a.PrivateSpendKey = m.PrivateSpendKey
+	a.PrivateViewKey = m.PrivateViewKey
+	a.PublicSpendKey = m.PublicSpendKey
+	a.PublicViewKey = m.PublicViewKey
+	return nil
+}
+
+func (a MixinnetAddress) CreateUTXO(outputIndex int, amount decimal.Decimal) *Output {
+	r := NewKey(rand.Reader)
+	pubGhost := DeriveGhostPublicKey(&r, &a.PrivateSpendKey, &a.PrivateViewKey, outputIndex)
+	return &Output{
+		Type:   0,
+		Script: NewThresholdScript(1),
+		Amount: NewIntegerFromDecimal(amount),
+		Mask:   r.Public(),
+		Keys:   []Key{*pubGhost},
+	}
 }
 
 // 检查 transaction 是否是由该主网地址签发。满足以下所有条件则返回  true:
