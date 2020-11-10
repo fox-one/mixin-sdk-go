@@ -4,15 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
-	"time"
 
 	"github.com/go-resty/resty/v2"
 )
-
-var mixinNetClient = resty.New().
-	SetHeader("Content-Type", "application/json").
-	SetHostURL(DefaultMixinNetHost).
-	SetTimeout(10 * time.Second)
 
 func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	var tx Transaction
@@ -45,7 +39,8 @@ func GetTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 }
 
 func callMixinNetRPC(ctx context.Context, params interface{}, resp interface{}) error {
-	r, err := mixinNetClient.R().SetContext(ctx).SetBody(params).Post("")
+	r, err := MixinNetClientFromContext(ctx).R().
+		SetContext(ctx).SetBody(params).Post("")
 	if err != nil {
 		return err
 	}

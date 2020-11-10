@@ -11,6 +11,7 @@ const (
 	signerKey
 	verifierKey
 	requestIdKey
+	mixinnetHostKey
 )
 
 func WithSigner(ctx context.Context, s Signer) context.Context {

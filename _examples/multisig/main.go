@@ -65,8 +65,6 @@ func main() {
 	members := []string{subClient.ClientID, client.ClientID, me.App.CreatorID}
 	var threshold uint8 = 2
 
-	go sumbitTransactionLoop(ctx, client, members, threshold)
-
 	h, err := client.Transaction(ctx, &mixin.TransferInput{
 		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
 		Amount:  decimal.NewFromFloat(1),
@@ -208,41 +206,11 @@ func main() {
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
-	}
-	time.Sleep(time.Second * 10)
-}
 
-func sumbitTransactionLoop(ctx context.Context, client *mixin.Client, members []string, threshold uint8) {
-	const (
-		limit = 100
-	)
-
-	var (
-		sleepDur = time.Second
-	)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case <-time.After(sleepDur):
-			outputs, err := client.ReadMultisigOutputs(ctx, members, threshold, time.Time{}, limit)
-			if err != nil {
-				log.Panicf("ReadMultisigOutputs: %v", err)
-			}
-
-			for _, output := range outputs {
-				if output.State == mixin.UTXOStateSigned && output.SignedBy != "" {
-					tx, err := mixin.SendRawTransaction(ctx, output.SignedTx)
-					if err != nil {
-						log.Printf("ReadMultisigOutputs: %v\n", err)
-						continue
-					}
-					log.Printf("submit transaction: %v", tx.Hash)
-				}
-			}
-			sleepDur = time.Second
+		tx, err := mixin.SendRawTransaction(ctx, req.RawTransaction)
+		if err != nil {
+			log.Panicf("SendRawTransaction: %v\n", err)
 		}
+		log.Printf("submit transaction: %v", tx.Hash)
 	}
 }
