@@ -2,12 +2,12 @@ package mixin
 
 import (
 	"os"
+	"strings"
 )
 
 const (
-	DefaultApiHost      = "https://api.mixin.one"
-	DefaultBlazeHost    = "blaze.mixin.one"
-	DefaultMixinNetHost = "http://node-42.f1ex.io:8239"
+	DefaultApiHost   = "https://api.mixin.one"
+	DefaultBlazeHost = "blaze.mixin.one"
 
 	ZeromeshApiHost   = "https://mixin-api.zeromesh.net"
 	ZeromeshBlazeHost = "mixin-blaze.zeromesh.net"
@@ -17,10 +17,6 @@ const (
 
 func UseApiHost(host string) {
 	httpClient.HostURL = host
-}
-
-func UseMixinNetHost(host string) {
-	mixinNetClient.HostURL = host
 }
 
 var blazeHost = DefaultBlazeHost
@@ -43,7 +39,7 @@ func init() {
 		UseBlazeHost(host)
 	}
 
-	if host, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOST"); ok && host != "" {
-		UseMixinNetHost(host)
+	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
+		UseMixinNetHosts(strings.Split(hosts, ","))
 	}
 }
