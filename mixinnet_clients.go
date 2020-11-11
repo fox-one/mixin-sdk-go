@@ -19,8 +19,8 @@ var (
 	mixinNetClients = map[string]*resty.Client{}
 )
 
-func UseMixinNetHosts(hosts []string, defaultHost int) {
-	if len(hosts) == 0 || defaultHost < 0 || defaultHost > len(hosts) {
+func UseMixinNetHosts(hosts []string) {
+	if len(hosts) == 0 {
 		return
 	}
 	mixinnetHosts = hosts

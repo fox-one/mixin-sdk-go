@@ -40,6 +40,6 @@ func init() {
 	}
 
 	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
-		UseMixinNetHosts(strings.Split(hosts, ","), 0)
+		UseMixinNetHosts(strings.Split(hosts, ","))
 	}
 }
