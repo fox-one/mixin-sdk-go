@@ -21,7 +21,7 @@ var (
 
 func UseMixinNetHosts(hosts []string) {
 	if len(hosts) == 0 {
-		return
+		panic("empty mixin net host")
 	}
 	mixinnetHosts = hosts
 	mixinNetClients = map[string]*resty.Client{}
@@ -52,10 +52,7 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 }
 
 func WithMixinNetHost(ctx context.Context, host string) context.Context {
-	if host != "" {
-		ctx = context.WithValue(ctx, mixinnetHostKey, host)
-	}
-	return ctx
+	return context.WithValue(ctx, mixinnetHostKey, host)
 }
 
 func RandomMixinNetHost() string {
