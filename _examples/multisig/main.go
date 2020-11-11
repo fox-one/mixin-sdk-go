@@ -19,8 +19,6 @@ import (
 var (
 	config = flag.String("config", "", "keystore file path")
 	pin    = flag.String("pin", "", "pin")
-
-	ctx = context.Background()
 )
 
 func main() {
@@ -40,6 +38,8 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
+
+	ctx := mixin.WithMixinNetHost(context.Background(), mixin.RandomMixinNetHost())
 
 	me, err := client.UserMe(ctx)
 	if err != nil {

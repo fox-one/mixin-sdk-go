@@ -43,6 +43,8 @@ func main() {
 		addr      = mixin.NewMixinnetAddress(rand.Reader)
 		tx        *mixin.Transaction
 		privGhost *mixin.Key
+
+		ctx = mixin.WithMixinNetHost(context.Background(), mixin.RandomMixinNetHost())
 	)
 
 	{

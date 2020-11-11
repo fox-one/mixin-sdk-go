@@ -16,8 +16,7 @@ var (
 		"http://node-box-2.f1ex.io:8239",
 	}
 
-	defaultMixinNetHost = 0
-	mixinNetClients     = map[string]*resty.Client{}
+	mixinNetClients = map[string]*resty.Client{}
 )
 
 func UseMixinNetHosts(hosts []string, defaultHost int) {
@@ -25,7 +24,6 @@ func UseMixinNetHosts(hosts []string, defaultHost int) {
 		return
 	}
 	mixinnetHosts = hosts
-	defaultMixinNetHost = defaultHost
 	mixinNetClients = map[string]*resty.Client{}
 }
 
@@ -37,7 +35,7 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 		}
 	}
 	if host == "" {
-		host = mixinnetHosts[defaultMixinNetHost]
+		host = RandomMixinNetHost()
 	}
 
 	if client, ok := mixinNetClients[host]; ok {
@@ -53,13 +51,13 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 	return client
 }
 
-func WithMixinNetClient(ctx context.Context, index int) context.Context {
-	if index >= 0 && index < len(mixinnetHosts) {
-		ctx = context.WithValue(ctx, mixinnetHostKey, mixinnetHosts[index])
+func WithMixinNetHost(ctx context.Context, host string) context.Context {
+	if host != "" {
+		ctx = context.WithValue(ctx, mixinnetHostKey, host)
 	}
 	return ctx
 }
 
-func WithRandomMixinNetClient(ctx context.Context) context.Context {
-	return WithMixinNetClient(ctx, rand.Int()%len(mixinnetHosts))
+func RandomMixinNetHost() string {
+	return mixinnetHosts[rand.Int()%len(mixinnetHosts)]
 }
