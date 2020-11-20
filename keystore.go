@@ -79,10 +79,16 @@ func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
 		Keystore:   store,
 		signMethod: Ed25519SigningMethod,
 	}
+
 	signKey, err := ed25519Encoding.DecodeString(store.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
+
+	if len(signKey) != ed25519.PrivateKeySize {
+		return nil, errors.New("invalid ed25519 private key")
+	}
+
 	auth.signKey = ed25519.PrivateKey(signKey)
 
 	if store.PinToken != "" {
@@ -92,7 +98,7 @@ func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
 		}
 
 		var keyBytes, curve, pub [32]byte
-		privateKeyToCurve25519(&curve, ed25519.PrivateKey(signKey))
+		privateKeyToCurve25519(&curve, signKey)
 		copy(pub[:], token[:])
 		curve25519.ScalarMult(&keyBytes, &curve, &pub)
 

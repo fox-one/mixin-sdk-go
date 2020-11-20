@@ -51,6 +51,6 @@ func TestClient_VerifyPayment(t *testing.T) {
 		require.NotEmpty(t, payment.CodeID)
 		require.Equal(t, PaymentStatusPending, payment.Status)
 
-		t.Log(URL.Code(payment.CodeID))
+		t.Log(URL.Codes(payment.CodeID))
 	})
 }
