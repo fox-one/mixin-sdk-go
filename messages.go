@@ -55,6 +55,7 @@ type (
 	}
 
 	AppCardMessage struct {
+		AppID       string `json:"app_id,omitempty"`
 		IconURL     string `json:"icon_url,omitempty"`
 		Title       string `json:"title,omitempty"`
 		Description string `json:"description,omitempty"`
