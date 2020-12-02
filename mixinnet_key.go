@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -189,7 +190,9 @@ func (k *Key) UnmarshalJSON(b []byte) error {
 	}
 	data, err := hex.DecodeString(string(unquoted))
 	if err != nil {
-		return err
+		if data, err = base64.StdEncoding.DecodeString(string(unquoted)); err != nil {
+			return err
+		}
 	}
 	if len(data) != len(k) {
 		return fmt.Errorf("invalid key length %d", len(data))
