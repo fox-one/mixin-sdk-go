@@ -92,7 +92,7 @@ func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	auth.signKey = ed25519.PrivateKey(signKey)
 
 	if store.PinToken != "" {
-		token, err := base64.StdEncoding.DecodeString(store.PinToken)
+		token, err := ed25519Encoding.DecodeString(store.PinToken)
 		if err != nil {
 			return nil, err
 		}
