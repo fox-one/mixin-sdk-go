@@ -57,14 +57,17 @@ type (
 		Snapshot   *Hash            `json:"snapshot,omitempty" msgpack:"-"`
 	}
 
+	TransactionOutput struct {
+		Receivers []string
+		Threshold uint8
+		Amount    decimal.Decimal
+	}
+
 	TransactionInput struct {
 		Memo    string
 		Inputs  []*MultisigUTXO
-		Outputs []struct {
-			Receivers []string
-			Threshold uint8
-			Amount    decimal.Decimal
-		}
+		Outputs []TransactionOutput
+		Hint    string
 	}
 )
 
@@ -106,11 +109,7 @@ func (i *TransactionInput) AppendUTXO(utxo *MultisigUTXO) {
 }
 
 func (i *TransactionInput) AppendOutput(receivers []string, threshold uint8, amount decimal.Decimal) {
-	i.Outputs = append(i.Outputs, struct {
-		Receivers []string
-		Threshold uint8
-		Amount    decimal.Decimal
-	}{
+	i.Outputs = append(i.Outputs, TransactionOutput{
 		Receivers: receivers,
 		Threshold: threshold,
 		Amount:    amount,
@@ -199,15 +198,7 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		})
 	}
 
-	// add outputs
-	for i, output := range input.Outputs {
-		ghosts, err := c.ReadGhostKeys(ctx, output.Receivers, i)
-		if err != nil {
-			return nil, err
-		}
-
-		tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(uint8(output.Threshold), output.Amount))
-	}
+	outputs := input.Outputs
 
 	// refund the change
 	{
@@ -215,14 +206,33 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		for _, output := range input.Outputs {
 			change = change.Sub(output.Amount)
 		}
-		if change.IsPositive() {
-			ghosts, err := c.ReadGhostKeys(ctx, input.Inputs[0].Members, len(input.Outputs))
-			if err != nil {
-				return nil, err
-			}
 
-			tx.Outputs = append(tx.Outputs, ghosts.DumpOutput(uint8(input.Inputs[0].Threshold), change))
+		if change.IsPositive() {
+			outputs = append(outputs, TransactionOutput{
+				Receivers: input.Inputs[0].Members,
+				Threshold: input.Inputs[0].Threshold,
+				Amount:    change,
+			})
 		}
+	}
+
+	ghostInputs := make([]*GhostInput, 0, len(outputs))
+	for idx, output := range outputs {
+		ghostInputs = append(ghostInputs, &GhostInput{
+			Receivers: output.Receivers,
+			Index:     idx,
+			Hint:      input.Hint,
+		})
+	}
+
+	ghosts, err := c.BatchReadGhostKeys(ctx, ghostInputs)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, output := range outputs {
+		ghost := ghosts[idx]
+		tx.Outputs = append(tx.Outputs, ghost.DumpOutput(output.Threshold, output.Amount))
 	}
 
 	return &tx, nil
