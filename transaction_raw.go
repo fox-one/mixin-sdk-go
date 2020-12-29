@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -65,19 +64,32 @@ func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string)
 	return &resp, nil
 }
 
+type GhostInput struct {
+	Receivers []string `json:"receivers"`
+	Index     int      `json:"index"`
+	Hint      string   `json:"hint"`
+}
+
 func (c *Client) ReadGhostKeys(ctx context.Context, receivers []string, index int) (*GhostKeys, error) {
-	data, err := json.Marshal(map[string]interface{}{
-		"receivers": receivers,
-		"index":     index,
-	})
-	if err != nil {
-		return nil, err
+	input := &GhostInput{
+		Receivers: receivers,
+		Index:     index,
+		Hint:      "",
 	}
 
 	var resp GhostKeys
-	if err := c.Post(ctx, "/outputs", data, &resp); err != nil {
+	if err := c.Post(ctx, "/outputs", input, &resp); err != nil {
 		return nil, err
 	}
 
 	return &resp, nil
+}
+
+func (c *Client) BatchReadGhostKeys(ctx context.Context, inputs []*GhostInput) ([]*GhostKeys, error) {
+	var resp []*GhostKeys
+	if err := c.Post(ctx, "/outputs", inputs, &resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
