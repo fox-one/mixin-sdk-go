@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
-	"github.com/gofrs/uuid"
+	"github.com/fox-one/pkg/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -68,7 +68,7 @@ func main() {
 	h, err := client.Transaction(ctx, &mixin.TransferInput{
 		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
 		Amount:  decimal.NewFromFloat(1),
-		TraceID: uuid.Must(uuid.NewV4()).String(),
+		TraceID: uuid.New(),
 		Memo:    "send to multisig",
 		OpponentMultisig: struct {
 			Receivers []string `json:"receivers,omitempty"`
@@ -81,7 +81,7 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 15)
 
 	var (
 		utxo   *mixin.MultisigUTXO
@@ -118,17 +118,14 @@ func main() {
 	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
 		Memo:   "multisig test",
 		Inputs: []*mixin.MultisigUTXO{utxo},
-		Outputs: []struct {
-			Receivers []string
-			Threshold uint8
-			Amount    decimal.Decimal
-		}{
+		Outputs: []mixin.TransactionOutput{
 			{
-				[]string{client.ClientID},
-				1,
-				amount,
+				Receivers: []string{client.ClientID},
+				Threshold: 1,
+				Amount:    amount,
 			},
 		},
+		Hint: uuid.New(),
 	})
 
 	if err != nil {
