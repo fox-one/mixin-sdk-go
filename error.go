@@ -61,3 +61,26 @@ func createError(status, code int, description string) error {
 		Description: description,
 	}
 }
+
+// errWithRequestID wrap err with request id
+type errWithRequestID struct {
+	err       error
+	requestID string
+}
+
+func (e *errWithRequestID) Unwrap() error {
+	return e.err
+}
+
+func (e *errWithRequestID) Error() string {
+	return fmt.Sprintf("%v id=%s", e.err, e.requestID)
+}
+
+func WrapErrWithRequestID(err error, id string) error {
+	if e, ok := err.(*Error); ok {
+		e.RequestID = id
+		return e
+	}
+
+	return &errWithRequestID{err: err, requestID: id}
+}
