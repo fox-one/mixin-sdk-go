@@ -98,6 +98,10 @@ func DecodeResponse(resp *resty.Response) ([]byte, error) {
 func UnmarshalResponse(resp *resty.Response, v interface{}) error {
 	data, err := DecodeResponse(resp)
 	if err != nil {
+		if e, ok := err.(*Error); ok {
+			e.RequestID = resp.Header().Get(xRequestID)
+		}
+
 		return err
 	}
 
