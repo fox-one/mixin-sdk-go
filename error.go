@@ -25,12 +25,17 @@ type Error struct {
 	Code        int                    `json:"code"`
 	Description string                 `json:"description"`
 	Extra       map[string]interface{} `json:"extra,omitempty"`
+	RequestID   string                 `json:"request_id,omitempty"`
 }
 
 func (e *Error) Error() string {
 	s := fmt.Sprintf("[%d/%d] %s", e.Status, e.Code, e.Description)
 	for k, v := range e.Extra {
 		s += fmt.Sprintf(" %v=%v", k, v)
+	}
+
+	if e.RequestID != "" {
+		s += fmt.Sprintf(" id=%s", e.RequestID)
 	}
 
 	return s
