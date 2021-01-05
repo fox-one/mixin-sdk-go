@@ -95,13 +95,13 @@ func DecodeResponse(resp *resty.Response) ([]byte, error) {
 	return body.Data, nil
 }
 
-func UnmarshalResponse(resp *resty.Response, v interface{}) error {
+func UnmarshalResponse(resp *resty.Response, v interface{}) (err error) {
+	if requestID := extractRequestID(resp); requestID != "" {
+		defer bindRequestID(&err, requestID)
+	}
+
 	data, err := DecodeResponse(resp)
 	if err != nil {
-		if e, ok := err.(*Error); ok {
-			e.RequestID = resp.Header().Get(xRequestID)
-		}
-
 		return err
 	}
 
@@ -110,4 +110,18 @@ func UnmarshalResponse(resp *resty.Response, v interface{}) error {
 	}
 
 	return nil
+}
+
+func extractRequestID(r *resty.Response) string {
+	if r != nil {
+		return r.Request.Header.Get(xRequestID)
+	}
+
+	return ""
+}
+
+func bindRequestID(errp *error, id string) {
+	if err := *errp; err != nil {
+		*errp = WrapErrWithRequestID(err, id)
+	}
 }
