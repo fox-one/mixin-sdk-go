@@ -16,6 +16,7 @@ const (
 	ParticipantActionExit   = "EXIT"
 	ParticipantActionRole   = "ROLE"
 
+	ParticipantRoleOwner  = "OWNER"
 	ParticipantRoleAdmin  = "ADMIN"
 	ParticipantRoleMember = ""
 )
