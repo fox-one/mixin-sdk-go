@@ -10,6 +10,7 @@ const (
 	ConversationCategoryContact = "CONTACT"
 	ConversationCategoryGroup   = "GROUP"
 
+	ParticipantActionCreate = "CREATE"
 	ParticipantActionAdd    = "ADD"
 	ParticipantActionRemove = "REMOVE"
 	ParticipantActionJoin   = "JOIN"
