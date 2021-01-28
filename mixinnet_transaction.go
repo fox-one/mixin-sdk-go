@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/shopspring/decimal"
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 const (
