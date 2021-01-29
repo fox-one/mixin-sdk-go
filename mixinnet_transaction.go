@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/fox-one/msgpack"
 	"github.com/shopspring/decimal"
-	"github.com/vmihailenco/msgpack/v4"
 )
 
 const (
