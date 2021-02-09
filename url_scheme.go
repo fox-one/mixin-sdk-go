@@ -56,3 +56,22 @@ func (urlScheme) Codes(code string) string {
 
 	return u.String()
 }
+
+func (urlScheme) Snapshots(snapshotID, traceID string) string {
+	u := url.URL{
+		Scheme: Scheme,
+		Host:   "snapshots",
+	}
+
+	if snapshotID != "" {
+		u.Path = snapshotID
+	}
+
+	if traceID != "" {
+		query := url.Values{}
+		query.Set("trace", traceID)
+		u.RawQuery = query.Encode()
+	}
+
+	return u.String()
+}
