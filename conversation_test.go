@@ -89,4 +89,15 @@ func TestConversation(t *testing.T) {
 
 		assert.NotEqual(t, conversation.CodeURL, rotated.CodeURL, "code url should changed")
 	})
+
+	t.Run("update announcement", func(t *testing.T) {
+		conversation, err := c.ReadConversation(ctx, id)
+		require.Nil(t, err, "read conversation")
+		newAnnouncement := conversation.Announcement + " new"
+
+		updated, err := c.UpdateConversationAnnouncement(ctx, id, "test")
+		require.Nil(t, err, "update conversation")
+
+		assert.NotEqual(t, newAnnouncement, updated.Announcement, "announcement should changed")
+	})
 }
