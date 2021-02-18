@@ -98,6 +98,6 @@ func TestConversation(t *testing.T) {
 		updated, err := c.UpdateConversationAnnouncement(ctx, id, "test")
 		require.Nil(t, err, "update conversation")
 
-		assert.NotEqual(t, newAnnouncement, updated.Announcement, "announcement should changed")
+		assert.Equal(t, newAnnouncement, updated.Announcement, "announcement should changed")
 	})
 }
