@@ -94,6 +94,18 @@ func (c *Client) ReadConversation(ctx context.Context, conversationID string) (*
 	return &conversation, nil
 }
 
+// Update conversation announcement
+func (c *Client) UpdateConversationAnnouncement(ctx context.Context, conversationID, announcement string) (*Conversation, error) {
+	uri := fmt.Sprintf("/conversations/%s", conversationID)
+
+	var conversation Conversation
+	if err := c.Post(ctx, uri, map[string]string{"announcement": announcement}, &conversation); err != nil {
+		return nil, err
+	}
+
+	return &conversation, nil
+}
+
 func (c *Client) ManageConversation(ctx context.Context, conversationID, action string, participants []*Participant) (*Conversation, error) {
 	uri := fmt.Sprintf("/conversations/%s/participants/%s", conversationID, action)
 
