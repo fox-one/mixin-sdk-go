@@ -97,7 +97,7 @@ func (c *Client) UpdateConversationAnnouncement(ctx context.Context, conversatio
 	uri := fmt.Sprintf("/conversations/%s", conversationID)
 
 	var conversation Conversation
-	if err := c.Post(ctx, uri, struct{ A string `json:"announcement"` }{A: announcement,}, &conversation); err != nil {
+	if err := c.Post(ctx, uri, map[string]string{"announcement": announcement}, &conversation); err != nil {
 		return nil, err
 	}
 
