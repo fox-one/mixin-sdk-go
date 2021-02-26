@@ -28,6 +28,7 @@ type User struct {
 	CodeID         string    `json:"code_id,omitempty"`
 	CodeURL        string    `json:"code_url,omitempty"`
 	HasPin         bool      `json:"has_pin,omitempty"`
+	DeviceStatus   string    `json:"device_status,omitempty"`
 
 	App *App `json:"app,omitempty"`
 }

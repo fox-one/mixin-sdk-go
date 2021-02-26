@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fox-one/msgpack"
 	"github.com/shopspring/decimal"
-	"github.com/vmihailenco/msgpack"
 )
 
 const Precision = 8
