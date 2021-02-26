@@ -53,10 +53,25 @@ type CreateConversationInput struct {
 	Participants   []*Participant `json:"participants,omitempty"`
 }
 
+type ConversationUpdate struct {
+	Name         string `json:"name,omitempty"`
+	Announcement string `json:"announcement,omitempty"`
+}
+
 // CreateConversation crate conversation
 func (c *Client) CreateConversation(ctx context.Context, input *CreateConversationInput) (*Conversation, error) {
 	var conversation Conversation
 	if err := c.Post(ctx, "/conversations", input, &conversation); err != nil {
+		return nil, err
+	}
+
+	return &conversation, nil
+}
+
+// UpdateConversation update conversation
+func (c *Client) UpdateConversation(ctx context.Context, conversationID string, input ConversationUpdate) (*Conversation, error) {
+	var conversation Conversation
+	if err := c.Post(ctx, fmt.Sprintf("/conversations/%s", conversationID), input, &conversation); err != nil {
 		return nil, err
 	}
 
@@ -96,14 +111,7 @@ func (c *Client) ReadConversation(ctx context.Context, conversationID string) (*
 
 // Update conversation announcement
 func (c *Client) UpdateConversationAnnouncement(ctx context.Context, conversationID, announcement string) (*Conversation, error) {
-	uri := fmt.Sprintf("/conversations/%s", conversationID)
-
-	var conversation Conversation
-	if err := c.Post(ctx, uri, map[string]string{"announcement": announcement}, &conversation); err != nil {
-		return nil, err
-	}
-
-	return &conversation, nil
+	return c.UpdateConversation(ctx, conversationID, ConversationUpdate{Announcement: announcement})
 }
 
 func (c *Client) ManageConversation(ctx context.Context, conversationID, action string, participants []*Participant) (*Conversation, error) {
