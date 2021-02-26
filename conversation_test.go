@@ -95,9 +95,20 @@ func TestConversation(t *testing.T) {
 		require.Nil(t, err, "read conversation")
 		newAnnouncement := conversation.Announcement + " new"
 
-		updated, err := c.UpdateConversationAnnouncement(ctx, id, "test")
-		require.Nil(t, err, "update conversation")
+		updated, err := c.UpdateConversationAnnouncement(ctx, id, newAnnouncement)
+		require.Nil(t, err, "update conversation announcement")
 
 		assert.Equal(t, newAnnouncement, updated.Announcement, "announcement should changed")
+	})
+
+	t.Run("update conversation name", func(t *testing.T) {
+		conversation, err := c.ReadConversation(ctx, id)
+		require.Nil(t, err, "read conversation")
+		newName := conversation.Name + " new"
+
+		updated, err := c.UpdateConversationName(ctx, id, newName)
+		require.Nil(t, err, "update conversation name")
+
+		assert.Equal(t, newName, updated.Name, "conversation name should changed")
 	})
 }

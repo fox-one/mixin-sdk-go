@@ -61,6 +61,16 @@ func (c *Client) CreateConversation(ctx context.Context, input *CreateConversati
 	return &conversation, nil
 }
 
+// UpdateConversation update conversation name
+func (c *Client) UpdateConversationName(ctx context.Context, conversationID, name string) (*Conversation, error) {
+	var conversation Conversation
+	if err := c.Post(ctx, fmt.Sprintf("/conversations/%s", conversationID), map[string]string{"name": name}, &conversation); err != nil {
+		return nil, err
+	}
+
+	return &conversation, nil
+}
+
 // CreateContactConversation create a conversation with a mixin messenger user
 func (c *Client) CreateContactConversation(ctx context.Context, userID string) (*Conversation, error) {
 	return c.CreateConversation(ctx, &CreateConversationInput{
