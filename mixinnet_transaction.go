@@ -289,24 +289,3 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 
 	return &tx, nil
 }
-
-func TransactionFromRaw(raw string) (*Transaction, error) {
-	bts, err := hex.DecodeString(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	var tx Transaction
-	if err := msgpack.Unmarshal(bts, &tx); err != nil {
-		return nil, err
-	}
-	return &tx, nil
-}
-
-func checkTxVersion(val []byte) bool {
-	if len(val) < 4 {
-		return false
-	}
-	v := append(magic, 0, TxVersion)
-	return bytes.Equal(v, val[:4])
-}
