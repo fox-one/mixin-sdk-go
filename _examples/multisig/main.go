@@ -67,7 +67,7 @@ func main() {
 
 	h, err := client.Transaction(ctx, &mixin.TransferInput{
 		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-		Amount:  decimal.NewFromFloat(1),
+		Amount:  decimal.New(1, -4),
 		TraceID: uuid.New(),
 		Memo:    "send to multisig",
 		OpponentMultisig: struct {
@@ -132,7 +132,7 @@ func main() {
 		log.Panicf("MakeMultisigTransaction: %v", err)
 	}
 
-	raw, err := tx.DumpTransactionPayload()
+	raw, err := tx.DumpTransaction()
 	if err != nil {
 		log.Panicf("DumpTransaction: %v", err)
 	}
@@ -204,10 +204,10 @@ func main() {
 			log.Panicf("CreateMultisig: %v", err)
 		}
 
-		tx, err := mixin.SendRawTransaction(ctx, req.RawTransaction)
+		txHash, err := client.SendRawTransaction(ctx, req.RawTransaction)
 		if err != nil {
 			log.Panicf("SendRawTransaction: %v\n", err)
 		}
-		log.Printf("submit transaction: %v", tx.Hash)
+		log.Printf("submit transaction: %v", txHash)
 	}
 }
