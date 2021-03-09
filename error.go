@@ -15,9 +15,10 @@ const (
 	InvalidTraceID      = 20125
 	InvalidReceivers    = 20150
 
-	InvalidOutputKey = 2000001
-	InputLocked      = 2000002
-	InvalidSignature = 2000003
+	InvalidOutputKey    = 2000001
+	InputLocked         = 2000002
+	InvalidSignature    = 2000003
+	TransactionNotFound = 2000004
 )
 
 type Error struct {

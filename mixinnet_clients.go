@@ -51,6 +51,15 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 	return client
 }
 
+func MixinNetHost(ctx context.Context) string {
+	if v := ctx.Value(mixinnetHostKey); v != nil {
+		if h, ok := v.(string); ok {
+			return h
+		}
+	}
+	return ""
+}
+
 func WithMixinNetHost(ctx context.Context, host string) context.Context {
 	return context.WithValue(ctx, mixinnetHostKey, host)
 }
