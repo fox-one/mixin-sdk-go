@@ -14,7 +14,7 @@ type (
 	Signature [64]byte
 )
 
-func (privateKey *Key) Sign(message []byte) Signature {
+func (privateKey *Key) Sign(message []byte) *Signature {
 	var digest1, messageDigest, hramDigest [64]byte
 	var expandedSecretKey [32]byte
 	copy(expandedSecretKey[:], privateKey[:])
@@ -51,10 +51,10 @@ func (privateKey *Key) Sign(message []byte) Signature {
 	copy(signature[:], encodedR[:])
 	copy(signature[32:], s[:])
 
-	return signature
+	return &signature
 }
 
-func (publicKey *Key) VerifyWithChallenge(message []byte, sig Signature, hReduced [32]byte) bool {
+func (publicKey *Key) VerifyWithChallenge(message []byte, sig *Signature, hReduced [32]byte) bool {
 	var A edwards25519.ExtendedGroupElement
 	var publicKeyBytes [32]byte
 	copy(publicKeyBytes[:], publicKey[:])
@@ -79,7 +79,7 @@ func (publicKey *Key) VerifyWithChallenge(message []byte, sig Signature, hReduce
 	return bytes.Equal(sig[:32], checkR[:])
 }
 
-func (publicKey *Key) Verify(message []byte, sig Signature) bool {
+func (publicKey *Key) Verify(message []byte, sig *Signature) bool {
 	h := sha512.New()
 	h.Write(sig[:32])
 	h.Write(publicKey[:])
