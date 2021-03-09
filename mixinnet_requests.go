@@ -17,7 +17,7 @@ func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Transacti
 		if IsErrorCodes(err, InvalidOutputKey) {
 			if tx, err := TransactionFromRaw(raw); err == nil {
 				h, _ := tx.TransactionHash()
-				if tx, err := GetTransaction(ctx, h); err == nil && tx.Asset.HasValue() {
+				if tx, err := c.GetTransaction(ctx, h); err == nil && tx.Asset.HasValue() {
 					return tx, nil
 				}
 			}
