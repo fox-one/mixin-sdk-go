@@ -11,12 +11,11 @@ func (c *Client) callMixinNetRPC(ctx context.Context, method string, params ...i
 		SetBody(map[string]interface{}{
 			"method": method,
 			"params": params,
-		}).Post("external/proxy")
+		}).Post("/external/proxy")
 }
 
-func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
+func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Hash, error) {
 	var tx Transaction
-
 	r, err := c.callMixinNetRPC(ctx, TxMethodSend, raw)
 	if err != nil {
 		return nil, err
@@ -26,7 +25,7 @@ func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Transacti
 		return nil, err
 	}
 
-	return &tx, nil
+	return tx.Hash, nil
 }
 
 func (c *Client) GetRawTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
