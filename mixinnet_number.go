@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -11,6 +12,8 @@ import (
 
 const Precision = 8
 
+var Zero Integer
+
 type (
 	Integer struct {
 		i big.Int
@@ -19,6 +22,14 @@ type (
 
 func init() {
 	msgpack.RegisterExt(0, (*Integer)(nil))
+	Zero = NewInteger(0)
+}
+
+func NewInteger(x uint64) (v Integer) {
+	p := new(big.Int).SetUint64(x)
+	d := big.NewInt(int64(math.Pow(10, Precision)))
+	v.i.Mul(p, d)
+	return
 }
 
 func NewIntegerFromDecimal(d decimal.Decimal) (v Integer) {
