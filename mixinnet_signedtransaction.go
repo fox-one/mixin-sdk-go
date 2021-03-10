@@ -8,24 +8,13 @@ import (
 )
 
 type (
-	SignedTransactionV1 struct {
+	TransactionV1 struct {
 		Transaction
 		Signatures [][]*Signature `json:"signatures,omitempty" msgpack:",omitempty"`
 	}
-
-	SignedTransactionV2 struct {
-		Transaction
-		Signatures []map[uint16]*Signature `json:"signatures,omitempty" msgpack:",omitempty"`
-	}
 )
 
-func (t *SignedTransactionV1) DumpTransaction() (string, error) {
-	t.Transaction.Signatures = t.Signatures
-	return t.Transaction.DumpTransaction()
-}
-
-func (t *SignedTransactionV2) DumpTransaction() (string, error) {
-	t.Transaction.Signatures = t.Signatures
+func (t *TransactionV1) DumpTransaction() (string, error) {
 	return t.Transaction.DumpTransaction()
 }
 
@@ -42,25 +31,24 @@ func TransactionFromRaw(raw string) (*Transaction, error) {
 }
 
 func transactionV1FromRaw(bts []byte) (*Transaction, error) {
-	var tx SignedTransactionV1
+	var tx TransactionV1
 	if err := msgpack.Unmarshal(bts, &tx); err != nil {
 		return nil, err
 	}
 	if len(tx.Signatures) > 0 {
-		tx.Transaction.Signatures = tx.Signatures
+		tx.Transaction.Signatures = make([]map[uint16]*Signature, len(tx.Signatures))
+		for i, sigs := range tx.Signatures {
+			tx.Transaction.Signatures[i] = make(map[uint16]*Signature, len(sigs))
+			for k, sig := range sigs {
+				tx.Transaction.Signatures[i][uint16(k)] = sig
+			}
+		}
 	}
 	return &tx.Transaction, nil
 }
 
 func transactionV2FromRaw(bts []byte) (*Transaction, error) {
-	tx, err := NewDecoder(bts).DecodeTransaction()
-	if err != nil {
-		return nil, err
-	}
-	if len(tx.Signatures) > 0 {
-		tx.Transaction.Signatures = tx.Signatures
-	}
-	return &tx.Transaction, nil
+	return NewDecoder(bts).DecodeTransaction()
 }
 
 func checkTxVersion(val []byte) bool {

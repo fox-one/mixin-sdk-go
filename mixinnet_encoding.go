@@ -23,7 +23,7 @@ func NewEncoder() *Encoder {
 	return &Encoder{buf: new(bytes.Buffer)}
 }
 
-func (enc *Encoder) EncodeTransaction(signed *SignedTransactionV2) []byte {
+func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 	if signed.Version != TxVersion {
 		panic(signed)
 	}

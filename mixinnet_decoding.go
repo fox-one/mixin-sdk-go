@@ -15,7 +15,7 @@ func NewDecoder(b []byte) *Decoder {
 	return &Decoder{buf: bytes.NewReader(b)}
 }
 
-func (dec *Decoder) DecodeTransaction() (*SignedTransactionV2, error) {
+func (dec *Decoder) DecodeTransaction() (*Transaction, error) {
 	b := make([]byte, 4)
 	err := dec.Read(b)
 	if err != nil {
@@ -25,7 +25,7 @@ func (dec *Decoder) DecodeTransaction() (*SignedTransactionV2, error) {
 		return nil, fmt.Errorf("invalid version %v", b)
 	}
 
-	var tx SignedTransactionV2
+	var tx Transaction
 	tx.Version = TxVersion
 
 	err = dec.Read(tx.Asset[:])

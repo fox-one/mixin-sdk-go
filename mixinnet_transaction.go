@@ -56,9 +56,9 @@ type (
 	}
 
 	Transaction struct {
-		Hash       *Hash       `json:"hash,omitempty" msgpack:"-"`
-		Snapshot   *Hash       `json:"snapshot,omitempty" msgpack:"-"`
-		Signatures interface{} `json:"signatures,omitempty" msgpack:"-"`
+		Hash       *Hash                   `json:"hash,omitempty" msgpack:"-"`
+		Snapshot   *Hash                   `json:"snapshot,omitempty" msgpack:"-"`
+		Signatures []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
 
 		Version uint8            `json:"version"`
 		Asset   Hash             `json:"asset"`
@@ -84,16 +84,16 @@ type (
 func (t *Transaction) DumpTransactionData() ([]byte, error) {
 	switch t.Version {
 	case 0, 1:
-		tx := SignedTransactionV1{
+		tx := TransactionV1{
 			Transaction: *t,
 		}
-		if t.Signatures != nil {
-			sigs, ok := t.Signatures.([][]*Signature)
-			if !ok {
-				panic("invalid signatures type")
-			}
-			if len(sigs) > 0 {
-				tx.Signatures = sigs
+		if len(t.Signatures) > 0 {
+			tx.Signatures = make([][]*Signature, len(t.Signatures))
+			for i, sigs := range t.Signatures {
+				tx.Signatures[i] = make([]*Signature, len(sigs))
+				for k, sig := range sigs {
+					tx.Signatures[i][k] = sig
+				}
 			}
 		}
 
@@ -106,21 +106,7 @@ func (t *Transaction) DumpTransactionData() ([]byte, error) {
 		return buf.Bytes(), nil
 
 	case 2:
-		tx := SignedTransactionV2{
-			Transaction: *t,
-		}
-
-		if t.Signatures != nil {
-			sigs, ok := t.Signatures.([]map[uint16]*Signature)
-			if !ok {
-				panic("invalid signatures type")
-			}
-			if len(sigs) > 0 {
-				tx.Signatures = sigs
-			}
-		}
-
-		return NewEncoder().EncodeTransaction(&tx), nil
+		return NewEncoder().EncodeTransaction(t), nil
 
 	default:
 		return nil, errors.New("unknown tx version")
