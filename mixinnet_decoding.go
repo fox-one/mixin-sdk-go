@@ -83,7 +83,9 @@ func (dec *Decoder) DecodeTransaction() (*SignedTransactionV2, error) {
 }
 
 func (dec *Decoder) ReadInput() (*Input, error) {
-	var in Input
+	var in = Input{
+		Hash: new(Hash),
+	}
 	err := dec.Read(in.Hash[:])
 	if err != nil {
 		return nil, err

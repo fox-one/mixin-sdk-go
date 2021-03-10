@@ -3,7 +3,6 @@ package mixin
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 
 	"github.com/fox-one/msgpack"
 )
@@ -36,26 +35,32 @@ func TransactionFromRaw(raw string) (*Transaction, error) {
 		return nil, err
 	}
 
-	if len(bts) > 4 {
-		switch bts[3] {
-		case 0, 1:
-			var tx SignedTransactionV1
-			if err := msgpack.Unmarshal(bts, &tx); err != nil {
-				return nil, err
-			}
-			tx.Transaction.Signatures = tx.Signatures
-			return &tx.Transaction, nil
-
-		case 2:
-			tx, err := NewDecoder(bts).DecodeTransaction()
-			if err != nil {
-				return nil, err
-			}
-			tx.Transaction.Signatures = tx.Signatures
-			return &tx.Transaction, nil
-		}
+	if !checkTxVersion(bts) {
+		return transactionV1FromRaw(bts)
 	}
-	return nil, errors.New("invalid transaction data")
+	return transactionV2FromRaw(bts)
+}
+
+func transactionV1FromRaw(bts []byte) (*Transaction, error) {
+	var tx SignedTransactionV1
+	if err := msgpack.Unmarshal(bts, &tx); err != nil {
+		return nil, err
+	}
+	if len(tx.Signatures) > 0 {
+		tx.Transaction.Signatures = tx.Signatures
+	}
+	return &tx.Transaction, nil
+}
+
+func transactionV2FromRaw(bts []byte) (*Transaction, error) {
+	tx, err := NewDecoder(bts).DecodeTransaction()
+	if err != nil {
+		return nil, err
+	}
+	if len(tx.Signatures) > 0 {
+		tx.Transaction.Signatures = tx.Signatures
+	}
+	return &tx.Transaction, nil
 }
 
 func checkTxVersion(val []byte) bool {
