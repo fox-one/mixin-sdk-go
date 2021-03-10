@@ -13,6 +13,12 @@ const (
 	TxMethodGet  = "gettransaction"
 )
 
+func ReadConsensusInfo(ctx context.Context) (*ConsensusInfo, error) {
+	var resp ConsensusInfo
+	err := CallMixinNetRPC(ctx, &resp, "getinfo")
+	return &resp, err
+}
+
 func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	var tx Transaction
 	if err := CallMixinNetRPC(ctx, &tx, TxMethodSend, raw); err != nil {
