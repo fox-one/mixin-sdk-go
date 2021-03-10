@@ -14,6 +14,19 @@ func (c *Client) callMixinNetRPC(ctx context.Context, method string, params ...i
 		}).Post("/external/proxy")
 }
 
+func (c *Client) ReadConsensusInfo(ctx context.Context) (*ConsensusInfo, error) {
+	r, err := c.callMixinNetRPC(ctx, "getinfo")
+	if err != nil {
+		return nil, err
+	}
+
+	var info ConsensusInfo
+	if err := UnmarshalMixinNetResponse(r, &info); err != nil {
+		return nil, err
+	}
+	return &info, err
+}
+
 func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Hash, error) {
 	var tx Transaction
 	r, err := c.callMixinNetRPC(ctx, TxMethodSend, raw)

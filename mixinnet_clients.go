@@ -14,6 +14,7 @@ var (
 		"http://node-candy.f1ex.io:8239",
 		"http://node-box.f1ex.io:8239",
 		"http://node-box-2.f1ex.io:8239",
+		"http://lehigh.hotot.org:8239",
 	}
 
 	mixinNetClients = map[string]*resty.Client{}
