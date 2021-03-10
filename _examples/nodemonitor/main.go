@@ -5,39 +5,34 @@ import (
 	"flag"
 	"log"
 	"strings"
-	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var (
-	nodes = flag.String("nodes", "", "mixin node ids, join with ';'")
+	hosts = flag.String("hosts", "", "mixin node rpc hosts, join with ';'")
 )
 
 func main() {
 	flag.Parse()
 
-	if *nodes == "" {
-		log.Println("./nodemonitor -nodes a;b;c")
+	if *hosts == "" {
+		log.Println("./nodemonitor -hosts a;b;c")
 		return
 	}
 
-	var (
-		ctx      = context.Background()
-		sleepDur = time.Millisecond
-		monitor  = NewMonitor(strings.Split(*nodes, ";"))
-	)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case <-time.After(sleepDur):
-			if err := monitor.HealthCheck(ctx); err != nil {
-				sleepDur = time.Second
-				continue
-			}
-
-			sleepDur = time.Second * 30
+	g, ctx := errgroup.WithContext(context.Background())
+	for _, host := range strings.Split(*hosts, ";") {
+		host := host
+		if host == "" {
+			continue
 		}
+		if !strings.HasPrefix(host, "http") {
+			host = "http://" + host
+		}
+		g.Go(func() error {
+			return NewMonitor(host).LoopHealthCheck(ctx)
+		})
 	}
+	g.Wait()
 }

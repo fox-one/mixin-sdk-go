@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
@@ -10,82 +9,81 @@ import (
 )
 
 type (
-	Work struct {
-		timestamp int64
-		warnedAt  int64
-		work      uint64
-	}
-
 	Monitor struct {
-		works map[string]*Work
+		host string
+
+		time     time.Time
+		warnedAt int64
+		work     uint64
 	}
 )
 
-func NewMonitor(nodes []string) *Monitor {
-	works := make(map[string]*Work, len(nodes))
-	for _, n := range nodes {
-		works[n] = &Work{}
-	}
+func NewMonitor(host string) *Monitor {
 	return &Monitor{
-		works: works,
+		host: host,
 	}
 }
 
-func (m *Monitor) HealthCheck(ctx context.Context) error {
+func (m *Monitor) LoopHealthCheck(ctx context.Context) error {
+	ctx = mixin.WithMixinNetHost(ctx, m.host)
+	sleepDur := time.Millisecond
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+
+		case <-time.After(sleepDur):
+			if err := m.healthCheck(ctx); err != nil {
+				sleepDur = time.Second
+				continue
+			}
+
+			sleepDur = time.Second * 30
+		}
+	}
+}
+
+func (m *Monitor) healthCheck(ctx context.Context) error {
+	log := logrus.WithFields(logrus.Fields{
+		"host": m.host,
+	})
+
 	info, err := mixin.ReadConsensusInfo(ctx)
 	if err != nil {
-		logrus.WithError(err).Info("ReadConsensusInfo failed")
+		log.WithError(err).Info("ReadConsensusInfo failed")
 		return err
 	}
 
-	if info.Timestamp.Before(time.Now().Add(-60 * time.Second)) {
-		logrus.WithFields(logrus.Fields{
-			"timestamp": info.Timestamp,
-			"node":      info.Node,
-		}).Info("consensus info outdated")
-		return errors.New("consensus info outdated")
-	}
-
 	for _, node := range info.Graph.Consensus {
-		n := node.Node.String()
-		w, ok := m.works[n]
-		if !ok {
-			continue
-		}
-
-		cache, ok := info.Graph.Cache[n]
-		if !ok || cache.Timestamp < w.timestamp {
+		if node.Node != info.Node {
 			continue
 		}
 
 		v := node.Works[0]*12 + node.Works[1]*10
-		if v < w.work {
-			continue
-		}
-
 		now := time.Now().UnixNano()
-		log := logrus.WithFields(logrus.Fields{
-			"node":       n,
+		log := log.WithFields(logrus.Fields{
+			"node":       info.Node,
 			"works":      v,
-			"works_pre":  w.work,
-			"works_diff": v - w.work,
-			"time":       time.Unix(0, w.timestamp),
-			"time_diff":  time.Duration(now - w.timestamp),
+			"works_pre":  m.work,
+			"works_diff": v - m.work,
+			"info.time":  info.Timestamp,
+			"since_now":  time.Now().Sub(m.time),
 		})
-		if v == w.work {
-			if now-w.warnedAt > int64(300*time.Second) {
+		if v == m.work {
+			if now-m.warnedAt > int64(300*time.Second) {
 				log.Info("not worked")
-				w.warnedAt = now
+				m.warnedAt = now
 			}
 			continue
 		}
 
-		if w.warnedAt > 0 {
+		if m.warnedAt > 0 {
 			log.Info("back to work")
 		}
-		w.warnedAt = 0
-		m.works[n].work = v
-		m.works[n].timestamp = cache.Timestamp
+		m.warnedAt = 0
+		m.work = v
+		m.time = info.Timestamp
 	}
 	return nil
 }
