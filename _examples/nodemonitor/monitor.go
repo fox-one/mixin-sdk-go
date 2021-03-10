@@ -59,15 +59,20 @@ func (m *Monitor) HealthCheck(ctx context.Context) error {
 		}
 
 		v := node.Works[0]*12 + node.Works[1]*10
+		if v < w.work {
+			continue
+		}
+
 		now := time.Now().UnixNano()
 		log := logrus.WithFields(logrus.Fields{
-			"node":      n,
-			"works":     w.work,
-			"new_works": v - w.work,
-			"time_diff": time.Duration(now - w.timestamp),
+			"node":       n,
+			"works":      v,
+			"works_pre":  w.work,
+			"works_diff": v - w.work,
+			"time":       time.Unix(0, w.timestamp),
+			"time_diff":  time.Duration(now - w.timestamp),
 		})
-
-		if v <= w.work {
+		if v == w.work {
 			if now-w.warnedAt > int64(300*time.Second) {
 				log.Info("not worked")
 				w.warnedAt = now
