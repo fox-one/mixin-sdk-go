@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -33,6 +34,7 @@ func main() {
 		g.Go(func() error {
 			return NewMonitor(host).LoopHealthCheck(ctx)
 		})
+		time.Sleep(time.Millisecond * 100)
 	}
 	g.Wait()
 }

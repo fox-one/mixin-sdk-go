@@ -12,9 +12,10 @@ type (
 	Monitor struct {
 		host string
 
-		time     time.Time
-		warnedAt int64
-		work     uint64
+		timestamp int64
+		work      uint64
+		topology  uint64
+		warnedAt  int64
 	}
 )
 
@@ -60,17 +61,27 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 			continue
 		}
 
-		v := node.Works[0]*12 + node.Works[1]*10
+		cache, ok := info.Graph.Cache[node.Node.String()]
+		if !ok {
+			continue
+		}
+
+		work := node.Works[0]*12 + node.Works[1]*10
 		now := time.Now().UnixNano()
 		log := log.WithFields(logrus.Fields{
-			"node":       info.Node,
-			"works":      v,
-			"works_pre":  m.work,
-			"works_diff": v - m.work,
-			"info.time":  info.Timestamp,
-			"since_now":  time.Now().Sub(m.time),
+			"node":           info.Node,
+			"version":        info.Version,
+			"topology":       info.Graph.Topology,
+			"topology.pre":   m.topology,
+			"works":          work,
+			"work.pre":       m.work,
+			"works.diff":     work - m.work,
+			"cache.time":     cache.Timestamp,
+			"cache.time.pre": m.timestamp,
+			"duration":       time.Duration(now - m.timestamp),
 		})
-		if v == m.work {
+
+		if work == m.work {
 			if now-m.warnedAt > int64(300*time.Second) {
 				log.Info("not worked")
 				m.warnedAt = now
@@ -82,8 +93,9 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 			log.Info("back to work")
 		}
 		m.warnedAt = 0
-		m.work = v
-		m.time = info.Timestamp
+		m.work = work
+		m.timestamp = cache.Timestamp
+		m.topology = info.Graph.Topology
 	}
 	return nil
 }
