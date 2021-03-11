@@ -12,10 +12,10 @@ type (
 	Monitor struct {
 		host string
 
-		timestamp int64
-		work      uint64
-		topology  uint64
-		warnedAt  int64
+		time     time.Time
+		work     uint64
+		topology uint64
+		warnedAt int64
 	}
 )
 
@@ -40,7 +40,7 @@ func (m *Monitor) LoopHealthCheck(ctx context.Context) error {
 				continue
 			}
 
-			sleepDur = time.Second * 30
+			sleepDur = time.Second * 60
 		}
 	}
 }
@@ -61,30 +61,34 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 			continue
 		}
 
-		cache, ok := info.Graph.Cache[node.Node.String()]
-		if !ok {
-			continue
+		var t time.Time
+		{
+			if cache, ok := info.Graph.Cache[node.Node.String()]; ok && len(cache.Snapshots) > 0 {
+				t = time.Unix(0, cache.Timestamp)
+			} else if final, ok := info.Graph.Final[node.Node.String()]; ok {
+				t = time.Unix(0, final.End)
+			}
 		}
 
 		work := node.Works[0]*12 + node.Works[1]*10
-		now := time.Now().UnixNano()
+		now := time.Now()
 		log := log.WithFields(logrus.Fields{
-			"node":           info.Node,
-			"version":        info.Version,
-			"topology":       info.Graph.Topology,
-			"topology.pre":   m.topology,
-			"works":          work,
-			"work.pre":       m.work,
-			"works.diff":     work - m.work,
-			"cache.time":     cache.Timestamp,
-			"cache.time.pre": m.timestamp,
-			"duration":       time.Duration(now - m.timestamp),
+			"node":          info.Node,
+			"version":       info.Version,
+			"topology":      info.Graph.Topology,
+			"topology.pre":  m.topology,
+			"works":         work,
+			"work.pre":      m.work,
+			"works.diff":    work - m.work,
+			"timestamp":     t,
+			"timestamp.pre": m.time,
+			"since_now":     now.Sub(m.time),
 		})
 
 		if work == m.work {
-			if now-m.warnedAt > int64(300*time.Second) {
-				log.Info("not worked")
-				m.warnedAt = now
+			if now.UnixNano()-m.warnedAt > int64(300*time.Second) {
+				log.Info("not working")
+				m.warnedAt = now.UnixNano()
 			}
 			continue
 		}
@@ -94,7 +98,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 		}
 		m.warnedAt = 0
 		m.work = work
-		m.timestamp = cache.Timestamp
+		m.time = t
 		m.topology = info.Graph.Topology
 	}
 	return nil
