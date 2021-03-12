@@ -40,7 +40,7 @@ func (m *Monitor) LoopHealthCheck(ctx context.Context) error {
 				continue
 			}
 
-			sleepDur = time.Second * 60
+			sleepDur = time.Second * 120
 		}
 	}
 }
@@ -61,40 +61,44 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 			continue
 		}
 
-		var t time.Time
-		{
-			if cache, ok := info.Graph.Cache[node.Node.String()]; ok && len(cache.Snapshots) > 0 {
-				t = time.Unix(0, cache.Timestamp)
-			} else if final, ok := info.Graph.Final[node.Node.String()]; ok {
-				t = time.Unix(0, final.End)
-			}
+		var (
+			t                  time.Time
+			cacheSnapshotCount int
+			work               = node.Works[0]*12 + node.Works[1]*10
+			now                = time.Now()
+		)
+
+		if cache, ok := info.Graph.Cache[node.Node.String()]; ok && len(cache.Snapshots) > 0 {
+			t = time.Unix(0, cache.Timestamp)
+			cacheSnapshotCount = len(cache.Snapshots)
+		} else if final, ok := info.Graph.Final[node.Node.String()]; ok {
+			t = time.Unix(0, final.End)
 		}
 
-		work := node.Works[0]*12 + node.Works[1]*10
-		now := time.Now()
 		log := log.WithFields(logrus.Fields{
-			"node":          info.Node,
-			"version":       info.Version,
-			"topology":      info.Graph.Topology,
-			"topology.pre":  m.topology,
-			"works":         work,
-			"work.pre":      m.work,
-			"works.diff":    work - m.work,
-			"timestamp":     t,
-			"timestamp.pre": m.time,
-			"since_now":     now.Sub(m.time),
+			"node":            info.Node,
+			"version":         info.Version,
+			"topology":        info.Graph.Topology,
+			"topology.pre":    m.topology,
+			"cache.snapshots": cacheSnapshotCount,
+			"works":           work,
+			"work.pre":        m.work,
+			"works.diff":      work - m.work,
+			"info.time":       info.Timestamp,
+			"time":            t,
+			"time.pre":        m.time,
 		})
 
-		if work == m.work {
-			if now.UnixNano()-m.warnedAt > int64(300*time.Second) {
-				log.Info("not working")
+		if !t.After(m.time) {
+			if now.UnixNano()-m.warnedAt > int64(600*time.Second) {
+				log.Infof("(%s) not working for %v", m.host, info.Timestamp.Sub(m.time))
 				m.warnedAt = now.UnixNano()
 			}
 			continue
 		}
 
 		if m.warnedAt > 0 {
-			log.Info("back to work")
+			log.Infof("(%s) back to work after %v", m.host, info.Timestamp.Sub(m.time))
 		}
 		m.warnedAt = 0
 		m.work = work
