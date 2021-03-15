@@ -13,9 +13,15 @@ const (
 	TxMethodGet  = "gettransaction"
 )
 
+func ReadConsensusInfo(ctx context.Context) (*ConsensusInfo, error) {
+	var resp ConsensusInfo
+	err := CallMixinNetRPC(ctx, &resp, "getinfo")
+	return &resp, err
+}
+
 func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 	var tx Transaction
-	if err := callMixinNetRPC(ctx, &tx, TxMethodSend, raw); err != nil {
+	if err := CallMixinNetRPC(ctx, &tx, TxMethodSend, raw); err != nil {
 		if IsErrorCodes(err, InvalidOutputKey) {
 			if tx, err := TransactionFromRaw(raw); err == nil {
 				h, _ := tx.TransactionHash()
@@ -32,13 +38,13 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 
 func GetTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 	var tx Transaction
-	if err := callMixinNetRPC(ctx, &tx, TxMethodGet, hash); err != nil {
+	if err := CallMixinNetRPC(ctx, &tx, TxMethodGet, hash); err != nil {
 		return nil, err
 	}
 	return &tx, nil
 }
 
-func callMixinNetRPC(ctx context.Context, resp interface{}, method string, params ...interface{}) error {
+func CallMixinNetRPC(ctx context.Context, resp interface{}, method string, params ...interface{}) error {
 	r, err := MixinNetClientFromContext(ctx).R().
 		SetContext(ctx).
 		SetBody(map[string]interface{}{

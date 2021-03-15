@@ -11,9 +11,10 @@ import (
 var (
 	mixinnetHosts = []string{
 		"http://node-42.f1ex.io:8239",
-		"http://node-candy.f1ex.io:8239",
-		"http://node-box.f1ex.io:8239",
-		"http://node-box-2.f1ex.io:8239",
+		"http://mixin-node-01.b.watch:8239",
+		"http://mixin-node-02.b.watch:8239",
+		"http://lehigh.hotot.org:8239",
+		"http://node-okashi.mixin.fan:8239",
 	}
 
 	mixinNetClients = map[string]*resty.Client{}

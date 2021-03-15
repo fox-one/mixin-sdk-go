@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	TxVersion = 0x01
+	TxVersion = 0x02
 )
 
 type (
@@ -30,6 +30,13 @@ type (
 		Amount          Integer `json:"amount"`
 	}
 
+	WithdrawalData struct {
+		Chain    Hash   `json:"chain"`
+		AssetKey string `json:"asset"`
+		Address  string `json:"address"`
+		Tag      string `json:"tag"`
+	}
+
 	Input struct {
 		Hash    *Hash        `json:"hash,omitempty"`
 		Index   int          `json:"index,omitempty"`
@@ -39,22 +46,25 @@ type (
 	}
 
 	Output struct {
-		Type   uint8   `json:"type"`
-		Amount Integer `json:"amount"`
-		Keys   []Key   `json:"keys,omitempty"`
-		Script Script  `json:"script"`
-		Mask   Key     `json:"mask,omitempty"`
+		Type       uint8           `json:"type"`
+		Amount     Integer         `json:"amount"`
+		Keys       []Key           `json:"keys,omitempty"`
+		Withdrawal *WithdrawalData `msgpack:",omitempty"`
+
+		Script Script `json:"script"`
+		Mask   Key    `json:"mask,omitempty"`
 	}
 
 	Transaction struct {
-		Hash       *Hash            `json:"hash,omitempty" msgpack:"-"`
-		Version    uint8            `json:"version"`
-		Asset      Hash             `json:"asset"`
-		Inputs     []*Input         `json:"inputs"`
-		Outputs    []*Output        `json:"outputs"`
-		Extra      TransactionExtra `json:"extra,omitempty"`
-		Signatures [][]Signature    `json:"signatures,omitempty" msgpack:",omitempty"`
-		Snapshot   *Hash            `json:"snapshot,omitempty" msgpack:"-"`
+		Hash       *Hash                   `json:"hash,omitempty" msgpack:"-"`
+		Snapshot   *Hash                   `json:"snapshot,omitempty" msgpack:"-"`
+		Signatures []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
+
+		Version uint8            `json:"version"`
+		Asset   Hash             `json:"asset"`
+		Inputs  []*Input         `json:"inputs"`
+		Outputs []*Output        `json:"outputs"`
+		Extra   TransactionExtra `json:"extra,omitempty"`
 	}
 
 	TransactionOutput struct {
@@ -71,21 +81,50 @@ type (
 	}
 )
 
+func (t *Transaction) DumpTransactionData() ([]byte, error) {
+	switch t.Version {
+	case 0, 1:
+		tx := TransactionV1{
+			Transaction: *t,
+		}
+		if len(t.Signatures) > 0 {
+			tx.Signatures = make([][]*Signature, len(t.Signatures))
+			for i, sigs := range t.Signatures {
+				tx.Signatures[i] = make([]*Signature, len(sigs))
+				for k, sig := range sigs {
+					tx.Signatures[i][k] = sig
+				}
+			}
+		}
+
+		var buf bytes.Buffer
+		enc := msgpack.NewEncoder(&buf).UseCompactEncoding(true)
+		err := enc.Encode(tx)
+		if err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+
+	case 2:
+		return NewEncoder().EncodeTransaction(t), nil
+
+	default:
+		return nil, errors.New("unknown tx version")
+	}
+}
+
 func (t *Transaction) DumpTransaction() (string, error) {
-	var buf bytes.Buffer
-	enc := msgpack.NewEncoder(&buf).UseCompactEncoding(true)
-	err := enc.Encode(t)
+	bts, err := t.DumpTransactionData()
 	if err != nil {
 		return "", err
 	}
-
-	return hex.EncodeToString(buf.Bytes()), nil
+	return hex.EncodeToString(bts), nil
 }
 
-func (t *Transaction) DumpTransactionPayload() (string, error) {
+func (t *Transaction) DumpTransactionPayload() ([]byte, error) {
 	sigs := t.Signatures
 	t.Signatures = nil
-	raw, err := t.DumpTransaction()
+	raw, err := t.DumpTransactionData()
 	t.Signatures = sigs
 	return raw, err
 }
@@ -97,8 +136,7 @@ func (t *Transaction) TransactionHash() (Hash, error) {
 			return Hash{}, err
 		}
 
-		bts, _ := hex.DecodeString(raw)
-		h := NewHash(bts)
+		h := NewHash(raw)
 		t.Hash = &h
 	}
 	return *t.Hash, nil
@@ -235,18 +273,5 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		tx.Outputs = append(tx.Outputs, ghost.DumpOutput(output.Threshold, output.Amount))
 	}
 
-	return &tx, nil
-}
-
-func TransactionFromRaw(raw string) (*Transaction, error) {
-	bts, err := hex.DecodeString(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	var tx Transaction
-	if err := msgpack.Unmarshal(bts, &tx); err != nil {
-		return nil, err
-	}
 	return &tx, nil
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"log"
@@ -57,19 +56,19 @@ func main() {
 		}, *pin)
 
 		if err != nil {
-			log.Printf("Transaction: %v", err)
+			log.Printf("Transaction: %v\n", err)
 			return
 		}
 
 		h, err := mixin.HashFromString(snapshot.TransactionHash)
 		if err != nil {
-			log.Printf("HashFromString (%s): %v", snapshot.TransactionHash, err)
+			log.Printf("HashFromString (%s): %v\n", snapshot.TransactionHash, err)
 			return
 		}
 
 		for {
-			if tx, err = mixin.GetTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
-				log.Printf("GetTransaction %v failed: %v", h, err)
+			if tx, err = client.GetRawTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
+				log.Printf("GetRawTransaction %v failed: %v\n", h, err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -78,18 +77,18 @@ func main() {
 
 		// verify output
 		if key := mixin.ViewGhostOutputKey(&tx.Outputs[0].Keys[0], &addr.PrivateViewKey, &tx.Outputs[0].Mask, 0); key.String() != addr.PublicSpendKey.String() {
-			log.Printf("ViewGhostOutputKey check failed: %v != %v", key, addr.PublicSpendKey)
+			log.Printf("ViewGhostOutputKey check failed: %v != %v\n", key, addr.PublicSpendKey)
 			return
 		}
 
 		privGhost = mixin.DeriveGhostPrivateKey(&tx.Outputs[0].Mask, &addr.PrivateViewKey, &addr.PrivateSpendKey, 0)
 		if privGhost.Public().String() != tx.Outputs[0].Keys[0].String() {
-			log.Printf("DeriveGhostPrivateKey check failed: expect %v; got priv ghost %v, public %v", tx.Outputs[0].Keys[0], privGhost, privGhost.Public())
+			log.Printf("DeriveGhostPrivateKey check failed: expect %v; got priv ghost %v, public %v\n", tx.Outputs[0].Keys[0], privGhost, privGhost.Public())
 			return
 		}
 
 		if ok, err := mixin.VerifyTransaction(ctx, addr, h); ok || err != nil {
-			log.Printf("VerifyTransaction failed: %v; expect false bug got %v", err, ok)
+			log.Printf("VerifyTransaction failed: %v; expect false bug got %v\n", err, ok)
 			return
 		}
 	}
@@ -110,37 +109,51 @@ func main() {
 		})
 
 		if err != nil {
-			log.Printf("MakeMultisigTransaction: %v", err)
+			log.Printf("MakeMultisigTransaction: %v\n", err)
 			return
 		}
 
 		{
 			raw, err := tx.DumpTransactionPayload()
 			if err != nil {
-				log.Printf("DumpTransactionPayload: %v", err)
+				log.Printf("DumpTransactionPayload: %v\n", err)
 				return
 			}
 
-			bts, _ := hex.DecodeString(raw)
-			tx.Signatures = [][]mixin.Signature{
+			tx.Signatures = []map[uint16]*mixin.Signature{
 				{
-					privGhost.Sign(bts),
+					0: privGhost.Sign(raw),
 				},
 			}
 		}
 
 		raw, err := tx.DumpTransaction()
 		if err != nil {
-			log.Printf("DumpTransaction: %v", err)
+			log.Printf("DumpTransaction: %v\n", err)
 			return
 		}
 
 		for {
-			if tx, err = mixin.SendRawTransaction(ctx, raw); err == nil {
+			_, err := client.SendRawTransaction(ctx, raw)
+			if err == nil || mixin.IsErrorCodes(err, mixin.InvalidOutputKey) {
 				break
 			}
-			log.Printf("SendRawTransaction: %v", err)
+			log.Printf("SendRawTransaction: %v\n", err)
 			time.Sleep(time.Second)
+		}
+
+		h, err := tx.TransactionHash()
+		if err != nil {
+			log.Printf("TransactionHash: %v\n", err)
+			return
+		}
+		for i := 0; i < 5; i++ {
+			if tx, err = client.GetRawTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
+				log.Printf("GetRawTransaction %v failed: %v\n", h, err)
+				time.Sleep(time.Second)
+				continue
+			}
+			break
 		}
 
 		if ok, err := mixin.VerifyTransaction(ctx, addr, *tx.Hash); !ok || err != nil {
