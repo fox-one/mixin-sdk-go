@@ -64,6 +64,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 		var (
 			t                  time.Time
 			cacheSnapshotCount int
+			round              uint64
 			work               = node.Works[0]*12 + node.Works[1]*10
 			now                = time.Now()
 		)
@@ -71,8 +72,10 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 		if cache, ok := info.Graph.Cache[node.Node.String()]; ok && len(cache.Snapshots) > 0 {
 			t = time.Unix(0, cache.Timestamp)
 			cacheSnapshotCount = len(cache.Snapshots)
+			round = cache.Round
 		} else if final, ok := info.Graph.Final[node.Node.String()]; ok {
 			t = time.Unix(0, final.End)
+			round = final.Round
 		}
 
 		log := log.WithFields(logrus.Fields{
@@ -81,6 +84,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 			"topology":        info.Graph.Topology,
 			"topology.pre":    m.topology,
 			"cache.snapshots": cacheSnapshotCount,
+			"round":           round,
 			"works":           work,
 			"work.pre":        m.work,
 			"works.diff":      work - m.work,
@@ -91,7 +95,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 
 		if !t.After(m.time) {
 			if now.UnixNano()-m.warnedAt > int64(600*time.Second) {
-				log.Infof("(%s) not working for %v", m.host, info.Timestamp.Sub(m.time))
+				log.Infof("(%s) not working for %v", m.host, time.Now().Sub(t))
 				m.warnedAt = now.UnixNano()
 			}
 			continue
