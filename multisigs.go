@@ -34,6 +34,7 @@ type (
 		AssetID         string          `json:"asset_id"`
 		TransactionHash Hash            `json:"transaction_hash"`
 		OutputIndex     int             `json:"output_index"`
+		Sender          string          `json:"sender,omitempty"`
 		Amount          decimal.Decimal `json:"amount"`
 		Threshold       uint8           `json:"threshold"`
 		Members         []string        `json:"members"`
