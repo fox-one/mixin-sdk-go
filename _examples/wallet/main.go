@@ -51,9 +51,11 @@ func main() {
 
 	if app := me.App; app != nil {
 		input := &mixin.TransferInput{
-			AssetID:    "965e5c6e-434c-3fa9-b780-c50f43cd955c", // cnb
+			AssetID:    "965e5c6e-434c-3fa9-b780-c50f43cd955c", // CNB
 			OpponentID: app.CreatorID,
 			Amount:     decimal.NewFromInt(100),
+			// THIS IS AN EXAMPLE.
+			// NEVER USE A RANDOM TRACE ID IN YOU REAL PROJECT.
 			TraceID:    mixin.RandomTraceID(),
 			Memo:       "test",
 		}
