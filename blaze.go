@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -173,16 +172,12 @@ func connectMixinBlaze(s Signer) (*websocket.Conn, error) {
 	token := s.SignToken(sig, newRequestID(), time.Minute)
 	header := make(http.Header)
 	header.Add("Authorization", "Bearer "+token)
-	u := url.URL{Scheme: "wss", Host: blazeHost, Path: "/"}
-	url := u.String()
-	if blazeURL != "" {
-		url = blazeURL
-	}
+
 	dialer := &websocket.Dialer{
 		Subprotocols:   []string{"Mixin-Blaze-1"},
 		ReadBufferSize: 1024,
 	}
-	conn, _, err := dialer.Dial(url, header)
+	conn, _, err := dialer.Dial(blazeURL, header)
 	if err != nil {
 		return nil, err
 	}

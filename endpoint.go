@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"net/url"
 	"os"
 	"strings"
 )
@@ -20,16 +21,25 @@ func UseApiHost(host string) {
 }
 
 var (
-	blazeHost = DefaultBlazeHost
-	blazeURL  = ""
+	blazeURL = buildBlazeURL(DefaultBlazeHost)
 )
 
-func UseBlazeHost(host string) {
-	blazeHost = host
+func buildBlazeURL(host string) string {
+	u := url.URL{Scheme: "wss", Host: host}
+	return u.String()
 }
 
-func UseBlazeURL(url string) {
-	blazeURL = url
+func UseBlazeHost(host string) {
+	blazeURL = buildBlazeURL(host)
+}
+
+func UseBlazeURL(rawURL string) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		panic(err)
+	}
+
+	blazeURL = u.String()
 }
 
 func init() {
@@ -46,8 +56,8 @@ func init() {
 		UseBlazeHost(host)
 	}
 
-	if url, ok := os.LookupEnv("MIXIN_SDK_BLAZE_URL"); ok && url != "" {
-		UseBlazeURL(url)
+	if rawURL, ok := os.LookupEnv("MIXIN_SDK_BLAZE_URL"); ok && rawURL != "" {
+		UseBlazeURL(rawURL)
 	}
 
 	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
