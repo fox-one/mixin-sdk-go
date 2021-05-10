@@ -63,7 +63,7 @@ func (c *Client) UpdateApp(ctx context.Context, appID string, req UpdateAppReque
 }
 
 func (c *Client) ReadFavoriteApps(ctx context.Context, userID string) ([]*FavoriteApp, error) {
-	uri := fmt.Sprintf("/users/%s/app/favorite", userID)
+	uri := fmt.Sprintf("/users/%s/apps/favorite", userID)
 
 	var apps []*FavoriteApp
 	if err := c.Get(ctx, uri, nil, &apps); err != nil {
