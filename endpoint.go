@@ -19,7 +19,10 @@ func UseApiHost(host string) {
 	httpClient.HostURL = host
 }
 
-var blazeHost = DefaultBlazeHost
+var (
+	blazeHost = DefaultBlazeHost
+	blazePath = "/"
+)
 
 func UseBlazeHost(host string) {
 	blazeHost = host
@@ -37,6 +40,10 @@ func init() {
 
 	if host, ok := os.LookupEnv("MIXIN_SDK_BLAZE_HOST"); ok && host != "" {
 		UseBlazeHost(host)
+	}
+
+	if path, ok := os.LookupEnv("MIXIN_SDK_BLAZE_PATH"); ok && path != "" {
+		blazePath = path
 	}
 
 	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {

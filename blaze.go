@@ -173,7 +173,7 @@ func connectMixinBlaze(s Signer) (*websocket.Conn, error) {
 	token := s.SignToken(sig, newRequestID(), time.Minute)
 	header := make(http.Header)
 	header.Add("Authorization", "Bearer "+token)
-	u := url.URL{Scheme: "wss", Host: blazeHost, Path: "/"}
+	u := url.URL{Scheme: "wss", Host: blazeHost, Path: blazePath}
 	dialer := &websocket.Dialer{
 		Subprotocols:   []string{"Mixin-Blaze-1"},
 		ReadBufferSize: 1024,
