@@ -28,6 +28,10 @@ func UseBlazeHost(host string) {
 	blazeHost = host
 }
 
+func UseBlazeURL(url string) {
+	blazeURL = url
+}
+
 func init() {
 	if _, ok := os.LookupEnv("MIXIN_SDK_USE_ZEROMESH"); ok {
 		UseApiHost(ZeromeshApiHost)
@@ -43,7 +47,7 @@ func init() {
 	}
 
 	if url, ok := os.LookupEnv("MIXIN_SDK_BLAZE_URL"); ok && url != "" {
-		blazeURL = url
+		UseBlazeURL(url)
 	}
 
 	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
