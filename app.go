@@ -83,3 +83,14 @@ func (c *Client) FavoriteApp(ctx context.Context, appID string) (*FavoriteApp, e
 
 	return &app, nil
 }
+
+func (c *Client) UnFavoriteApp(ctx context.Context, appID string) error {
+	uri := fmt.Sprintf("/apps/%s/unfavorite", appID)
+
+	var result interface{}
+	if err := c.Post(ctx, uri, nil, &result); err != nil {
+		return err
+	}
+
+	return nil
+}
