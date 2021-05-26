@@ -115,20 +115,24 @@ type MessageRequest struct {
 }
 
 func (c *Client) SendMessages(ctx context.Context, messages []*MessageRequest) error {
-	switch len(messages) {
-	case 0:
-		return nil
-	case 1:
-		return c.SendMessage(ctx, messages[0])
-	default:
-		return c.Post(ctx, "/messages", messages, nil)
+	raws := make([]json.RawMessage, 0, len(messages))
+	for _, msg := range messages {
+		b, _ := json.Marshal(msg)
+		raws = append(raws, b)
 	}
+
+	return c.SendRawMessages(ctx, raws)
 }
 
 func (c *Client) SendMessage(ctx context.Context, message *MessageRequest) error {
-	return c.Post(ctx, "/messages", message, nil)
+	return c.SendMessages(ctx, []*MessageRequest{message})
 }
 
 func (c *Client) SendRawMessages(ctx context.Context, messages []json.RawMessage) error {
-	return c.Post(ctx, "/messages", messages, nil)
+	var body interface{} = messages
+	if len(messages) == 1 {
+		body = messages[0]
+	}
+
+	return c.Post(ctx, "/messages", body, nil)
 }
