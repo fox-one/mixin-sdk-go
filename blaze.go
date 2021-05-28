@@ -83,8 +83,10 @@ type BlazeListener interface {
 	OnMessage(ctx context.Context, msg *MessageView, userID string) error
 }
 
-func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener) error {
-	conn, err := connectMixinBlaze(c)
+type BlazeOption func(dialer *websocket.Dialer)
+
+func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...BlazeOption) error {
+	conn, err := connectMixinBlaze(c, opts...)
 	if err != nil {
 		return err
 	}
@@ -167,7 +169,7 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener) error {
 	}
 }
 
-func connectMixinBlaze(s Signer) (*websocket.Conn, error) {
+func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
 	sig := SignRaw("GET", "/", nil)
 	token := s.SignToken(sig, newRequestID(), time.Minute)
 	header := make(http.Header)
@@ -177,6 +179,11 @@ func connectMixinBlaze(s Signer) (*websocket.Conn, error) {
 		Subprotocols:   []string{"Mixin-Blaze-1"},
 		ReadBufferSize: 1024,
 	}
+
+	for _, opt := range opts {
+		opt(dialer)
+	}
+
 	conn, _, err := dialer.Dial(blazeURL, header)
 	if err != nil {
 		return nil, err
