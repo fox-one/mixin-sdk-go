@@ -17,6 +17,7 @@ var (
 	xForceAuthentication = http.CanonicalHeaderKey("x-force-authentication")
 
 	ErrResponseVerifyFailed = errors.New("response verify failed")
+	defaultTransport        = http.DefaultTransport
 )
 
 var httpClient = resty.New().
@@ -56,6 +57,14 @@ var httpClient = resty.New().
 
 		return nil
 	})
+
+func SetTransport(t http.RoundTripper) {
+	httpClient.SetTransport(t)
+}
+
+func UnsetTransport() {
+	httpClient.SetTransport(defaultTransport)
+}
 
 func GetClient() *http.Client {
 	return httpClient.GetClient()
