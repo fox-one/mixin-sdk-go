@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -21,6 +22,11 @@ const (
 
 	CreateMessageAction      = "CREATE_MESSAGE"
 	AcknowledgeReceiptAction = "ACKNOWLEDGE_MESSAGE_RECEIPT"
+)
+
+var (
+	blazeUseProxy = false
+	blazeProxy    = &url.URL{}
 )
 
 type BlazeMessage struct {
@@ -177,6 +183,10 @@ func connectMixinBlaze(s Signer) (*websocket.Conn, error) {
 		Subprotocols:   []string{"Mixin-Blaze-1"},
 		ReadBufferSize: 1024,
 	}
+	if blazeUseProxy {
+		dialer.Proxy = http.ProxyURL(blazeProxy)
+	}
+
 	conn, _, err := dialer.Dial(blazeURL, header)
 	if err != nil {
 		return nil, err

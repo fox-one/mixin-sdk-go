@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -58,11 +59,18 @@ var httpClient = resty.New().
 		return nil
 	})
 
-func SetTransport(t http.RoundTripper) {
-	httpClient.SetTransport(t)
+func SetProxy(proxyURL string) {
+	// support scheme://host:port format
+	url, err := url.Parse(proxyURL)
+	if err == nil {
+		httpClient.SetProxy(proxyURL)
+		blazeUseProxy = true
+		blazeProxy = url
+	}
 }
 
-func UnsetTransport() {
+func UnsetProxy() {
+	blazeUseProxy = false
 	httpClient.SetTransport(defaultTransport)
 }
 
