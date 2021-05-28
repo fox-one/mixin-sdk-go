@@ -61,6 +61,10 @@ func GetClient() *http.Client {
 	return httpClient.GetClient()
 }
 
+func GetRestyClient() *resty.Client {
+	return httpClient
+}
+
 func checkResponseRequestID(r *resty.Response) error {
 	expect := r.Request.Header.Get(xRequestID)
 	got := r.Header().Get(xRequestID)
