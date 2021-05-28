@@ -71,7 +71,7 @@ func SetProxy(proxyURL string) {
 
 func UnsetProxy() {
 	blazeUseProxy = false
-	httpClient.SetTransport(defaultTransport)
+	httpClient.RemoveProxy()
 }
 
 func GetClient() *http.Client {
