@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -207,6 +208,7 @@ func tick(ctx context.Context, conn *websocket.Conn) {
 			return
 		case <-ticker.C:
 			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait)); err != nil {
+				log.Printf("[blaze] write ping control failed: %s", err)
 				return
 			}
 		}
