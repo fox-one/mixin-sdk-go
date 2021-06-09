@@ -49,16 +49,22 @@ type (
 		Type       uint8           `json:"type"`
 		Amount     Integer         `json:"amount"`
 		Keys       []Key           `json:"keys,omitempty"`
-		Withdrawal *WithdrawalData `msgpack:",omitempty"`
+		Withdrawal *WithdrawalData `json:"withdrawal,omitempty" msgpack:",omitempty"`
 
 		Script Script `json:"script"`
 		Mask   Key    `json:"mask,omitempty"`
 	}
 
+	AggregatedSignature struct {
+		Signers   []int      `json:"signers"`
+		Signature *Signature `json:"signature"`
+	}
+
 	Transaction struct {
-		Hash       *Hash                   `json:"hash,omitempty" msgpack:"-"`
-		Snapshot   *Hash                   `json:"snapshot,omitempty" msgpack:"-"`
-		Signatures []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
+		Hash                *Hash                   `json:"hash,omitempty" msgpack:"-"`
+		Snapshot            *Hash                   `json:"snapshot,omitempty" msgpack:"-"`
+		Signatures          []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
+		AggregatedSignature *AggregatedSignature    `json:"aggregated_signature,omitempty" msgpack:"-"`
 
 		Version uint8            `json:"version"`
 		Asset   Hash             `json:"asset"`
@@ -123,9 +129,12 @@ func (t *Transaction) DumpTransaction() (string, error) {
 
 func (t *Transaction) DumpTransactionPayload() ([]byte, error) {
 	sigs := t.Signatures
+	aggsigs := t.AggregatedSignature
 	t.Signatures = nil
+	t.AggregatedSignature = nil
 	raw, err := t.DumpTransactionData()
 	t.Signatures = sigs
+	t.AggregatedSignature = aggsigs
 	return raw, err
 }
 

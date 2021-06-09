@@ -7,7 +7,11 @@ import (
 )
 
 const (
-	MaximumEncodingInt = 256
+	MaximumEncodingInt = 0xFFFF
+
+	AggregatedSignaturePrefix      = 0xFF01
+	AggregatedSignatureSparseMask  = byte(0x01)
+	AggregatedSignatureOrdinayMask = byte(0x00)
 )
 
 var (
@@ -48,10 +52,17 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 	enc.WriteInt(el)
 	enc.Write(signed.Extra)
 
-	sl := len(signed.Signatures)
-	enc.WriteInt(sl)
-	for _, sm := range signed.Signatures {
-		enc.EncodeSignatures(sm)
+	if signed.AggregatedSignature != nil {
+		enc.EncodeAggregatedSignature(signed.AggregatedSignature)
+	} else {
+		sl := len(signed.Signatures)
+		if sl == MaximumEncodingInt {
+			panic(sl)
+		}
+		enc.WriteInt(sl)
+		for _, sm := range signed.Signatures {
+			enc.EncodeSignatures(sm)
+		}
 	}
 
 	return enc.buf.Bytes()
@@ -151,6 +162,13 @@ func (enc *Encoder) Write(b []byte) {
 	}
 }
 
+func (enc *Encoder) WriteByte(b byte) {
+	err := enc.buf.WriteByte(b)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (enc *Encoder) WriteInt(d int) {
 	if d > MaximumEncodingInt {
 		panic(d)
@@ -188,4 +206,41 @@ func uint64ToByte(d uint64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, d)
 	return b
+}
+
+func (enc *Encoder) EncodeAggregatedSignature(js *AggregatedSignature) {
+	enc.WriteInt(MaximumEncodingInt)
+	enc.WriteInt(AggregatedSignaturePrefix)
+	enc.Write(js.Signature[:])
+	if len(js.Signers) == 0 {
+		enc.WriteByte(AggregatedSignatureOrdinayMask)
+		enc.WriteInt(0)
+		return
+	}
+	for i, m := range js.Signers {
+		if i > 0 && m <= js.Signers[i-1] {
+			panic(js.Signers)
+		}
+		if m > MaximumEncodingInt {
+			panic(js.Signers)
+		}
+	}
+
+	max := js.Signers[len(js.Signers)-1]
+	if max/8+1 > len(js.Signers)*2 {
+		enc.WriteByte(AggregatedSignatureSparseMask)
+		enc.WriteInt(len(js.Signers))
+		for _, m := range js.Signers {
+			enc.WriteInt(m)
+		}
+		return
+	}
+
+	masks := make([]byte, max/8+1)
+	for _, m := range js.Signers {
+		masks[m/8] = masks[m/8] ^ (1 << (m % 8))
+	}
+	enc.WriteByte(AggregatedSignatureOrdinayMask)
+	enc.WriteInt(len(masks))
+	enc.Write(masks)
 }

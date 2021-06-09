@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -90,6 +91,32 @@ func main() {
 		if ok, err := mixin.VerifyTransaction(ctx, addr, h); ok || err != nil {
 			log.Printf("VerifyTransaction failed: %v; expect false bug got %v\n", err, ok)
 			return
+		}
+
+		{
+			raw, err := tx.DumpTransaction()
+			if err != nil {
+				log.Printf("DumpTransaction failed: %v\n", err)
+				return
+			}
+
+			tx1, err := mixin.TransactionFromRaw(raw)
+			if err != nil {
+				log.Printf("TransactionFromRaw failed: %v\n", err)
+				return
+			}
+
+			hash, err := tx1.TransactionHash()
+			if err != nil {
+				log.Printf("TransactionHash failed: %v\n", err)
+				return
+			}
+
+			if bytes.Compare(h[:], hash[:]) != 0 {
+				log.Println("Marshal & Unmarshal failed, hash not matched")
+				return
+			}
+			log.Println("Marshal & Unmarshal passed")
 		}
 	}
 
