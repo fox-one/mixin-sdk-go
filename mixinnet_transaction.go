@@ -127,15 +127,10 @@ func (t *Transaction) DumpTransaction() (string, error) {
 	return hex.EncodeToString(bts), nil
 }
 
-func (t *Transaction) DumpTransactionPayload() ([]byte, error) {
-	sigs := t.Signatures
-	aggsigs := t.AggregatedSignature
+func (t Transaction) DumpTransactionPayload() ([]byte, error) {
 	t.Signatures = nil
 	t.AggregatedSignature = nil
-	raw, err := t.DumpTransactionData()
-	t.Signatures = sigs
-	t.AggregatedSignature = aggsigs
-	return raw, err
+	return t.DumpTransactionData()
 }
 
 func (t *Transaction) TransactionHash() (Hash, error) {
