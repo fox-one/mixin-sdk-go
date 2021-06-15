@@ -114,6 +114,11 @@ type MessageRequest struct {
 	QuoteMessageID   string `json:"quote_message_id,omitempty"`
 }
 
+func (c *Client) SendMessage(ctx context.Context, message *MessageRequest) error {
+	raw, _ := json.Marshal(message)
+	return c.SendRawMessage(ctx, raw)
+}
+
 func (c *Client) SendMessages(ctx context.Context, messages []*MessageRequest) error {
 	raws := make([]json.RawMessage, 0, len(messages))
 	for _, msg := range messages {
@@ -124,7 +129,7 @@ func (c *Client) SendMessages(ctx context.Context, messages []*MessageRequest) e
 	return c.SendRawMessages(ctx, raws)
 }
 
-func (c *Client) SendMessage(ctx context.Context, message *MessageRequest) error {
+func (c *Client) SendRawMessage(ctx context.Context, message json.RawMessage) error {
 	return c.Post(ctx, "/messages", message, nil)
 }
 
