@@ -125,14 +125,9 @@ func (c *Client) SendMessages(ctx context.Context, messages []*MessageRequest) e
 }
 
 func (c *Client) SendMessage(ctx context.Context, message *MessageRequest) error {
-	return c.SendMessages(ctx, []*MessageRequest{message})
+	return c.Post(ctx, "/messages", message, nil)
 }
 
 func (c *Client) SendRawMessages(ctx context.Context, messages []json.RawMessage) error {
-	var body interface{} = messages
-	if len(messages) == 1 {
-		body = messages[0]
-	}
-
-	return c.Post(ctx, "/messages", body, nil)
+	return c.Post(ctx, "/messages", messages, nil)
 }
