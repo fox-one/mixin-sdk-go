@@ -9,6 +9,7 @@ const (
 	MessageCategoryPlainText             = "PLAIN_TEXT"
 	MessageCategoryPlainPost             = "PLAIN_POST"
 	MessageCategoryPlainImage            = "PLAIN_IMAGE"
+	MessageCategoryPlainAudio            = "PLAIN_AUDIO"
 	MessageCategoryPlainData             = "PLAIN_DATA"
 	MessageCategoryPlainSticker          = "PLAIN_STICKER"
 	MessageCategoryPlainLive             = "PLAIN_LIVE"
