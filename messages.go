@@ -61,6 +61,7 @@ type (
 		Title       string `json:"title,omitempty"`
 		Description string `json:"description,omitempty"`
 		Action      string `json:"action,omitempty"`
+		Shareable   bool   `json:"shareable,omitempty"`
 	}
 
 	AudioMessage struct {
