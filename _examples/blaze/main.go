@@ -6,6 +6,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
@@ -71,16 +73,23 @@ func main() {
 		return client.SendMessage(ctx, reply)
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
 	// Start the message loop.
 	for {
-		// Pass the callback function into the `BlazeListenFunc`
-		if err := client.LoopBlaze(ctx, mixin.BlazeListenFunc(h)); err != nil {
-			log.Printf("LoopBlaze: %v", err)
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Second):
+			// Pass the callback function into the `BlazeListenFunc`
+			if err := client.LoopBlaze(ctx, mixin.BlazeListenFunc(h)); err != nil {
+				log.Printf("LoopBlaze: %v", err)
+			}
 		}
-
-		// Sleep for a while
-		time.Sleep(time.Second)
 	}
 }
