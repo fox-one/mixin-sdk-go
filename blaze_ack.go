@@ -15,10 +15,18 @@ type AckQueue struct {
 	mux  sync.Mutex
 }
 
-func (q *AckQueue) push(requests ...*AcknowledgementRequest) {
+func (q *AckQueue) pushBack(requests ...*AcknowledgementRequest) {
 	q.mux.Lock()
 	for _, req := range requests {
 		q.list.PushBack(req)
+	}
+	q.mux.Unlock()
+}
+
+func (q *AckQueue) pushFront(requests ...*AcknowledgementRequest) {
+	q.mux.Lock()
+	for _, req := range requests {
+		q.list.PushFront(req)
 	}
 	q.mux.Unlock()
 }
@@ -67,7 +75,7 @@ func (b *blazeHandler) ack(ctx context.Context) error {
 
 			if len(requests) > 0 {
 				if !sem.TryAcquire(1) {
-					b.queue.push(requests...)
+					b.queue.pushFront(requests...)
 					break
 				}
 
@@ -76,7 +84,7 @@ func (b *blazeHandler) ack(ctx context.Context) error {
 
 					err := b.SendAcknowledgements(ctx, requests)
 					if err != nil {
-						b.queue.push(requests...)
+						b.queue.pushFront(requests...)
 					}
 
 					return err

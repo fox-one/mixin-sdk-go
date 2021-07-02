@@ -159,7 +159,7 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 				}
 
 				if !message.ack {
-					b.queue.push(&AcknowledgementRequest{
+					b.queue.pushBack(&AcknowledgementRequest{
 						MessageID: messageID,
 						Status:    MessageStatusRead,
 					})
