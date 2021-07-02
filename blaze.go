@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -90,83 +91,88 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 	if err != nil {
 		return err
 	}
+
 	defer conn.Close()
 
 	b := &blazeHandler{
 		Client: c,
-		conn:   conn,
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	go tick(ctx, conn)
-
-	ackBuffer := make(chan string)
-	defer close(ackBuffer)
-
-	go b.ack(ctx, ackBuffer)
-
-	_ = b.SetReadDeadline(time.Now().Add(pongWait))
-	conn.SetPongHandler(func(string) error {
-		return b.SetReadDeadline(time.Now().Add(pongWait))
+	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(s string) error {
+		return conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
 
 	if err = writeMessage(conn, "LIST_PENDING_MESSAGES", nil); err != nil {
 		return fmt.Errorf("write LIST_PENDING_MESSAGES failed: %w", err)
 	}
 
-	var (
-		blazeMessage BlazeMessage
-		message      MessageView
-	)
+	g, ctx := errgroup.WithContext(ctx)
 
-	for {
-		typ, r, err := conn.NextReader()
-		if err != nil {
-			return err
-		}
+	g.Go(func() error {
+		return tick(ctx, conn)
+	})
 
-		if typ != websocket.BinaryMessage {
-			return fmt.Errorf("invalid message type %d", typ)
-		}
+	g.Go(func() error {
+		return b.ack(ctx)
+	})
 
-		if err := parseBlazeMessage(r, &blazeMessage); err != nil {
-			return err
-		}
+	g.Go(func() error {
+		var (
+			blazeMessage BlazeMessage
+			message      MessageView
+		)
 
-		if blazeMessage.Error != nil {
-			return err
-		}
+		for {
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+			typ, r, err := conn.NextReader()
+			if err != nil {
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return ctxErr
+				}
 
-		message.reset()
-		if err := json.Unmarshal(blazeMessage.Data, &message); err != nil {
-			continue
-		}
-
-		switch blazeMessage.Action {
-		case CreateMessageAction:
-			messageID := message.MessageID
-			if err := listener.OnMessage(ctx, &message, b.ClientID); err != nil {
 				return err
 			}
 
-			if !message.ack {
-				ackBuffer <- messageID
+			if typ != websocket.BinaryMessage {
+				return fmt.Errorf("invalid message type %d", typ)
 			}
-		case AcknowledgeReceiptAction:
-			if err := listener.OnAckReceipt(ctx, &message, b.ClientID); err != nil {
+
+			if err := parseBlazeMessage(r, &blazeMessage); err != nil {
 				return err
 			}
-		}
 
-		if time.Until(b.readDeadline) < time.Second {
-			// 可能因为收到的消息过多或者消息处理太慢或者 ack 太慢
-			// 导致没有及时处理 pong frame 而 read deadline 没有刷新
-			// 这种情况下不应该读超时，在这里重置一下 read deadline
-			_ = b.SetReadDeadline(time.Now().Add(pongWait))
+			if err := blazeMessage.Error; err != nil {
+				return err
+			}
+
+			message.reset()
+			if err := json.Unmarshal(blazeMessage.Data, &message); err != nil {
+				continue
+			}
+
+			switch blazeMessage.Action {
+			case CreateMessageAction:
+				messageID := message.MessageID
+				if err := listener.OnMessage(ctx, &message, b.ClientID); err != nil {
+					return err
+				}
+
+				if !message.ack {
+					b.queue.pushBack(&AcknowledgementRequest{
+						MessageID: messageID,
+						Status:    MessageStatusRead,
+					})
+				}
+			case AcknowledgeReceiptAction:
+				if err := listener.OnAckReceipt(ctx, &message, b.ClientID); err != nil {
+					return err
+				}
+			}
 		}
-	}
+	})
+
+	return g.Wait()
 }
 
 func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
@@ -194,20 +200,17 @@ func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
 	return conn, nil
 }
 
-func tick(ctx context.Context, conn *websocket.Conn) {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		conn.Close()
-		ticker.Stop()
-	}()
+func tick(ctx context.Context, conn *websocket.Conn) error {
+	defer conn.Close()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait)); err != nil {
-				return
+			return ctx.Err()
+		case <-time.After(pingPeriod):
+			_ = conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return fmt.Errorf("send ping message failed: %w", err)
 			}
 		}
 	}
