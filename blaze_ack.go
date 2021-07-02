@@ -31,7 +31,7 @@ func (q *AckQueue) pull(limit int) []*AcknowledgementRequest {
 	}
 
 	ids := make([]*AcknowledgementRequest, 0, limit)
-	for q.list.Len() > 0 {
+	for i := 0; i < limit; i++ {
 		e := q.list.Front()
 		ids = append(ids, e.Value.(*AcknowledgementRequest))
 		q.list.Remove(e)
