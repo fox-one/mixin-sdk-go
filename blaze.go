@@ -127,6 +127,10 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 			typ, r, err := conn.NextReader()
 			if err != nil {
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					return ctxErr
+				}
+
 				return err
 			}
 
