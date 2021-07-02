@@ -59,8 +59,18 @@ func (b *blazeHandler) ack(ctx context.Context) error {
 			return g.Wait()
 		case <-time.After(dur):
 			requests := b.queue.pull(ackBatch)
+			if len(requests) < ackBatch {
+				dur = time.Second
+			} else {
+				dur = 200 * time.Millisecond
+			}
 
-			if len(requests) > 0 && sem.TryAcquire(1) {
+			if len(requests) > 0 {
+				if !sem.TryAcquire(1) {
+					b.queue.push(requests...)
+					break
+				}
+
 				g.Go(func() error {
 					defer sem.Release(1)
 
@@ -71,12 +81,6 @@ func (b *blazeHandler) ack(ctx context.Context) error {
 
 					return err
 				})
-			}
-
-			if len(requests) < ackBatch {
-				dur = time.Second
-			} else {
-				dur = 100 * time.Millisecond
 			}
 		}
 	}
