@@ -15,14 +15,16 @@ const (
 	MessageCategoryPlainLive             = "PLAIN_LIVE"
 	MessageCategoryPlainVideo            = "PLAIN_VIDEO"
 	MessageCategoryPlainContact          = "PLAIN_CONTACT"
+	MessageCategoryPlainLocation         = "PLAIN_LOCATION"
 	MessageCategoryAppCard               = "APP_CARD"
 	MessageCategoryAppButtonGroup        = "APP_BUTTON_GROUP"
 	MessageCategoryMessageRecall         = "MESSAGE_RECALL"
 	MessageCategorySystemConversation    = "SYSTEM_CONVERSATION"
 	MessageCategorySystemAccountSnapshot = "SYSTEM_ACCOUNT_SNAPSHOT"
 
-	MessageStatusSent = "SENT"
-	MessageStatusRead = "READ"
+	MessageStatusSent      = "SENT"
+	MessageStatusDelivered = "DELIVERED"
+	MessageStatusRead      = "READ"
 )
 
 type (
