@@ -13,22 +13,27 @@ import (
 )
 
 type User struct {
-	UserID         string    `json:"user_id,omitempty"`
-	IdentityNumber string    `json:"identity_number,omitempty"`
-	Phone          string    `json:"phone,omitempty"`
-	FullName       string    `json:"full_name,omitempty"`
-	Biography      string    `json:"biography,omitempty"`
-	AvatarURL      string    `json:"avatar_url,omitempty"`
-	Relationship   string    `json:"relationship,omitempty"`
-	MuteUntil      time.Time `json:"mute_until,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty"`
-	IsVerified     bool      `json:"is_verified,omitempty"`
-	SessionID      string    `json:"session_id,omitempty"`
-	PinToken       string    `json:"pin_token,omitempty"`
-	CodeID         string    `json:"code_id,omitempty"`
-	CodeURL        string    `json:"code_url,omitempty"`
-	HasPin         bool      `json:"has_pin,omitempty"`
-	DeviceStatus   string    `json:"device_status,omitempty"`
+	UserID                   string    `json:"user_id,omitempty"`
+	IdentityNumber           string    `json:"identity_number,omitempty"`
+	Phone                    string    `json:"phone,omitempty"`
+	FullName                 string    `json:"full_name,omitempty"`
+	Biography                string    `json:"biography,omitempty"`
+	AvatarURL                string    `json:"avatar_url,omitempty"`
+	Relationship             string    `json:"relationship,omitempty"`
+	MuteUntil                time.Time `json:"mute_until,omitempty"`
+	CreatedAt                time.Time `json:"created_at,omitempty"`
+	IsVerified               bool      `json:"is_verified,omitempty"`
+	SessionID                string    `json:"session_id,omitempty"`
+	PinToken                 string    `json:"pin_token,omitempty"`
+	CodeID                   string    `json:"code_id,omitempty"`
+	CodeURL                  string    `json:"code_url,omitempty"`
+	HasPin                   bool      `json:"has_pin,omitempty"`
+	DeviceStatus             string    `json:"device_status,omitempty"`
+	HasEmergencyContact      bool      `json:"has_emergency_contact,omitempty"`
+	ReceiveMessageSource     string    `json:"receive_message_source,omitempty"`
+	AcceptConversationSource string    `json:"accept_conversation_source,omitempty"`
+	AcceptSearchSource       string    `json:"accept_search_source,omitempty"`
+	FiatCurrency             string    `json:"fiat_currency,omitempty"`
 
 	App *App `json:"app,omitempty"`
 }
