@@ -15,6 +15,7 @@ const (
 	MessageCategoryPlainLive             = "PLAIN_LIVE"
 	MessageCategoryPlainVideo            = "PLAIN_VIDEO"
 	MessageCategoryPlainContact          = "PLAIN_CONTACT"
+	MessageCategoryPlainTranscript       = "PLAIN_TRANSCRIPT"
 	MessageCategoryPlainLocation         = "PLAIN_LOCATION"
 	MessageCategoryAppCard               = "APP_CARD"
 	MessageCategoryAppButtonGroup        = "APP_BUTTON_GROUP"
@@ -55,6 +56,36 @@ type (
 
 	ContactMessage struct {
 		UserID string `json:"user_id,omitempty"`
+	}
+
+	TranscriptMessage struct {
+		TranscriptID   string    `json:"transcript_id,omitempty"`
+		MessageID      string    `json:"message_id,omitempty"`
+		UserID         string    `json:"user_id,omitempty"`
+		UserFullName   string    `json:"user_full_name,omitempty"`
+		Category       string    `json:"category,omitempty"`
+		Content        string    `json:"content,omitempty"`
+		MediaURL       string    `json:"media_url,omitempty"`
+		MediaName      string    `json:"media_name,omitempty"`
+		MediaSize      int       `json:"media_size,omitempty"`
+		MediaWidth     int       `json:"media_width,omitempty"`
+		MediaHeight    int       `json:"media_height,omitempty"`
+		MediaDuration  int       `json:"media_duration,omitempty"`
+		MediaMimeType  string    `json:"media_mime_type,omitempty"`
+		MediaStatus    string    `json:"media_status,omitempty"`
+		MediaWaveform  string    `json:"media_waveform,omitempty"`
+		MediaKey       string    `json:"media_key,omitempty"`
+		MediaDigest    string    `json:"media_digest,omitempty"`
+		MediaCreatedAt time.Time `json:"media_created_at,omitempty"`
+		ThumbImage     string    `json:"thumb_image,omitempty"`
+		ThumbURL       string    `json:"thumb_url,omitempty"`
+		StickerID      string    `json:"sticker_id,omitempty"`
+		SharedUserID   string    `json:"shared_user_id,omitempty"`
+		Mentions       string    `json:"mentions,omitempty"`
+		QuoteID        string    `json:"quote_id,omitempty"`
+		QuoteContent   string    `json:"quote_content,omitempty"`
+		Caption        string    `json:"caption,omitempty"`
+		CreatedAt      time.Time `json:"created_at,omitempty"`
 	}
 
 	AppCardMessage struct {
