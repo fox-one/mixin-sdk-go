@@ -11,8 +11,8 @@ type (
 		UpdatedAt        time.Time `json:"updated_at,omitempty"`
 		AppID            string    `json:"app_id,omitempty"`
 		AppNumber        string    `json:"app_number,omitempty"`
-		RedirectURL      string    `json:"redirect_url,omitempty"`
-		HomeURL          string    `json:"home_url,omitempty"`
+		RedirectURI      string    `json:"redirect_uri,omitempty"`
+		HomeURI          string    `json:"home_uri,omitempty"`
 		Name             string    `json:"name,omitempty"`
 		IconURL          string    `json:"icon_url,omitempty"`
 		Description      string    `json:"description,omitempty"`
