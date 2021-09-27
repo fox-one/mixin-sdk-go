@@ -4,10 +4,10 @@ go 1.15
 
 require (
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fox-one/msgpack v1.0.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gofrs/uuid v4.0.0+incompatible
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/websocket v1.4.2
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c

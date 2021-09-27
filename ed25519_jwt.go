@@ -3,7 +3,7 @@ package mixin
 import (
 	"crypto/ed25519"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 var Ed25519SigningMethod *EdDSASigningMethod

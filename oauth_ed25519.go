@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang-jwt/jwt"
 )
 
 type OauthKeystore struct {
