@@ -134,7 +134,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 	}
 
 	var req MultisigRequest
-	if err := c.Post(ctx, "/multisigs", params, &req); err != nil {
+	if err := c.Post(ctx, "/multisigs/requests", params, &req); err != nil {
 		return nil, err
 	}
 
