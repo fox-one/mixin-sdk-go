@@ -143,7 +143,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 
 // SignMultisig sign a multisig request
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
-	uri := "/multisigs/" + reqID + "/sign"
+	uri := "/multisigs/requests/" + reqID + "/sign"
 	params := map[string]string{
 		"pin": c.EncryptPin(pin),
 	}
@@ -158,7 +158,7 @@ func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*Multisig
 
 // CancelMultisig cancel a multisig request
 func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
-	uri := "/multisigs/" + reqID + "/cancel"
+	uri := "/multisigs/requests/" + reqID + "/cancel"
 	if err := c.Post(ctx, uri, nil, nil); err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 // UnlockMultisig unlock a multisig request
 func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
 	var (
-		uri    = "/multisigs/" + reqID + "/unlock"
+		uri    = "/multisigs/requests/" + reqID + "/unlock"
 		params = map[string]string{
 			"pin": c.EncryptPin(pin),
 		}
