@@ -111,7 +111,7 @@ func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, thre
 	}
 
 	if len(members) > 0 {
-		if threshold < 1 || int(threshold) >= len(members) {
+		if threshold < 1 || int(threshold) > len(members) {
 			return nil, errors.New("invalid members")
 		}
 		params["members"] = HashMembers(members)

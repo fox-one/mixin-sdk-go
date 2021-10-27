@@ -106,7 +106,7 @@ func (s *Signature) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	data, err := hex.DecodeString(string(unquoted))
+	data, err := hex.DecodeString(unquoted)
 	if err != nil {
 		return err
 	}
