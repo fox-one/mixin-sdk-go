@@ -101,12 +101,10 @@ func (c *Client) MakeCollectibleTransaction(
 		Version: TxVersion,
 		Asset:   token.MixinID,
 		Extra:   token.NFO,
-		Inputs: []*Input{
-			{
-				Hash:  &output.TransactionHash,
-				Index: output.OutputIndex,
-			},
-		},
+		Inputs: []*Input{{
+			Hash:  &output.TransactionHash,
+			Index: output.OutputIndex,
+		}},
 	}
 
 	ghostInputs, err := c.BatchReadGhostKeys(ctx, []*GhostInput{{
