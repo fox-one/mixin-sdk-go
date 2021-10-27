@@ -110,7 +110,7 @@ func (c *Client) MakeCollectibleTransaction(
 	ghostInputs, err := c.BatchReadGhostKeys(ctx, []*GhostInput{{
 		Receivers: receivers,
 		Index:     0,
-		Hint:      token.TokenID,
+		Hint:      output.OutputID,
 	}})
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func (c *Client) SignCollectibleRequest(ctx context.Context, reqID, pin string) 
 }
 
 // CancelCollectible cancel a collectibles request
-func (c *Client) CancelCollectible(ctx context.Context, reqID string) error {
+func (c *Client) CancelCollectibleRequest(ctx context.Context, reqID string) error {
 	uri := "/collectibles/requests/" + reqID + "/cancel"
 	if err := c.Post(ctx, uri, nil, nil); err != nil {
 		return err
