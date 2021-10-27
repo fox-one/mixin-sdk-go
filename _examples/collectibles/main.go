@@ -4,17 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
+	"github.com/gofrs/uuid"
 )
 
 var (
 	// Specify the keystore file in the -config parameter
 	config = flag.String("config", "", "keystore file path")
 	pin    = flag.String("pin", "", "pin")
+	mint   = flag.Bool("mint", false, "mint new collectibles")
 )
 
 func main() {
@@ -40,6 +43,19 @@ func main() {
 	}
 
 	ctx := context.Background()
+
+	if *mint {
+		id, _ := uuid.NewV4()
+		tr := mixin.NewMintCollectibleTransferInput(id.String(), id.String(), id.String(), id.Bytes())
+		payment, err := client.VerifyPayment(ctx, tr)
+		if err != nil {
+			log.Panicln(err)
+		}
+
+		fmt.Println("mint collectibles", id.String(), mixin.URL.Codes(payment.CodeID))
+		return
+	}
+
 	mixin.GetRestyClient().Debug = true
 
 	outputs, err := client.ReadCollectibleOutputs(ctx, []string{client.ClientID}, 1, time.Unix(0, 0), 100)
