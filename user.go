@@ -23,6 +23,7 @@ type User struct {
 	MuteUntil                time.Time `json:"mute_until,omitempty"`
 	CreatedAt                time.Time `json:"created_at,omitempty"`
 	IsVerified               bool      `json:"is_verified,omitempty"`
+	IsScam                   bool      `json:"is_scam,omitempty"`
 	SessionID                string    `json:"session_id,omitempty"`
 	PinToken                 string    `json:"pin_token,omitempty"`
 	CodeID                   string    `json:"code_id,omitempty"`
