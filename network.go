@@ -45,6 +45,12 @@ type NetworkInfo struct {
 	Type           string          `json:"type"`
 }
 
+type Ticker struct {
+	Type     string          `json:"type"`
+	PriceUSD decimal.Decimal `json:"price_usd"`
+	PriceBTC decimal.Decimal `json:"price_btc"`
+}
+
 // ReadNetworkInfo read mixin network
 func ReadNetworkInfo(ctx context.Context) (*NetworkInfo, error) {
 	resp, err := Request(ctx).Get("/network")
@@ -87,4 +93,23 @@ func ReadTopNetworkAssets(ctx context.Context) ([]*Asset, error) {
 	}
 
 	return assets, nil
+}
+
+func ReadTicker(ctx context.Context, assetID string, offset time.Time) (*Ticker, error) {
+	params := map[string]string{
+		"asset": assetID,
+	}
+	if !offset.IsZero() {
+		params["offset"] = offset.Format(time.RFC3339Nano)
+	}
+	resp, err := Request(ctx).SetQueryParams(params).Get("/network/ticker")
+	if err != nil {
+		return nil, err
+	}
+
+	var ticker Ticker
+	if err := UnmarshalResponse(resp, &ticker); err != nil {
+		return nil, err
+	}
+	return &ticker, nil
 }
