@@ -93,7 +93,7 @@ func HashFromString(src string) (Hash, error) {
 
 func (h Hash) HasValue() bool {
 	zero := Hash{}
-	return bytes.Compare(h[:], zero[:]) != 0
+	return !bytes.Equal(h[:], zero[:])
 }
 
 func (h Hash) String() string {

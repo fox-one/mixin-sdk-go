@@ -45,7 +45,7 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 
 	client := resty.New().
 		SetHeader("Content-Type", "application/json").
-		SetHostURL(host).
+		SetBaseURL(host).
 		SetTimeout(10 * time.Second)
 
 	mixinNetClients[host] = client
