@@ -27,12 +27,6 @@ type NetworkAsset struct {
 	AssetID string          `json:"asset_id"`
 	IconURL string          `json:"icon_url"`
 	Symbol  string          `json:"symbol"`
-
-	// populated only at ReadNetworkAsset
-	ChainID       string `json:"chain_id,omitempty"`
-	MixinID       string `json:"mixin_id,omitempty"`
-	Name          string `json:"name,omitempty"`
-	SnapshotCount int64  `json:"snapshot_count,omitempty"`
 }
 
 // NetworkInfo mixin network info
@@ -65,7 +59,8 @@ func ReadNetworkInfo(ctx context.Context) (*NetworkInfo, error) {
 	return &info, nil
 }
 
-func ReadNetworkAsset(ctx context.Context, assetID string) (*NetworkAsset, error) {
+// ReadNetworkAsset read mixin network asset by asset id
+func ReadNetworkAsset(ctx context.Context, assetID string) (*Asset, error) {
 	uri := fmt.Sprintf("/network/assets/%s", assetID)
 
 	resp, err := Request(ctx).Get(uri)
@@ -73,7 +68,7 @@ func ReadNetworkAsset(ctx context.Context, assetID string) (*NetworkAsset, error
 		return nil, err
 	}
 
-	var asset NetworkAsset
+	var asset Asset
 	if err := UnmarshalResponse(resp, &asset); err != nil {
 		return nil, err
 	}
@@ -81,6 +76,7 @@ func ReadNetworkAsset(ctx context.Context, assetID string) (*NetworkAsset, error
 	return &asset, nil
 }
 
+// ReadTopNetworkAssets read top network assets
 func ReadTopNetworkAssets(ctx context.Context) ([]*Asset, error) {
 	resp, err := Request(ctx).Get("/network/assets/top")
 	if err != nil {
@@ -95,6 +91,24 @@ func ReadTopNetworkAssets(ctx context.Context) ([]*Asset, error) {
 	return assets, nil
 }
 
+// ReadNetworkAssetsBySymbol read mixin network assets by symbol
+func ReadNetworkAssetsBySymbol(ctx context.Context, symbol string) ([]*Asset, error) {
+	uri := fmt.Sprintf("/network/assets/search/%s", symbol)
+
+	resp, err := Request(ctx).Get(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	var assets []*Asset
+	if err := UnmarshalResponse(resp, &assets); err != nil {
+		return nil, err
+	}
+
+	return assets, nil
+}
+
+// ReadTicker read mixin ticker of asset with offset
 func ReadTicker(ctx context.Context, assetID string, offset time.Time) (*Ticker, error) {
 	params := map[string]string{
 		"asset": assetID,
