@@ -201,8 +201,6 @@ func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
 }
 
 func tick(ctx context.Context, conn *websocket.Conn) error {
-	defer conn.Close()
-
 	for {
 		select {
 		case <-ctx.Done():
