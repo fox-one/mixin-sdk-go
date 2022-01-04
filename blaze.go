@@ -201,6 +201,8 @@ func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
 }
 
 func tick(ctx context.Context, conn *websocket.Conn) error {
+	// Call conn.Close() to close the connection immediately when func return. 
+	// If not called, the Loop process may get stuck on conn.NextReader().
 	defer conn.Close()
 
 	for {
