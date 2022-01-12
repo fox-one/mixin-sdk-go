@@ -69,7 +69,7 @@ func (c *Client) ReadUsers(ctx context.Context, ids ...string) ([]*User, error) 
 	}
 
 	var users []*User
-	if err := c.Get(ctx, "/users/fetch", nil, &users); err != nil {
+	if err := c.Post(ctx, "/users/fetch", ids, &users); err != nil {
 		return nil, err
 	}
 
