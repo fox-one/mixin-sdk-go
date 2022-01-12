@@ -27,7 +27,7 @@ func TestCreateUser(t *testing.T) {
 	require.NoError(err, "init bot client")
 
 	// create a user with a RSA key
-	rsaPriKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	rsaPriKey, _ := rsa.GenerateKey(rand.Reader, 1024)
 	user, keystore, err := botClient.CreateUser(context.TODO(), rsaPriKey, "name-rsa")
 	require.NoError(err, "create a user with a RSA key")
 

@@ -111,7 +111,7 @@ func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, thre
 	}
 
 	if len(members) > 0 {
-		if threshold < 1 || int(threshold) >= len(members) {
+		if threshold < 1 || int(threshold) > len(members) {
 			return nil, errors.New("invalid members")
 		}
 		params["members"] = HashMembers(members)
@@ -134,7 +134,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 	}
 
 	var req MultisigRequest
-	if err := c.Post(ctx, "/multisigs", params, &req); err != nil {
+	if err := c.Post(ctx, "/multisigs/requests", params, &req); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 
 // SignMultisig sign a multisig request
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
-	uri := "/multisigs/" + reqID + "/sign"
+	uri := "/multisigs/requests/" + reqID + "/sign"
 	params := map[string]string{
 		"pin": c.EncryptPin(pin),
 	}
@@ -158,7 +158,7 @@ func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*Multisig
 
 // CancelMultisig cancel a multisig request
 func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
-	uri := "/multisigs/" + reqID + "/cancel"
+	uri := "/multisigs/requests/" + reqID + "/cancel"
 	if err := c.Post(ctx, uri, nil, nil); err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 // UnlockMultisig unlock a multisig request
 func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
 	var (
-		uri    = "/multisigs/" + reqID + "/unlock"
+		uri    = "/multisigs/requests/" + reqID + "/unlock"
 		params = map[string]string{
 			"pin": c.EncryptPin(pin),
 		}

@@ -74,7 +74,7 @@ func (k Key) Public() Key {
 
 func (k Key) HasValue() bool {
 	zero := Key{}
-	return bytes.Compare(k[:], zero[:]) != 0
+	return !bytes.Equal(k[:], zero[:])
 }
 
 func (k Key) DeterministicHashDerive() Key {

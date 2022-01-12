@@ -64,7 +64,7 @@ func (s *Script) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	data, err := hex.DecodeString(string(unquoted))
+	data, err := hex.DecodeString(unquoted)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (s *Script) UnmarshalJSON(b []byte) error {
 // Hash
 
 func NewHash(data []byte) Hash {
-	return Hash(sha3.Sum256(data))
+	return sha3.Sum256(data)
 }
 
 func HashFromString(src string) (Hash, error) {
@@ -93,7 +93,7 @@ func HashFromString(src string) (Hash, error) {
 
 func (h Hash) HasValue() bool {
 	zero := Hash{}
-	return bytes.Compare(h[:], zero[:]) != 0
+	return !bytes.Equal(h[:], zero[:])
 }
 
 func (h Hash) String() string {
@@ -109,7 +109,7 @@ func (h *Hash) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	data, err := hex.DecodeString(string(unquoted))
+	data, err := hex.DecodeString(unquoted)
 	if err != nil {
 		return err
 	}
@@ -135,9 +135,9 @@ func (e *TransactionExtra) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	data, err := hex.DecodeString(string(unquoted))
+	data, err := hex.DecodeString(unquoted)
 	if err != nil {
-		if data, err = base64.StdEncoding.DecodeString(string(unquoted)); err != nil {
+		if data, err = base64.StdEncoding.DecodeString(unquoted); err != nil {
 			return err
 		}
 	}

@@ -140,7 +140,7 @@ func VerifyTransaction(ctx context.Context, addr *MixinnetAddress, txHash Hash) 
 			return false, nil
 		}
 		k := ViewGhostOutputKey(&output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index)
-		if bytes.Compare(k[:], addr.PublicSpendKey[:]) != 0 {
+		if !bytes.Equal(k[:], addr.PublicSpendKey[:]) {
 			return false, nil
 		}
 	}
