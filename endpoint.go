@@ -55,14 +55,14 @@ func autoSelectFasterRoute() {
 		var zeromeshTime time.Time
 		go func() {
 			_, err := http.Get(DefaultApiHost)
-			if err != nil {
+			if err == nil {
 				defaultTime = time.Now()
 				w.Done()
 			}
 		}()
 		go func() {
 			_, err := http.Get(ZeromeshApiHost)
-			if err != nil {
+			if err == nil {
 				zeromeshTime = time.Now()
 				w.Done()
 			}
