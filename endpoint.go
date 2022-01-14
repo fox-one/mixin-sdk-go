@@ -45,14 +45,12 @@ func UseBlazeURL(rawURL string) {
 	blazeURL = u.String()
 }
 
-var w sync.WaitGroup
-
-func autoSelectFasterRoute() {
+func UseAutoFasterRoute() {
 	for {
-		time.Sleep(time.Minute * 5)
-		w.Add(1)
+		var w sync.WaitGroup
 		var defaultTime time.Time
 		var zeromeshTime time.Time
+		w.Add(1)
 		go func() {
 			_, err := http.Get(DefaultApiHost)
 			if err == nil {
@@ -66,6 +64,10 @@ func autoSelectFasterRoute() {
 				zeromeshTime = time.Now()
 				w.Done()
 			}
+		}()
+		go func() {
+			time.Sleep(time.Second * 30)
+			w.Done()
 		}()
 		w.Wait()
 		if defaultTime.IsZero() {
@@ -81,6 +83,7 @@ func autoSelectFasterRoute() {
 			UseApiHost(DefaultApiHost)
 			UseBlazeHost(DefaultBlazeHost)
 		}
+		time.Sleep(time.Minute * 5)
 	}
 }
 
@@ -105,6 +108,4 @@ func init() {
 	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
 		UseMixinNetHosts(strings.Split(hosts, ","))
 	}
-
-	go autoSelectFasterRoute()
 }
