@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -45,43 +44,42 @@ func UseBlazeURL(rawURL string) {
 	blazeURL = u.String()
 }
 
+func useApi(url string) <-chan string {
+	r := make(chan string)
+	go func() {
+		defer close(r)
+		_, err := http.Get(url)
+		if err == nil {
+			r <- url
+		}
+	}()
+	return r
+}
+
+func timer() <-chan string {
+	r := make(chan string)
+	go func() {
+		defer close(r)
+		time.Sleep(time.Second * 30)
+		r <- ""
+	}()
+	return r
+}
+
 func UseAutoFasterRoute() {
 	for {
-		var w sync.WaitGroup
-		var defaultTime time.Time
-		var zeromeshTime time.Time
-		w.Add(1)
-		go func() {
-			_, err := http.Get(DefaultApiHost)
-			if err == nil {
-				defaultTime = time.Now()
-				w.Done()
-			}
-		}()
-		go func() {
-			_, err := http.Get(ZeromeshApiHost)
-			if err == nil {
-				zeromeshTime = time.Now()
-				w.Done()
-			}
-		}()
-		go func() {
-			time.Sleep(time.Second * 30)
-			w.Done()
-		}()
-		w.Wait()
-		if defaultTime.IsZero() {
-			UseApiHost(ZeromeshApiHost)
-			UseBlazeHost(ZeromeshBlazeHost)
-		} else if zeromeshTime.IsZero() {
+		var r string
+		select {
+		case r = <-useApi(DefaultApiHost):
+		case r = <-useApi(ZeromeshApiHost):
+		case r = <-timer():
+		}
+		if r == DefaultApiHost {
 			UseApiHost(DefaultApiHost)
 			UseBlazeHost(DefaultBlazeHost)
-		} else if defaultTime.After(zeromeshTime) {
+		} else if r == ZeromeshApiHost {
 			UseApiHost(ZeromeshApiHost)
 			UseBlazeHost(ZeromeshBlazeHost)
-		} else {
-			UseApiHost(DefaultApiHost)
-			UseBlazeHost(DefaultBlazeHost)
 		}
 		time.Sleep(time.Minute * 5)
 	}
