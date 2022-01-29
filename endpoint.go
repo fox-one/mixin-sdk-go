@@ -1,9 +1,11 @@
 package mixin
 
 import (
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -40,6 +42,47 @@ func UseBlazeURL(rawURL string) {
 	}
 
 	blazeURL = u.String()
+}
+
+func useApi(url string) <-chan string {
+	r := make(chan string)
+	go func() {
+		defer close(r)
+		_, err := http.Get(url)
+		if err == nil {
+			r <- url
+		}
+	}()
+	return r
+}
+
+func timer() <-chan string {
+	r := make(chan string)
+	go func() {
+		defer close(r)
+		time.Sleep(time.Second * 30)
+		r <- ""
+	}()
+	return r
+}
+
+func UseAutoFasterRoute() {
+	for {
+		var r string
+		select {
+		case r = <-useApi(DefaultApiHost):
+		case r = <-useApi(ZeromeshApiHost):
+		case r = <-timer():
+		}
+		if r == DefaultApiHost {
+			UseApiHost(DefaultApiHost)
+			UseBlazeHost(DefaultBlazeHost)
+		} else if r == ZeromeshApiHost {
+			UseApiHost(ZeromeshApiHost)
+			UseBlazeHost(ZeromeshBlazeHost)
+		}
+		time.Sleep(time.Minute * 5)
+	}
 }
 
 func init() {
