@@ -140,15 +140,28 @@ type (
 	AppButtonGroupMessage []AppButtonMessage
 )
 
-type MessageRequest struct {
-	ConversationID   string `json:"conversation_id"`
-	RecipientID      string `json:"recipient_id"`
-	MessageID        string `json:"message_id"`
-	Category         string `json:"category"`
-	Data             string `json:"data"`
-	RepresentativeID string `json:"representative_id,omitempty"`
-	QuoteMessageID   string `json:"quote_message_id,omitempty"`
-}
+type (
+	MessageRequest struct {
+		ConversationID string `json:"conversation_id"`
+		RecipientID    string `json:"recipient_id"`
+		MessageID      string `json:"message_id"`
+		Category       string `json:"category"`
+		Data           string `json:"data,omitempty"`
+		// DataBase64 is same as Data but encoded by base64.RawURLEncoding
+		DataBase64       string `json:"data_base64,omitempty"`
+		RepresentativeID string `json:"representative_id,omitempty"`
+		QuoteMessageID   string `json:"quote_message_id,omitempty"`
+		Silent           bool   `json:"silent,omitempty"`
+
+		// encrypted messages
+		Checksum          string             `json:"checksum,omitempty"`
+		RecipientSessions []RecipientSession `json:"recipient_sessions,omitempty"`
+	}
+
+	RecipientSession struct {
+		SessionID string `json:"session_id,omitempty"`
+	}
+)
 
 func (c *Client) SendMessage(ctx context.Context, message *MessageRequest) error {
 	raw, _ := json.Marshal(message)

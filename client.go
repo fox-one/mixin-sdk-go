@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"crypto/ed25519"
 	"fmt"
 	"strings"
 
@@ -11,13 +12,27 @@ import (
 type Client struct {
 	Signer
 	Verifier
+	MessageLocker
 
 	ClientID string
 }
 
+func newClient(id string) *Client {
+	return &Client{
+		ClientID:      id,
+		Verifier:      NopVerifier(),
+		MessageLocker: &messageLockNotSupported{},
+	}
+}
+
 func NewFromKeystore(keystore *Keystore) (*Client, error) {
-	var auth *KeystoreAuth
-	var err error
+	c := newClient(keystore.ClientID)
+
+	var (
+		auth *KeystoreAuth
+		err  error
+	)
+
 	if strings.Contains(keystore.PrivateKey, "RSA PRIVATE KEY") {
 		auth, err = AuthFromKeystore(keystore)
 		if err != nil {
@@ -28,39 +43,36 @@ func NewFromKeystore(keystore *Keystore) (*Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ed25519 keystore: %w", err)
 		}
+
+		c.MessageLocker = &ed25519MessageLocker{
+			sessionID: keystore.SessionID,
+			key:       auth.signKey.(ed25519.PrivateKey),
+		}
 	} else {
 		return nil, fmt.Errorf("unexpected private key format")
 	}
 
-	c := &Client{
-		Signer:   auth,
-		Verifier: NopVerifier(),
-		ClientID: keystore.ClientID,
-	}
-
+	c.Signer = auth
 	return c, nil
 }
 
 func NewFromAccessToken(accessToken string) *Client {
-	c := &Client{
-		Signer:   accessTokenAuth(accessToken),
-		Verifier: NopVerifier(),
-	}
+	c := newClient("")
+	c.Signer = accessTokenAuth(accessToken)
 
 	return c
 }
 
 func NewFromOauthKeystore(keystore *OauthKeystore) (*Client, error) {
+	c := newClient(keystore.ClientID)
+
 	auth, err := AuthFromOauthKeystore(keystore)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Client{
-		Signer:   auth,
-		Verifier: auth,
-		ClientID: keystore.ClientID,
-	}
+	c.Signer = auth
+	c.Verifier = auth
 
 	return c, nil
 }
