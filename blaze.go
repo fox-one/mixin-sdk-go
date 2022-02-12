@@ -3,6 +3,7 @@ package mixin
 import (
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,11 +34,13 @@ type BlazeMessage struct {
 }
 
 type MessageView struct {
-	ConversationID   string    `json:"conversation_id"`
-	UserID           string    `json:"user_id"`
-	MessageID        string    `json:"message_id"`
-	Category         string    `json:"category"`
-	Data             string    `json:"data"`
+	ConversationID string `json:"conversation_id"`
+	UserID         string `json:"user_id"`
+	MessageID      string `json:"message_id"`
+	Category       string `json:"category"`
+	Data           string `json:"data"`
+	// DataBase64 is same as Data but encoded by base64.RawURLEncoding
+	DataBase64       string    `json:"data_base64"`
 	RepresentativeID string    `json:"representative_id"`
 	QuoteMessageID   string    `json:"quote_message_id"`
 	Status           string    `json:"status"`
@@ -151,6 +154,22 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 				continue
 			}
 
+			if IsEncryptedMessageCategory(message.Category) {
+				data, err := base64.RawURLEncoding.DecodeString(message.DataBase64)
+				if err != nil {
+					return err
+				}
+
+				rawData, err := c.Unlock(data)
+				if err != nil {
+					return err
+				}
+
+				message.Category = DecryptMessageCategory(message.Category)
+				message.DataBase64 = base64.RawURLEncoding.EncodeToString(rawData)
+				message.Data = base64.StdEncoding.EncodeToString(rawData)
+			}
+
 			switch blazeMessage.Action {
 			case CreateMessageAction:
 				messageID := message.MessageID
@@ -201,7 +220,7 @@ func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
 }
 
 func tick(ctx context.Context, conn *websocket.Conn) error {
-	// Call conn.Close() to close the connection immediately when func return. 
+	// Call conn.Close() to close the connection immediately when func return.
 	// If not called, the Loop process may get stuck on conn.NextReader().
 	defer conn.Close()
 

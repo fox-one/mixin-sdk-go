@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
@@ -110,18 +109,6 @@ func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
 		auth.pinCipher = pinCipher
 	}
 	return auth, nil
-}
-
-func privateKeyToCurve25519(curve25519Private *[32]byte, privateKey ed25519.PrivateKey) {
-	h := sha512.New()
-	h.Write(privateKey.Seed())
-	digest := h.Sum(nil)
-
-	digest[0] &= 248
-	digest[31] &= 127
-	digest[31] |= 64
-
-	copy(curve25519Private[:], digest)
 }
 
 func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
