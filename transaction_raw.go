@@ -10,7 +10,7 @@ import (
 // RawTransaction raw transaction
 type RawTransaction struct {
 	Type            string    `json:"type"`
-	SnapshotID      string    `json:"snapshot"`
+	SnapshotID      string    `json:"snapshot_id"`
 	OpponentKey     string    `json:"opponent_key"`
 	AssetID         string    `json:"asset_id"`
 	Amount          string    `json:"amount"`
