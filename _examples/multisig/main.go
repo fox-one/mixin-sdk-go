@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
-	"github.com/fox-one/pkg/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -20,6 +20,15 @@ var (
 	config = flag.String("config", "", "keystore file path")
 	pin    = flag.String("pin", "", "pin")
 )
+
+func newUUID() string {
+	u, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
+
+	return u.String()
+}
 
 func main() {
 	flag.Parse()
@@ -68,7 +77,7 @@ func main() {
 	h, err := client.Transaction(ctx, &mixin.TransferInput{
 		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
 		Amount:  decimal.New(1, -4),
-		TraceID: uuid.New(),
+		TraceID: newUUID(),
 		Memo:    "send to multisig",
 		OpponentMultisig: struct {
 			Receivers []string `json:"receivers,omitempty"`
@@ -125,7 +134,7 @@ func main() {
 				Amount:    amount,
 			},
 		},
-		Hint: uuid.New(),
+		Hint: newUUID(),
 	})
 
 	if err != nil {
