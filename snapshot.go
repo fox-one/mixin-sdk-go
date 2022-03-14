@@ -100,6 +100,22 @@ func ReadSnapshot(ctx context.Context, accessToken, snapshotID string) (*Snapsho
 	return NewFromAccessToken(accessToken).ReadSnapshot(ctx, snapshotID)
 }
 
+func (c *Client) ReadSnapshotByTraceID(ctx context.Context, traceID string) (*Snapshot, error) {
+	uri := fmt.Sprintf("/snapshots/trace/%s", traceID)
+
+	var snapshot Snapshot
+	if err := c.Get(ctx, uri, nil, &snapshot); err != nil {
+		return nil, err
+	}
+
+	return &snapshot, nil
+}
+
+// ReadSnapshotByTraceID by accessToken, scope SNAPSHOTS:READ required
+func ReadSnapshotByTraceID(ctx context.Context, accessToken, traceID string) (*Snapshot, error) {
+	return NewFromAccessToken(accessToken).ReadSnapshotByTraceID(ctx, traceID)
+}
+
 func (c *Client) ReadNetworkSnapshot(ctx context.Context, snapshotID string) (*Snapshot, error) {
 	uri := fmt.Sprintf("/network/snapshots/%s", snapshotID)
 
