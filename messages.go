@@ -40,7 +40,7 @@ type (
 		Width        int    `json:"width,omitempty"`
 		Height       int    `json:"height,omitempty"`
 		Size         int    `json:"size,omitempty"`
-		Thumbnail    []byte `json:"thumbnail,omitempty"`
+		Thumbnail    string `json:"thumbnail,omitempty"`
 	}
 
 	DataMessage struct {
