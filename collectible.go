@@ -60,6 +60,7 @@ type CollectibleRequest struct {
 	State              string          `json:"state,omitempty"`
 	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
 	RawTransaction     string          `json:"raw_transaction,omitempty"`
+	CodeID             string          `json:"code_id"`
 }
 
 // ReadCollectibleOutputs return a list of collectibles outputs
