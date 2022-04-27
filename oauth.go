@@ -6,12 +6,16 @@ import (
 	"time"
 )
 
+func AuthorizeToken2(ctx context.Context, clientID, clientSecret string, code string) (string, string, error) {
+	return AuthorizeToken(ctx, clientID, clientSecret, code, "")
+}
+
+// Deprecated: Use AuthorizeToken2 instead.
 func AuthorizeToken(ctx context.Context, clientID, clientSecret string, code string, verifier string) (string, string, error) {
 	params := map[string]interface{}{
 		"client_id":     clientID,
 		"client_secret": clientSecret,
 		"code":          code,
-		"code_verifier": verifier,
 	}
 
 	resp, err := Request(ctx).SetBody(params).Post("/oauth/token")
