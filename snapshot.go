@@ -37,6 +37,14 @@ type (
 		snapshotJSON
 		Data string `json:"data,omitempty"`
 	}
+
+	ReadSnapshots2Options struct {
+		Order         string
+		AssetID       string
+		OpponentID    string
+		DestinationID string
+		Tag           string
+	}
 )
 
 func (s *Snapshot) UnmarshalJSON(b []byte) error {
@@ -57,11 +65,29 @@ func (s *Snapshot) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ReadSnapshots return a list of snapshots
-// order must be `ASC` or `DESC`
-func (c *Client) ReadSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*Snapshot, error) {
+// ReadSnapshots2 returns a list of snapshots
+func (c *Client) ReadSnapshots2(ctx context.Context, offset time.Time, limit int, input ReadSnapshots2Options) ([]*Snapshot, error) {
+	params := buildReadSnapshotsParams(input.AssetID, offset, input.Order, limit)
+	if input.OpponentID != "" {
+		params["opponent"] = input.OpponentID
+	}
+	if input.DestinationID != "" {
+		params["destination"] = input.DestinationID
+	}
+	if input.Tag != "" {
+		params["tag"] = input.Tag
+	}
+
+	return c.readSnapshots(ctx, params)
+}
+
+// ReadSnapshots2 reads snapshots by accessToken, scope SNAPSHOTS:READ required
+func ReadSnapshots2(ctx context.Context, accessToken string, offset time.Time, limit int, input ReadSnapshots2Options) ([]*Snapshot, error) {
+	return NewFromAccessToken(accessToken).ReadSnapshots2(ctx, offset, limit, input)
+}
+
+func (c *Client) readSnapshots(ctx context.Context, params map[string]string) ([]*Snapshot, error) {
 	var snapshots []*Snapshot
-	params := buildReadSnapshotsParams(assetID, offset, order, limit)
 	if err := c.Get(ctx, "/snapshots", params, &snapshots); err != nil {
 		return nil, err
 	}
@@ -69,7 +95,16 @@ func (c *Client) ReadSnapshots(ctx context.Context, assetID string, offset time.
 	return snapshots, nil
 }
 
+// ReadSnapshots return a list of snapshots
+// order must be `ASC` or `DESC`
+// Deprecated: use ReadSnapshots2 instead.
+func (c *Client) ReadSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*Snapshot, error) {
+	params := buildReadSnapshotsParams(assetID, offset, order, limit)
+	return c.readSnapshots(ctx, params)
+}
+
 // ReadSnapshots by accessToken, scope SNAPSHOTS:READ required
+// Deprecated: use ReadSnapshots2 instead.
 func ReadSnapshots(ctx context.Context, accessToken string, assetID string, offset time.Time, order string, limit int) ([]*Snapshot, error) {
 	return NewFromAccessToken(accessToken).ReadSnapshots(ctx, assetID, offset, order, limit)
 }
