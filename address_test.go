@@ -10,8 +10,7 @@ import (
 
 func TestAddress(t *testing.T) {
 	ctx := context.Background()
-	store := newKeystoreFromTestData(t)
-	pin := decodePinFromTestData(t)
+	store, pin := decodeKeystoreAndPinFromEnv(t)
 
 	c, err := NewFromKeystore(store)
 	require.Nil(t, err, "init client")
