@@ -38,7 +38,7 @@ type (
 		Data string `json:"data,omitempty"`
 	}
 
-	ReadSnapshots2Options struct {
+	ReadSnapshotsOptions struct {
 		Order         string
 		AssetID       string
 		OpponentID    string
@@ -65,8 +65,8 @@ func (s *Snapshot) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// ReadSnapshots2 returns a list of snapshots
-func (c *Client) ReadSnapshots2(ctx context.Context, offset time.Time, limit int, input ReadSnapshots2Options) ([]*Snapshot, error) {
+// ReadSnapshotsWithOptions returns a list of snapshots
+func (c *Client) ReadSnapshotsWithOptions(ctx context.Context, offset time.Time, limit int, input ReadSnapshotsOptions) ([]*Snapshot, error) {
 	params := buildReadSnapshotsParams(input.AssetID, offset, input.Order, limit)
 	if input.OpponentID != "" {
 		params["opponent"] = input.OpponentID
@@ -78,15 +78,6 @@ func (c *Client) ReadSnapshots2(ctx context.Context, offset time.Time, limit int
 		params["tag"] = input.Tag
 	}
 
-	return c.readSnapshots(ctx, params)
-}
-
-// ReadSnapshots2 reads snapshots by accessToken, scope SNAPSHOTS:READ required
-func ReadSnapshots2(ctx context.Context, accessToken string, offset time.Time, limit int, input ReadSnapshots2Options) ([]*Snapshot, error) {
-	return NewFromAccessToken(accessToken).ReadSnapshots2(ctx, offset, limit, input)
-}
-
-func (c *Client) readSnapshots(ctx context.Context, params map[string]string) ([]*Snapshot, error) {
 	var snapshots []*Snapshot
 	if err := c.Get(ctx, "/snapshots", params, &snapshots); err != nil {
 		return nil, err
@@ -95,16 +86,20 @@ func (c *Client) readSnapshots(ctx context.Context, params map[string]string) ([
 	return snapshots, nil
 }
 
+// ReadSnapshotsWithOptions reads snapshots by accessToken, scope SNAPSHOTS:READ required
+func ReadSnapshotsWithOptions(ctx context.Context, accessToken string, offset time.Time, limit int, input ReadSnapshotsOptions) ([]*Snapshot, error) {
+	return NewFromAccessToken(accessToken).ReadSnapshotsWithOptions(ctx, offset, limit, input)
+}
+
 // ReadSnapshots return a list of snapshots
 // order must be `ASC` or `DESC`
-// Deprecated: use ReadSnapshots2 instead.
+// Deprecated: use ReadSnapshotsWithOptions instead.
 func (c *Client) ReadSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*Snapshot, error) {
-	params := buildReadSnapshotsParams(assetID, offset, order, limit)
-	return c.readSnapshots(ctx, params)
+	return c.ReadSnapshotsWithOptions(ctx, offset, limit, ReadSnapshotsOptions{Order: order, AssetID: assetID})
 }
 
 // ReadSnapshots by accessToken, scope SNAPSHOTS:READ required
-// Deprecated: use ReadSnapshots2 instead.
+// Deprecated: use ReadSnapshotsWithOptions instead.
 func ReadSnapshots(ctx context.Context, accessToken string, assetID string, offset time.Time, order string, limit int) ([]*Snapshot, error) {
 	return NewFromAccessToken(accessToken).ReadSnapshots(ctx, assetID, offset, order, limit)
 }
