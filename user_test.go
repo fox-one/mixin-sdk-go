@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,16 +12,9 @@ import (
 func TestCreateUser(t *testing.T) {
 	require := require.New(t)
 
-	path := "./testdata/keystore_bot.json"
-	f, err := os.Open(path)
-	require.NoError(err, "open path: %v", path)
+	store := newKeystoreFromEnv(t)
 
-	defer f.Close()
-
-	var store Keystore
-	require.NoError(json.NewDecoder(f).Decode(&store), "decode keystore")
-
-	botClient, err := NewFromKeystore(&store)
+	botClient, err := NewFromKeystore(store)
 	require.NoError(err, "init bot client")
 
 	// create a user with a RSA key

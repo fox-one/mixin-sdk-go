@@ -11,21 +11,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newKeystoreFromTestData(t *testing.T) *Keystore {
-	path := "./testdata/keystore.json"
+func decodeKeystoreAndPinFromEnv(t *testing.T, envName ...string) (*Keystore, string) {
+	env := "TEST_KEYSTORE_PATH"
+	if len(envName) > 0 {
+		env = envName[0]
+	}
+
+	path := os.Getenv(env)
+	if path == "" {
+		t.SkipNow()
+	}
+
 	f, err := os.Open(path)
 	require.Nil(t, err, "open path: %v", path)
 
 	defer f.Close()
 
-	var store Keystore
+	var store struct {
+		Keystore
+		Pin string `json:"pin,omitempty"`
+	}
 	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
 
-	return &store
+	return &store.Keystore, store.Pin
+}
+
+func newKeystoreFromEnv(t *testing.T, envName ...string) *Keystore {
+	keystore, _ := decodeKeystoreAndPinFromEnv(t, envName...)
+	return keystore
 }
 
 func TestKeystoreAuth(t *testing.T) {
-	s := newKeystoreFromTestData(t)
+	s := newKeystoreFromEnv(t)
 
 	auth, err := AuthFromKeystore(s)
 	require.Nil(t, err, "auth from keystore")
@@ -40,16 +57,9 @@ func TestKeystoreAuth(t *testing.T) {
 }
 
 func TestEd25519KeystoreAuth(t *testing.T) {
-	path := "./testdata/keystore_ed25519.json"
-	f, err := os.Open(path)
-	require.Nil(t, err, "open path: %v", path)
+	store := newKeystoreFromEnv(t, "TEST_KEYSTORE_ED25519_PATH")
 
-	defer f.Close()
-
-	var store Keystore
-	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
-
-	auth, err := AuthEd25519FromKeystore(&store)
+	auth, err := AuthEd25519FromKeystore(store)
 	require.Nil(t, err, "auth from keystore")
 
 	sig := SignRaw("GET", "/me", nil)
@@ -59,19 +69,4 @@ func TestEd25519KeystoreAuth(t *testing.T) {
 	require.Nil(t, err, "UserMe")
 
 	assert.Equal(t, store.ClientID, me.UserID, "client id should be same")
-}
-
-func decodePinFromTestData(t *testing.T) string {
-	path := "./testdata/keystore.json"
-	f, err := os.Open(path)
-	require.Nil(t, err, "open path: %v", path)
-
-	defer f.Close()
-
-	var store struct {
-		Pin string `json:"pin,omitempty"`
-	}
-	_ = json.NewDecoder(f).Decode(&store)
-
-	return store.Pin
 }

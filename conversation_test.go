@@ -11,7 +11,7 @@ import (
 
 func TestConversation(t *testing.T) {
 	ctx := context.Background()
-	store := newKeystoreFromTestData(t)
+	store := newKeystoreFromEnv(t)
 
 	c, err := NewFromKeystore(store)
 	require.Nil(t, err, "init client")
