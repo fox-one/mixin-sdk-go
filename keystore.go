@@ -25,10 +25,6 @@ type Keystore struct {
 	PrivateKey string `json:"private_key"`
 	PinToken   string `json:"pin_token"`
 	Scope      string `json:"scope"`
-
-	// seq is increasing number
-	iter uint64
-	mux  sync.Mutex
 }
 
 type KeystoreAuth struct {
@@ -36,6 +32,10 @@ type KeystoreAuth struct {
 	signMethod jwt.SigningMethod
 	signKey    interface{}
 	pinCipher  cipher.Block
+
+	// seq is increasing number
+	iter uint64
+	mux  sync.Mutex
 }
 
 func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
