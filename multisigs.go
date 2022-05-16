@@ -101,21 +101,45 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 
 // ReadMultisigOutputs return a list of multisig outputs order by updated_at, including unspent, signed, spent utxos
 func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*MultisigUTXO, error) {
+	return c.ListMultisigOutputs(ctx, ListMultisigOutputsOption{
+		Members:        members,
+		Threshold:      threshold,
+		Offset:         offset,
+		Limit:          limit,
+		OrderByCreated: false,
+	})
+}
+
+type ListMultisigOutputsOption struct {
+	Members        []string
+	Threshold      uint8
+	Offset         time.Time
+	Limit          int
+	OrderByCreated bool
+}
+
+// ListMultisigOutputs return a list of multisig outputs of special members & threshold
+func (c *Client) ListMultisigOutputs(ctx context.Context, opt ListMultisigOutputsOption) ([]*MultisigUTXO, error) {
 	params := make(map[string]string)
-	if !offset.IsZero() {
-		params["offset"] = offset.UTC().Format(time.RFC3339Nano)
+	if !opt.Offset.IsZero() {
+		params["offset"] = opt.Offset.UTC().Format(time.RFC3339Nano)
 	}
 
-	if limit > 0 {
-		params["limit"] = strconv.Itoa(limit)
+	if opt.Limit > 0 {
+		params["limit"] = strconv.Itoa(opt.Limit)
 	}
 
-	if len(members) > 0 {
-		if threshold < 1 || int(threshold) > len(members) {
+	if len(opt.Members) > 0 {
+		if opt.Threshold < 1 || int(opt.Threshold) > len(opt.Members) {
 			return nil, errors.New("invalid members")
 		}
-		params["members"] = HashMembers(members)
-		params["threshold"] = strconv.Itoa(int(threshold))
+
+		params["members"] = HashMembers(opt.Members)
+		params["threshold"] = strconv.Itoa(int(opt.Threshold))
+	}
+
+	if opt.OrderByCreated {
+		params["order"] = "created"
 	}
 
 	var utxos []*MultisigUTXO
