@@ -3,8 +3,8 @@ package mixin
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -88,7 +88,7 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
 	}
 
 	var utxos []*MultisigUTXO
@@ -99,7 +99,7 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	return utxos, nil
 }
 
-// ReadMultisigOutputs return a list of multisig outputs, including unspent, signed, spent utxos
+// ReadMultisigOutputs return a list of multisig outputs order by updated_at, including unspent, signed, spent utxos
 func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*MultisigUTXO, error) {
 	params := make(map[string]string)
 	if !offset.IsZero() {
@@ -107,7 +107,7 @@ func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, thre
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
 	}
 
 	if len(members) > 0 {
@@ -115,7 +115,7 @@ func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, thre
 			return nil, errors.New("invalid members")
 		}
 		params["members"] = HashMembers(members)
-		params["threshold"] = fmt.Sprint(threshold)
+		params["threshold"] = strconv.Itoa(int(threshold))
 	}
 
 	var utxos []*MultisigUTXO
