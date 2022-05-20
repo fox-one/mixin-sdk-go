@@ -64,7 +64,7 @@ type CollectibleRequest struct {
 }
 
 // ReadCollectibleOutputs return a list of collectibles outputs
-func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*CollectibleOutput, error) {
+func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, threshold uint8, state string, offset time.Time, limit int) ([]*CollectibleOutput, error) {
 	params := make(map[string]string)
 	if !offset.IsZero() {
 		params["offset"] = offset.UTC().Format(time.RFC3339Nano)
@@ -72,6 +72,10 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 
 	if limit > 0 {
 		params["limit"] = fmt.Sprint(limit)
+	}
+
+	if state != "" {
+		params["state"] = state
 	}
 
 	if len(members) > 0 {
@@ -89,6 +93,11 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 	}
 
 	return outputs, nil
+}
+
+// ReadCollectibleOutputs request with accessToken and returns a list of collectibles outputs
+func ReadCollectibleOutputs(ctx context.Context, accessToken string, members []string, threshold uint8, state string, offset time.Time, limit int) ([]*CollectibleOutput, error) {
+	return NewFromAccessToken(accessToken).ReadCollectibleOutputs(ctx, members, threshold, state, offset, limit)
 }
 
 func (c *Client) MakeCollectibleTransaction(
@@ -121,6 +130,18 @@ func (c *Client) MakeCollectibleTransaction(
 	return tx, nil
 }
 
+// MakeCollectibleTransaction make collectible transaction with accessToken
+func MakeCollectibleTransaction(
+	ctx context.Context,
+	accessToken string,
+	output *CollectibleOutput,
+	token *CollectibleToken,
+	receivers []string,
+	threshold uint8,
+) (*Transaction, error) {
+	return NewFromAccessToken(accessToken).MakeCollectibleTransaction(ctx, output, token, receivers, threshold)
+}
+
 // CreateCollectibleRequest create a collectibles request
 func (c *Client) CreateCollectibleRequest(ctx context.Context, action, raw string) (*CollectibleRequest, error) {
 	params := map[string]string{
@@ -134,6 +155,11 @@ func (c *Client) CreateCollectibleRequest(ctx context.Context, action, raw strin
 	}
 
 	return &req, nil
+}
+
+// CreateCollectibleRequest create a collectibles request with accessToken
+func CreateCollectibleRequest(ctx context.Context, accessToken, action, raw string) (*CollectibleRequest, error) {
+	return NewFromAccessToken(accessToken).CreateCollectibleRequest(ctx, action, raw)
 }
 
 // SignCollectibleRequest sign a collectibles request
@@ -159,6 +185,11 @@ func (c *Client) CancelCollectibleRequest(ctx context.Context, reqID string) err
 	}
 
 	return nil
+}
+
+// CancelCollectible cancel a collectibles request with accessToken
+func CancelCollectibleRequest(ctx context.Context, accessToken, reqID string) error {
+	return NewFromAccessToken(accessToken).CancelCollectibleRequest(ctx, reqID)
 }
 
 // UnlockCollectibleRequest unlock a collectibles request
