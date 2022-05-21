@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -38,25 +39,39 @@ type KeystoreAuth struct {
 	mux  sync.Mutex
 }
 
+// AuthFromKeystore produces a signer using both ed25519 & RSA keystore.
 func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
-	auth := &KeystoreAuth{
-		Keystore: store,
-	}
+	auth := &KeystoreAuth{Keystore: store}
 
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(store.PrivateKey))
-	if err != nil {
-		return nil, err
+	var decodePinToken func([]byte) ([]byte, error)
+
+	if b, err := ed25519Encoding.DecodeString(store.PrivateKey); err == nil && len(b) == ed25519.PrivateKeySize {
+		auth.signMethod = Ed25519SigningMethod
+		auth.signKey = ed25519.PrivateKey(b)
+
+		decodePinToken = func(token []byte) ([]byte, error) {
+			var curve [32]byte
+			privateKeyToCurve25519(&curve, b)
+			return curve25519.X25519(curve[:], token)
+		}
+	} else if key, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(store.PrivateKey)); err == nil {
+		auth.signMethod = jwt.SigningMethodRS512
+		auth.signKey = key
+
+		decodePinToken = func(token []byte) ([]byte, error) {
+			return rsa.DecryptOAEP(sha256.New(), rand.Reader, key, token, []byte(store.SessionID))
+		}
+	} else {
+		return nil, fmt.Errorf("parse private key failed")
 	}
-	auth.signKey = signKey
-	auth.signMethod = jwt.SigningMethodRS512
 
 	if store.PinToken != "" {
-		token, err := base64.StdEncoding.DecodeString(store.PinToken)
+		token, err := ed25519Encoding.DecodeString(store.PinToken)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decode pin token failed: %w", err)
 		}
 
-		keyBytes, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, signKey, token, []byte(store.SessionID))
+		keyBytes, err := decodePinToken(token)
 		if err != nil {
 			return nil, err
 		}
@@ -72,43 +87,10 @@ func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	return auth, nil
 }
 
-// AuthEd25519FromKeystore produces a signer using a ed25519 keystore.
+// AuthEd25519FromKeystore produces a signer using an ed25519 keystore.
+// Deprecated: use AuthFromKeystore instead.
 func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
-	auth := &KeystoreAuth{
-		Keystore:   store,
-		signMethod: Ed25519SigningMethod,
-	}
-
-	signKey, err := ed25519Encoding.DecodeString(store.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(signKey) != ed25519.PrivateKeySize {
-		return nil, errors.New("invalid ed25519 private key")
-	}
-
-	auth.signKey = ed25519.PrivateKey(signKey)
-
-	if store.PinToken != "" {
-		token, err := ed25519Encoding.DecodeString(store.PinToken)
-		if err != nil {
-			return nil, err
-		}
-
-		var keyBytes, curve, pub [32]byte
-		privateKeyToCurve25519(&curve, signKey)
-		copy(pub[:], token[:])
-		curve25519.ScalarMult(&keyBytes, &curve, &pub)
-
-		pinCipher, err := aes.NewCipher(keyBytes[:])
-		if err != nil {
-			return nil, err
-		}
-
-		auth.pinCipher = pinCipher
-	}
-	return auth, nil
+	return AuthFromKeystore(store)
 }
 
 func (k *KeystoreAuth) SignTokenAt(signature, requestID string, at time.Time, exp time.Duration) string {
