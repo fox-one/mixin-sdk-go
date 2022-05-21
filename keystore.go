@@ -111,12 +111,12 @@ func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	return auth, nil
 }
 
-func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+func (k *KeystoreAuth) SignTokenAt(signature, requestID string, at time.Time, exp time.Duration) string {
 	jwtMap := jwt.MapClaims{
 		"uid": k.ClientID,
 		"sid": k.SessionID,
-		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(exp).Unix(),
+		"iat": at.Unix(),
+		"exp": at.Add(exp).Unix(),
 		"jti": requestID,
 		"sig": signature,
 		"scp": ScopeFull,
@@ -132,6 +132,10 @@ func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration)
 	}
 
 	return token
+}
+
+func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+	return k.SignTokenAt(signature, requestID, time.Now(), exp)
 }
 
 func (k *KeystoreAuth) sequence() uint64 {
