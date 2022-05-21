@@ -3,7 +3,7 @@ package mixin
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -71,7 +71,7 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
 	}
 
 	if len(members) > 0 {
@@ -80,7 +80,7 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 		}
 
 		params["members"] = HashMembers(members)
-		params["threshold"] = fmt.Sprint(threshold)
+		params["threshold"] = strconv.Itoa(int(threshold))
 	}
 
 	var outputs []*CollectibleOutput
