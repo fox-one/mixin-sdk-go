@@ -2,11 +2,14 @@ package mixin
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,4 +72,56 @@ func TestEd25519KeystoreAuth(t *testing.T) {
 	require.Nil(t, err, "UserMe")
 
 	assert.Equal(t, store.ClientID, me.UserID, "client id should be same")
+}
+
+func TestKeystoreAuth_SignTokenAt(t *testing.T) {
+	auth := &KeystoreAuth{
+		Keystore: &Keystore{
+			ClientID:  newUUID(),
+			SessionID: newUUID(),
+		},
+	}
+
+	sig := SignRaw("GET", "/me", nil)
+	requestID := newUUID()
+	at := time.Now()
+	exp := time.Minute
+
+	t.Run("rsa", func(t *testing.T) {
+		auth.signMethod = jwt.SigningMethodRS512
+		auth.signKey, _ = rsa.GenerateKey(rand.Reader, 2048)
+
+		assert.Equal(
+			t,
+			auth.SignTokenAt(sig, requestID, at, exp),
+			auth.SignTokenAt(sig, requestID, at, exp),
+			"token should be the same",
+		)
+
+		assert.Equal(
+			t,
+			auth.SignTokenAt(sig, requestID, at.Add(time.Hour), exp),
+			auth.SignTokenAt(sig, requestID, at.Add(time.Hour), exp),
+			"token should be the same",
+		)
+	})
+
+	t.Run("ed25519", func(t *testing.T) {
+		auth.signMethod = Ed25519SigningMethod
+		auth.signKey = GenerateEd25519Key()
+
+		assert.Equal(
+			t,
+			auth.SignTokenAt(sig, requestID, at, exp),
+			auth.SignTokenAt(sig, requestID, at, exp),
+			"token should be the same",
+		)
+
+		assert.Equal(
+			t,
+			auth.SignTokenAt(sig, requestID, at.Add(time.Hour), exp),
+			auth.SignTokenAt(sig, requestID, at.Add(time.Hour), exp),
+			"token should be the same",
+		)
+	})
 }
