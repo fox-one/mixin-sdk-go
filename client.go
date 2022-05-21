@@ -3,8 +3,6 @@ package mixin
 import (
 	"context"
 	"crypto/ed25519"
-	"fmt"
-	"strings"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -26,33 +24,21 @@ func newClient(id string) *Client {
 }
 
 func NewFromKeystore(keystore *Keystore) (*Client, error) {
-	c := newClient(keystore.ClientID)
-
-	var (
-		auth *KeystoreAuth
-		err  error
-	)
-
-	if strings.Contains(keystore.PrivateKey, "RSA PRIVATE KEY") {
-		auth, err = AuthFromKeystore(keystore)
-		if err != nil {
-			return nil, fmt.Errorf("RSA keystore: %w", err)
-		}
-	} else if _, err := ed25519Encoding.DecodeString(keystore.PrivateKey); err == nil {
-		auth, err = AuthEd25519FromKeystore(keystore)
-		if err != nil {
-			return nil, fmt.Errorf("ed25519 keystore: %w", err)
-		}
-
-		c.MessageLocker = &ed25519MessageLocker{
-			sessionID: keystore.SessionID,
-			key:       auth.signKey.(ed25519.PrivateKey),
-		}
-	} else {
-		return nil, fmt.Errorf("unexpected private key format")
+	auth, err := AuthFromKeystore(keystore)
+	if err != nil {
+		return nil, err
 	}
 
+	c := newClient(keystore.ClientID)
 	c.Signer = auth
+
+	if key, ok := auth.signKey.(ed25519.PrivateKey); ok {
+		c.MessageLocker = &ed25519MessageLocker{
+			sessionID: keystore.SessionID,
+			key:       key,
+		}
+	}
+
 	return c, nil
 }
 
