@@ -14,12 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func decodeKeystoreAndPinFromEnv(t *testing.T, envName ...string) (*Keystore, string) {
+func decodeKeystoreAndPinFromEnv(t *testing.T) (*Keystore, string) {
 	env := "TEST_KEYSTORE_PATH"
-	if len(envName) > 0 {
-		env = envName[0]
-	}
-
 	path := os.Getenv(env)
 	if path == "" {
 		t.SkipNow()
@@ -39,8 +35,8 @@ func decodeKeystoreAndPinFromEnv(t *testing.T, envName ...string) (*Keystore, st
 	return &store.Keystore, store.Pin
 }
 
-func newKeystoreFromEnv(t *testing.T, envName ...string) *Keystore {
-	keystore, _ := decodeKeystoreAndPinFromEnv(t, envName...)
+func newKeystoreFromEnv(t *testing.T) *Keystore {
+	keystore, _ := decodeKeystoreAndPinFromEnv(t)
 	return keystore
 }
 
@@ -57,21 +53,6 @@ func TestKeystoreAuth(t *testing.T) {
 	require.Nil(t, err, "UserMe")
 
 	assert.Equal(t, s.ClientID, me.UserID, "client id should be same")
-}
-
-func TestEd25519KeystoreAuth(t *testing.T) {
-	store := newKeystoreFromEnv(t, "TEST_KEYSTORE_ED25519_PATH")
-
-	auth, err := AuthEd25519FromKeystore(store)
-	require.Nil(t, err, "auth from keystore")
-
-	sig := SignRaw("GET", "/me", nil)
-	token := auth.SignToken(sig, newRequestID(), time.Minute)
-
-	me, err := UserMe(context.TODO(), token)
-	require.Nil(t, err, "UserMe")
-
-	assert.Equal(t, store.ClientID, me.UserID, "client id should be same")
 }
 
 func TestKeystoreAuth_SignTokenAt(t *testing.T) {
