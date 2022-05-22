@@ -58,7 +58,7 @@ func main() {
 
 	mixin.GetRestyClient().Debug = true
 
-	outputs, err := client.ReadCollectibleOutputs(ctx, []string{client.ClientID}, 1, time.Unix(0, 0), 100)
+	outputs, err := client.ReadCollectibleOutputs(ctx, []string{client.ClientID}, 1, "", time.Unix(0, 0), 100)
 	if err != nil {
 		log.Panicln(err)
 	}
