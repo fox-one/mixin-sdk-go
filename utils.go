@@ -20,10 +20,10 @@ func UniqueConversationID(userID, recipientID string) string {
 		maxID, minID = userID, recipientID
 	}
 
-	return UUIDFromBytes([]byte(minID + maxID))
+	return uuidHash([]byte(minID + maxID))
 }
 
-func UUIDFromBytes(b []byte) string {
+func uuidHash(b []byte) string {
 	h := md5.New()
 	h.Write(b)
 	sum := h.Sum(nil)

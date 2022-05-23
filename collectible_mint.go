@@ -13,7 +13,7 @@ func BuildMintCollectibleMemo(collectionID string, token int64, content []byte) 
 
 func GenerateCollectibleTokenID(collectionID string, token int64) string {
 	b := nft.BuildTokenID(collectionID, token)
-	return UUIDFromBytes(b)
+	return uuidHash(b)
 }
 
 func NewMintCollectibleTransferInput(traceID, collectionID string, token int64, content []byte) TransferInput {
