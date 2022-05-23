@@ -4,21 +4,24 @@ import (
 	"encoding/base64"
 
 	"github.com/fox-one/mixin-sdk-go/nft"
-	"github.com/gofrs/uuid"
 )
 
-func BuildMintCollectibleMemo(collectionID, tokenID string, content []byte) string {
-	tokenUUID := uuid.FromStringOrNil(tokenID)
-	nfo := nft.BuildMintNFO(collectionID, tokenUUID.Bytes(), NewHash(content))
-	return base64.RawURLEncoding.EncodeToString(nfo)
+func BuildMintCollectibleMemo(collectionID string, token int64, content []byte) string {
+	b := nft.BuildMintNFO(collectionID, token, NewHash(content))
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-func NewMintCollectibleTransferInput(traceID, collectionID, tokenID string, content []byte) TransferInput {
+func GenerateCollectibleTokenID(collectionID string, token int64) string {
+	b := nft.BuildTokenID(collectionID, token)
+	return UUIDFromBytes(b)
+}
+
+func NewMintCollectibleTransferInput(traceID, collectionID string, token int64, content []byte) TransferInput {
 	input := TransferInput{
 		AssetID: nft.MintAssetId,
 		Amount:  nft.MintMinimumCost,
 		TraceID: traceID,
-		Memo:    BuildMintCollectibleMemo(collectionID, tokenID, content),
+		Memo:    BuildMintCollectibleMemo(collectionID, token, content),
 	}
 
 	input.OpponentMultisig.Receivers = nft.GroupMembers
