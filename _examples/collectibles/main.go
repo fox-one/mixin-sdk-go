@@ -48,7 +48,7 @@ func main() {
 	if *mint {
 		id, _ := uuid.NewV4()
 		token := rand.Int63()
-		tr := mixin.NewMintCollectibleTransferInput(id.String(), id.String(), token, id.Bytes())
+		tr := mixin.NewMintCollectibleTransferInput(id.String(), id.String(), token, mixin.MetaHash(id.Bytes()))
 		payment, err := client.VerifyPayment(ctx, tr)
 		if err != nil {
 			log.Panicln(err)

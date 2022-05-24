@@ -55,7 +55,7 @@ func tokenBytes(token int64) []byte {
 	return big.NewInt(token).Bytes()
 }
 
-func BuildMintNFO(collection string, token int64, hash [32]byte) []byte {
+func BuildMintNFO(collection string, token int64, metaHash []byte) []byte {
 	gid := uuid.FromStringOrNil(collection)
 	nfo := NFOMemo{
 		Prefix:     Prefix,
@@ -64,7 +64,7 @@ func BuildMintNFO(collection string, token int64, hash [32]byte) []byte {
 		Class:      DefaultClass,
 		Collection: gid,
 		Token:      tokenBytes(token),
-		Extra:      hash[:],
+		Extra:      metaHash,
 	}
 	nfo.Mark([]int{0})
 	return nfo.Encode()
