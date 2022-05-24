@@ -31,6 +31,7 @@ type CollectibleOutput struct {
 	UserID             string          `json:"user_id,omitempty"`
 	OutputID           string          `json:"output_id,omitempty"`
 	TokenID            string          `json:"token_id,omitempty"`
+	Extra              string          `json:"extra,omitempty"`
 	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
 	OutputIndex        int             `json:"output_index,omitempty"`
 	Amount             decimal.Decimal `json:"amount,omitempty"`
