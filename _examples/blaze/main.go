@@ -64,7 +64,7 @@ func main() {
 			// Create a new message id to reply, it should be an UUID never used by any other message.
 			// Create it with a "reply" and the incoming message ID.
 			MessageID: uuid.NewV5(id, "reply").String(),
-			// The bot just reply the same category and the sam content of the incoming message
+			// The bot just reply the same category and the same content of the incoming message
 			// So, we copy the category and data
 			Category: msg.Category,
 			Data:     msg.Data,
