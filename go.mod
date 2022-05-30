@@ -3,7 +3,7 @@ module github.com/fox-one/mixin-sdk-go
 go 1.16
 
 require (
-	filippo.io/edwards25519 v1.0.0-rc.1
+	filippo.io/edwards25519 v1.0.0
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/fox-one/msgpack v1.0.0
 	github.com/go-resty/resty/v2 v2.7.0
