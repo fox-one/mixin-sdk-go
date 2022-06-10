@@ -18,16 +18,21 @@ func (t *TransactionV1) DumpTransaction() (string, error) {
 	return t.Transaction.DumpTransaction()
 }
 
+func TransactionFromData(data []byte) (*Transaction, error) {
+	if !checkTxVersion(data) {
+		return transactionV1FromRaw(data)
+	}
+
+	return transactionV2FromRaw(data)
+}
+
 func TransactionFromRaw(raw string) (*Transaction, error) {
 	bts, err := hex.DecodeString(raw)
 	if err != nil {
 		return nil, err
 	}
 
-	if !checkTxVersion(bts) {
-		return transactionV1FromRaw(bts)
-	}
-	return transactionV2FromRaw(bts)
+	return TransactionFromData(bts)
 }
 
 func transactionV1FromRaw(bts []byte) (*Transaction, error) {
