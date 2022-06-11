@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -17,7 +18,7 @@ var (
 		"http://node-okashi.mixin.fan:8239",
 	}
 
-	mixinNetClients = map[string]*resty.Client{}
+	mixinNetClients sync.Map
 )
 
 func UseMixinNetHosts(hosts []string) {
@@ -25,22 +26,17 @@ func UseMixinNetHosts(hosts []string) {
 		panic("empty mixin net host")
 	}
 	mixinnetHosts = hosts
-	mixinNetClients = map[string]*resty.Client{}
+	mixinNetClients = sync.Map{}
 }
 
 func MixinNetClientFromContext(ctx context.Context) *resty.Client {
-	var host string
-	if v := ctx.Value(mixinnetHostKey); v != nil {
-		if h, ok := v.(string); ok && h != "" {
-			host = h
-		}
-	}
+	host, _ := ctx.Value(mixinnetHostKey).(string)
 	if host == "" {
 		host = RandomMixinNetHost()
 	}
 
-	if client, ok := mixinNetClients[host]; ok {
-		return client
+	if v, ok := mixinNetClients.Load(host); ok {
+		return v.(*resty.Client)
 	}
 
 	client := resty.New().
@@ -48,7 +44,7 @@ func MixinNetClientFromContext(ctx context.Context) *resty.Client {
 		SetBaseURL(host).
 		SetTimeout(10 * time.Second)
 
-	mixinNetClients[host] = client
+	mixinNetClients.Store(host, client)
 	return client
 }
 
