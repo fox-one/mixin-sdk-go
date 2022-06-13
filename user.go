@@ -146,13 +146,16 @@ func newKeystoreFromUser(user *User, privateKey crypto.PrivateKey) *Keystore {
 	}
 }
 
-func (c *Client) ModifyProfile(ctx context.Context, fullname, avatarBase64 string) (*User, error) {
+func (c *Client) ModifyProfile(ctx context.Context, fullname, avatarBase64, biography string) (*User, error) {
 	params := map[string]interface{}{}
 	if fullname != "" {
 		params["full_name"] = fullname
 	}
 	if avatarBase64 != "" {
 		params["avatar_base64"] = avatarBase64
+	}
+	if biography != "" {
+		params["biography"] = biography
 	}
 
 	var user User
