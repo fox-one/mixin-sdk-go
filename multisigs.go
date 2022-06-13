@@ -99,6 +99,16 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	return utxos, nil
 }
 
+// ReadMultisigOutput read a multisig output by utxo_id
+func (c *Client) ReadMultisigOutput(ctx context.Context, id string) (*MultisigUTXO, error) {
+	var utxo MultisigUTXO
+	if err := c.Get(ctx, "/multisigs/outputs/"+id, nil, &utxo); err != nil {
+		return nil, err
+	}
+
+	return &utxo, nil
+}
+
 // ReadMultisigOutputs return a list of multisig outputs order by updated_at, including unspent, signed, spent utxos
 func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*MultisigUTXO, error) {
 	return c.ListMultisigOutputs(ctx, ListMultisigOutputsOption{
