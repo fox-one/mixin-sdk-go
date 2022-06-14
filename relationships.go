@@ -63,3 +63,12 @@ func (c *Client) UnblockUser(ctx context.Context, userID string) (*User, error) 
 		Action: RelationshipActionUnblock,
 	})
 }
+
+func (c *Client) ListBlockingUsers(ctx context.Context) ([]*User, error) {
+	var users []*User
+	if err := c.Get(ctx, "/blocking_users", nil, &users); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
