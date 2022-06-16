@@ -51,7 +51,11 @@ type NFOMemo struct {
 	Extra []byte
 }
 
-func BuildMintNFO(collection string, token []byte, hash [32]byte) []byte {
+func tokenBytes(token int64) []byte {
+	return big.NewInt(token).Bytes()
+}
+
+func BuildMintNFO(collection string, token int64, metaHash []byte) []byte {
 	gid := uuid.FromStringOrNil(collection)
 	nfo := NFOMemo{
 		Prefix:     Prefix,
@@ -59,11 +63,21 @@ func BuildMintNFO(collection string, token []byte, hash [32]byte) []byte {
 		Chain:      DefaultChain,
 		Class:      DefaultClass,
 		Collection: gid,
-		Token:      token,
-		Extra:      hash[:],
+		Token:      tokenBytes(token),
+		Extra:      metaHash,
 	}
 	nfo.Mark([]int{0})
 	return nfo.Encode()
+}
+
+func BuildTokenID(collection string, token int64) []byte {
+	b := bytes.NewBuffer(make([]byte, 0, 16+20+16+8))
+	b.Write(DefaultChain.Bytes())
+	b.Write(DefaultClass)
+	b.Write(uuid.FromStringOrNil(collection).Bytes())
+	b.Write(tokenBytes(token))
+
+	return b.Bytes()
 }
 
 func (nm *NFOMemo) Mark(indexes []int) {
@@ -71,7 +85,7 @@ func (nm *NFOMemo) Mark(indexes []int) {
 		if i >= 64 || i < 0 {
 			panic(fmt.Errorf("invalid NFO memo index %d", i))
 		}
-		nm.Mask ^= (1 << uint64(i))
+		nm.Mask ^= 1 << uint64(i)
 	}
 }
 

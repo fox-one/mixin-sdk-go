@@ -7,7 +7,7 @@ import (
 )
 
 func TestClient_LoopBlaze(t *testing.T) {
-	s := newKeystoreFromTestData(t)
+	s := newKeystoreFromEnv(t)
 	c, err := NewFromKeystore(s)
 	if err != nil {
 		t.Error(err)

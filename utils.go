@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
-	"io"
 	"strconv"
 	"strings"
 
@@ -21,8 +20,12 @@ func UniqueConversationID(userID, recipientID string) string {
 		maxID, minID = userID, recipientID
 	}
 
+	return uuidHash([]byte(minID + maxID))
+}
+
+func uuidHash(b []byte) string {
 	h := md5.New()
-	_, _ = io.WriteString(h, minID+maxID)
+	h.Write(b)
 	sum := h.Sum(nil)
 	sum[6] = (sum[6] & 0x0f) | 0x30
 	sum[8] = (sum[8] & 0x3f) | 0x80

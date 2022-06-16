@@ -75,13 +75,13 @@ func AuthFromOauthKeystore(store *OauthKeystore) (*OauthKeystoreAuth, error) {
 	return auth, nil
 }
 
-func (o *OauthKeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+func (o *OauthKeystoreAuth) SignTokenAt(signature, requestID string, at time.Time, exp time.Duration) string {
 	jwtMap := jwt.MapClaims{
 		"iss": o.ClientID,
 		"aid": o.AuthID,
 		"scp": o.Scope,
-		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(exp).Unix(),
+		"iat": at.Unix(),
+		"exp": at.Add(exp).Unix(),
 		"sig": signature,
 		"jti": requestID,
 	}
@@ -92,6 +92,10 @@ func (o *OauthKeystoreAuth) SignToken(signature, requestID string, exp time.Dura
 	}
 
 	return token
+}
+
+func (o *OauthKeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+	return o.SignTokenAt(signature, requestID, time.Now(), exp)
 }
 
 func (o *OauthKeystoreAuth) EncryptPin(pin string) string {

@@ -69,7 +69,7 @@ func (c *Client) ReadUsers(ctx context.Context, ids ...string) ([]*User, error) 
 	}
 
 	var users []*User
-	if err := c.Get(ctx, "/users/fetch", nil, &users); err != nil {
+	if err := c.Post(ctx, "/users/fetch", ids, &users); err != nil {
 		return nil, err
 	}
 
@@ -85,9 +85,15 @@ func (c *Client) ReadFriends(ctx context.Context) ([]*User, error) {
 	return users, nil
 }
 
-// deprecated. Use ReadUser() instead
-func (c *Client) SearchUser(ctx context.Context, identityNumber string) (*User, error) {
-	return c.ReadUser(ctx, identityNumber)
+func (c *Client) SearchUser(ctx context.Context, identityNumberOrPhoneNumber string) (*User, error) {
+	uri := fmt.Sprintf("/search/%s", identityNumberOrPhoneNumber)
+
+	var user User
+	if err := c.Get(ctx, uri, nil, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (c *Client) CreateUser(ctx context.Context, key crypto.Signer, fullname string) (*User, *Keystore, error) {

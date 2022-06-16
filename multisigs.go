@@ -3,8 +3,8 @@ package mixin
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -88,7 +88,7 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
 	}
 
 	var utxos []*MultisigUTXO
@@ -99,23 +99,57 @@ func (c *Client) ReadMultisigs(ctx context.Context, offset time.Time, limit int)
 	return utxos, nil
 }
 
-// ReadMultisigOutputs return a list of multisig outputs, including unspent, signed, spent utxos
+// ReadMultisigOutput read a multisig output by utxo_id
+func (c *Client) ReadMultisigOutput(ctx context.Context, id string) (*MultisigUTXO, error) {
+	var utxo MultisigUTXO
+	if err := c.Get(ctx, "/multisigs/outputs/"+id, nil, &utxo); err != nil {
+		return nil, err
+	}
+
+	return &utxo, nil
+}
+
+// ReadMultisigOutputs return a list of multisig outputs order by updated_at, including unspent, signed, spent utxos
 func (c *Client) ReadMultisigOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*MultisigUTXO, error) {
+	return c.ListMultisigOutputs(ctx, ListMultisigOutputsOption{
+		Members:        members,
+		Threshold:      threshold,
+		Offset:         offset,
+		Limit:          limit,
+		OrderByCreated: false,
+	})
+}
+
+type ListMultisigOutputsOption struct {
+	Members        []string
+	Threshold      uint8
+	Offset         time.Time
+	Limit          int
+	OrderByCreated bool
+}
+
+// ListMultisigOutputs return a list of multisig outputs of special members & threshold
+func (c *Client) ListMultisigOutputs(ctx context.Context, opt ListMultisigOutputsOption) ([]*MultisigUTXO, error) {
 	params := make(map[string]string)
-	if !offset.IsZero() {
-		params["offset"] = offset.UTC().Format(time.RFC3339Nano)
+	if !opt.Offset.IsZero() {
+		params["offset"] = opt.Offset.UTC().Format(time.RFC3339Nano)
 	}
 
-	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+	if opt.Limit > 0 {
+		params["limit"] = strconv.Itoa(opt.Limit)
 	}
 
-	if len(members) > 0 {
-		if threshold < 1 || int(threshold) > len(members) {
+	if len(opt.Members) > 0 {
+		if opt.Threshold < 1 || int(opt.Threshold) > len(opt.Members) {
 			return nil, errors.New("invalid members")
 		}
-		params["members"] = HashMembers(members)
-		params["threshold"] = fmt.Sprint(threshold)
+
+		params["members"] = HashMembers(opt.Members)
+		params["threshold"] = strconv.Itoa(int(opt.Threshold))
+	}
+
+	if opt.OrderByCreated {
+		params["order"] = "created"
 	}
 
 	var utxos []*MultisigUTXO

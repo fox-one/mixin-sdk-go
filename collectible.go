@@ -3,7 +3,7 @@ package mixin
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -31,6 +31,7 @@ type CollectibleOutput struct {
 	UserID             string          `json:"user_id,omitempty"`
 	OutputID           string          `json:"output_id,omitempty"`
 	TokenID            string          `json:"token_id,omitempty"`
+	Extra              string          `json:"extra,omitempty"`
 	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
 	OutputIndex        int             `json:"output_index,omitempty"`
 	Amount             decimal.Decimal `json:"amount,omitempty"`
@@ -60,17 +61,22 @@ type CollectibleRequest struct {
 	State              string          `json:"state,omitempty"`
 	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
 	RawTransaction     string          `json:"raw_transaction,omitempty"`
+	CodeID             string          `json:"code_id"`
 }
 
 // ReadCollectibleOutputs return a list of collectibles outputs
-func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, threshold uint8, offset time.Time, limit int) ([]*CollectibleOutput, error) {
+func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, threshold uint8, state string, offset time.Time, limit int) ([]*CollectibleOutput, error) {
 	params := make(map[string]string)
 	if !offset.IsZero() {
 		params["offset"] = offset.UTC().Format(time.RFC3339Nano)
 	}
 
 	if limit > 0 {
-		params["limit"] = fmt.Sprint(limit)
+		params["limit"] = strconv.Itoa(limit)
+	}
+
+	if state != "" {
+		params["state"] = state
 	}
 
 	if len(members) > 0 {
@@ -79,7 +85,7 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 		}
 
 		params["members"] = HashMembers(members)
-		params["threshold"] = fmt.Sprint(threshold)
+		params["threshold"] = strconv.Itoa(int(threshold))
 	}
 
 	var outputs []*CollectibleOutput
@@ -88,6 +94,11 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 	}
 
 	return outputs, nil
+}
+
+// ReadCollectibleOutputs request with accessToken and returns a list of collectibles outputs
+func ReadCollectibleOutputs(ctx context.Context, accessToken string, members []string, threshold uint8, state string, offset time.Time, limit int) ([]*CollectibleOutput, error) {
+	return NewFromAccessToken(accessToken).ReadCollectibleOutputs(ctx, members, threshold, state, offset, limit)
 }
 
 func (c *Client) MakeCollectibleTransaction(
@@ -120,6 +131,18 @@ func (c *Client) MakeCollectibleTransaction(
 	return tx, nil
 }
 
+// MakeCollectibleTransaction make collectible transaction with accessToken
+func MakeCollectibleTransaction(
+	ctx context.Context,
+	accessToken string,
+	output *CollectibleOutput,
+	token *CollectibleToken,
+	receivers []string,
+	threshold uint8,
+) (*Transaction, error) {
+	return NewFromAccessToken(accessToken).MakeCollectibleTransaction(ctx, output, token, receivers, threshold)
+}
+
 // CreateCollectibleRequest create a collectibles request
 func (c *Client) CreateCollectibleRequest(ctx context.Context, action, raw string) (*CollectibleRequest, error) {
 	params := map[string]string{
@@ -133,6 +156,11 @@ func (c *Client) CreateCollectibleRequest(ctx context.Context, action, raw strin
 	}
 
 	return &req, nil
+}
+
+// CreateCollectibleRequest create a collectibles request with accessToken
+func CreateCollectibleRequest(ctx context.Context, accessToken, action, raw string) (*CollectibleRequest, error) {
+	return NewFromAccessToken(accessToken).CreateCollectibleRequest(ctx, action, raw)
 }
 
 // SignCollectibleRequest sign a collectibles request
@@ -158,6 +186,11 @@ func (c *Client) CancelCollectibleRequest(ctx context.Context, reqID string) err
 	}
 
 	return nil
+}
+
+// CancelCollectible cancel a collectibles request with accessToken
+func CancelCollectibleRequest(ctx context.Context, accessToken, reqID string) error {
+	return NewFromAccessToken(accessToken).CancelCollectibleRequest(ctx, reqID)
 }
 
 // UnlockCollectibleRequest unlock a collectibles request

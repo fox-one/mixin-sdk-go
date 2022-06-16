@@ -8,10 +8,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -26,10 +26,6 @@ type Keystore struct {
 	PrivateKey string `json:"private_key"`
 	PinToken   string `json:"pin_token"`
 	Scope      string `json:"scope"`
-
-	// seq is increasing number
-	iter uint64
-	mux  sync.Mutex
 }
 
 type KeystoreAuth struct {
@@ -37,27 +33,45 @@ type KeystoreAuth struct {
 	signMethod jwt.SigningMethod
 	signKey    interface{}
 	pinCipher  cipher.Block
+
+	// seq is increasing number
+	iter uint64
+	mux  sync.Mutex
 }
 
+// AuthFromKeystore produces a signer using both ed25519 & RSA keystore.
 func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
-	auth := &KeystoreAuth{
-		Keystore: store,
-	}
+	auth := &KeystoreAuth{Keystore: store}
 
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(store.PrivateKey))
-	if err != nil {
-		return nil, err
+	var decodePinToken func([]byte) ([]byte, error)
+
+	if b, err := ed25519Encoding.DecodeString(store.PrivateKey); err == nil && len(b) == ed25519.PrivateKeySize {
+		auth.signMethod = Ed25519SigningMethod
+		auth.signKey = ed25519.PrivateKey(b)
+
+		decodePinToken = func(token []byte) ([]byte, error) {
+			var curve [32]byte
+			privateKeyToCurve25519(&curve, b)
+			return curve25519.X25519(curve[:], token)
+		}
+	} else if key, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(store.PrivateKey)); err == nil {
+		auth.signMethod = jwt.SigningMethodRS512
+		auth.signKey = key
+
+		decodePinToken = func(token []byte) ([]byte, error) {
+			return rsa.DecryptOAEP(sha256.New(), rand.Reader, key, token, []byte(store.SessionID))
+		}
+	} else {
+		return nil, fmt.Errorf("parse private key failed")
 	}
-	auth.signKey = signKey
-	auth.signMethod = jwt.SigningMethodRS512
 
 	if store.PinToken != "" {
-		token, err := base64.StdEncoding.DecodeString(store.PinToken)
+		token, err := ed25519Encoding.DecodeString(store.PinToken)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decode pin token failed: %w", err)
 		}
 
-		keyBytes, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, signKey, token, []byte(store.SessionID))
+		keyBytes, err := decodePinToken(token)
 		if err != nil {
 			return nil, err
 		}
@@ -73,63 +87,18 @@ func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	return auth, nil
 }
 
-// AuthEd25519FromKeystore produces a signer using a ed25519 keystore.
+// AuthEd25519FromKeystore produces a signer using an ed25519 keystore.
+// Deprecated: use AuthFromKeystore instead.
 func AuthEd25519FromKeystore(store *Keystore) (*KeystoreAuth, error) {
-	auth := &KeystoreAuth{
-		Keystore:   store,
-		signMethod: Ed25519SigningMethod,
-	}
-
-	signKey, err := ed25519Encoding.DecodeString(store.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(signKey) != ed25519.PrivateKeySize {
-		return nil, errors.New("invalid ed25519 private key")
-	}
-
-	auth.signKey = ed25519.PrivateKey(signKey)
-
-	if store.PinToken != "" {
-		token, err := ed25519Encoding.DecodeString(store.PinToken)
-		if err != nil {
-			return nil, err
-		}
-
-		var keyBytes, curve, pub [32]byte
-		privateKeyToCurve25519(&curve, signKey)
-		copy(pub[:], token[:])
-		curve25519.ScalarMult(&keyBytes, &curve, &pub)
-
-		pinCipher, err := aes.NewCipher(keyBytes[:])
-		if err != nil {
-			return nil, err
-		}
-
-		auth.pinCipher = pinCipher
-	}
-	return auth, nil
+	return AuthFromKeystore(store)
 }
 
-func privateKeyToCurve25519(curve25519Private *[32]byte, privateKey ed25519.PrivateKey) {
-	h := sha512.New()
-	h.Write(privateKey.Seed())
-	digest := h.Sum(nil)
-
-	digest[0] &= 248
-	digest[31] &= 127
-	digest[31] |= 64
-
-	copy(curve25519Private[:], digest)
-}
-
-func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+func (k *KeystoreAuth) SignTokenAt(signature, requestID string, at time.Time, exp time.Duration) string {
 	jwtMap := jwt.MapClaims{
 		"uid": k.ClientID,
 		"sid": k.SessionID,
-		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(exp).Unix(),
+		"iat": at.Unix(),
+		"exp": at.Add(exp).Unix(),
 		"jti": requestID,
 		"sig": signature,
 		"scp": ScopeFull,
@@ -145,6 +114,10 @@ func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration)
 	}
 
 	return token
+}
+
+func (k *KeystoreAuth) SignToken(signature, requestID string, exp time.Duration) string {
+	return k.SignTokenAt(signature, requestID, time.Now(), exp)
 }
 
 func (k *KeystoreAuth) sequence() uint64 {

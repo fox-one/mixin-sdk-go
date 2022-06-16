@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -46,7 +47,8 @@ func main() {
 
 	if *mint {
 		id, _ := uuid.NewV4()
-		tr := mixin.NewMintCollectibleTransferInput(id.String(), id.String(), id.String(), id.Bytes())
+		token := rand.Int63()
+		tr := mixin.NewMintCollectibleTransferInput(id.String(), id.String(), token, mixin.MetaHash(id.Bytes()))
 		payment, err := client.VerifyPayment(ctx, tr)
 		if err != nil {
 			log.Panicln(err)
@@ -58,7 +60,7 @@ func main() {
 
 	mixin.GetRestyClient().Debug = true
 
-	outputs, err := client.ReadCollectibleOutputs(ctx, []string{client.ClientID}, 1, time.Unix(0, 0), 100)
+	outputs, err := client.ReadCollectibleOutputs(ctx, []string{client.ClientID}, 1, "", time.Unix(0, 0), 100)
 	if err != nil {
 		log.Panicln(err)
 	}

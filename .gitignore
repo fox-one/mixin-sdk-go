@@ -18,3 +18,4 @@ demo/demo*
 .vscode
 /testdata/keystore*.json
 vendor
+.DS_Store

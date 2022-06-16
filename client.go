@@ -2,8 +2,7 @@ package mixin
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"crypto/ed25519"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -11,56 +10,55 @@ import (
 type Client struct {
 	Signer
 	Verifier
+	MessageLocker
 
 	ClientID string
 }
 
+func newClient(id string) *Client {
+	return &Client{
+		ClientID:      id,
+		Verifier:      NopVerifier(),
+		MessageLocker: &messageLockNotSupported{},
+	}
+}
+
 func NewFromKeystore(keystore *Keystore) (*Client, error) {
-	var auth *KeystoreAuth
-	var err error
-	if strings.Contains(keystore.PrivateKey, "RSA PRIVATE KEY") {
-		auth, err = AuthFromKeystore(keystore)
-		if err != nil {
-			return nil, fmt.Errorf("RSA keystore: %w", err)
-		}
-	} else if _, err := ed25519Encoding.DecodeString(keystore.PrivateKey); err == nil {
-		auth, err = AuthEd25519FromKeystore(keystore)
-		if err != nil {
-			return nil, fmt.Errorf("ed25519 keystore: %w", err)
-		}
-	} else {
-		return nil, fmt.Errorf("unexpected private key format")
+	auth, err := AuthFromKeystore(keystore)
+	if err != nil {
+		return nil, err
 	}
 
-	c := &Client{
-		Signer:   auth,
-		Verifier: NopVerifier(),
-		ClientID: keystore.ClientID,
+	c := newClient(keystore.ClientID)
+	c.Signer = auth
+
+	if key, ok := auth.signKey.(ed25519.PrivateKey); ok {
+		c.MessageLocker = &ed25519MessageLocker{
+			sessionID: keystore.SessionID,
+			key:       key,
+		}
 	}
 
 	return c, nil
 }
 
 func NewFromAccessToken(accessToken string) *Client {
-	c := &Client{
-		Signer:   accessTokenAuth(accessToken),
-		Verifier: NopVerifier(),
-	}
+	c := newClient("")
+	c.Signer = accessTokenAuth(accessToken)
 
 	return c
 }
 
 func NewFromOauthKeystore(keystore *OauthKeystore) (*Client, error) {
+	c := newClient(keystore.ClientID)
+
 	auth, err := AuthFromOauthKeystore(keystore)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Client{
-		Signer:   auth,
-		Verifier: auth,
-		ClientID: keystore.ClientID,
-	}
+	c.Signer = auth
+	c.Verifier = auth
 
 	return c, nil
 }
