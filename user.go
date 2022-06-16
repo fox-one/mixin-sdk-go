@@ -153,23 +153,10 @@ func newKeystoreFromUser(user *User, privateKey crypto.PrivateKey) *Keystore {
 }
 
 func (c *Client) ModifyProfile(ctx context.Context, fullname, avatarBase64 string) (*User, error) {
-	params := map[string]interface{}{}
-	if fullname != "" {
-		params["full_name"] = fullname
-	}
-	if avatarBase64 != "" {
-		params["avatar_base64"] = avatarBase64
-	}
-
-	var user User
-	if err := c.Post(ctx, "/me", params, &user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+	return c.UpdateProfile(ctx, UserUpdate{FullName: fullname, AvatarBase64: avatarBase64})
 }
 
-func (c *Client) UpdateProfile(ctx context.Context, input *UserUpdate) (*User, error) {
+func (c *Client) UpdateProfile(ctx context.Context, input UserUpdate) (*User, error) {
 	var user User
 	if err := c.Post(ctx, "/me", input, &user); err != nil {
 		return nil, err
