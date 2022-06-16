@@ -39,6 +39,12 @@ type User struct {
 	App *App `json:"app,omitempty"`
 }
 
+type UserUpdate struct {
+	FullName     string `json:"full_name,omitempty"`
+	AvatarBase64 string `json:"avatar_base64,omitempty"`
+	Biography    string `json:"biography,omitempty"`
+}
+
 func (c *Client) UserMe(ctx context.Context) (*User, error) {
 	var user User
 	if err := c.Get(ctx, "/me", nil, &user); err != nil {
@@ -160,5 +166,13 @@ func (c *Client) ModifyProfile(ctx context.Context, fullname, avatarBase64 strin
 		return nil, err
 	}
 
+	return &user, nil
+}
+
+func (c *Client) UpdateProfile(ctx context.Context, input *UserUpdate) (*User, error) {
+	var user User
+	if err := c.Post(ctx, "/me", input, &user); err != nil {
+		return nil, err
+	}
 	return &user, nil
 }
