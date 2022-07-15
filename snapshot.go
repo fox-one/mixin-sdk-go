@@ -27,6 +27,8 @@ type Snapshot struct {
 	Sender          string          `json:"sender,omitempty"`
 	Receiver        string          `json:"receiver,omitempty"`
 	TransactionHash string          `json:"transaction_hash,omitempty"`
+	SnapshotHash    string          `json:"snapshot_hash,omitempty"`
+	SnapshotAt      *time.Time      `json:"snapshot_at,omitempty"`
 
 	Asset *Asset `json:"asset,omitempty"`
 }
