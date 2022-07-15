@@ -2,6 +2,8 @@ package mixin
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/json"
 	"time"
 )
@@ -30,6 +32,11 @@ const (
 )
 
 type (
+	AttachmentMessageEncrypt struct {
+		Key    []byte `json:"key"`
+		Digest []byte `json:"digest"`
+	}
+
 	RecallMessage struct {
 		MessageID string `json:"message_id"`
 	}
@@ -41,6 +48,7 @@ type (
 		Height       int    `json:"height,omitempty"`
 		Size         int    `json:"size,omitempty"`
 		Thumbnail    string `json:"thumbnail,omitempty"`
+		*AttachmentMessageEncrypt
 	}
 
 	DataMessage struct {
@@ -48,6 +56,7 @@ type (
 		MimeType     string `json:"mime_type,omitempty"`
 		Size         int    `json:"size,omitempty"`
 		Name         string `json:"name,omitempty"`
+		*AttachmentMessageEncrypt
 	}
 
 	StickerMessage struct {
@@ -104,6 +113,7 @@ type (
 		WaveForm     string `json:"wave_form,omitempty"`
 		Size         int    `json:"size,omitempty"`
 		Duration     int    `json:"duration,omitempty"`
+		*AttachmentMessageEncrypt
 	}
 
 	LiveMessage struct {
@@ -122,6 +132,7 @@ type (
 		Size         int    `json:"size,omitempty"`
 		Duration     int    `json:"duration,omitempty"`
 		Thumbnail    []byte `json:"thumbnail,omitempty"`
+		*AttachmentMessageEncrypt
 	}
 
 	LocationMessage struct {
@@ -184,4 +195,17 @@ func (c *Client) SendRawMessage(ctx context.Context, message json.RawMessage) er
 
 func (c *Client) SendRawMessages(ctx context.Context, messages []json.RawMessage) error {
 	return c.Post(ctx, "/messages", messages, nil)
+}
+
+func DecryptAttachment(data, keys, digest []byte) ([]byte, error) {
+	aesKey := keys[:32]
+	iv := data[:16]
+	ciphertext := data[16 : len(data)-32]
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return nil, err
+	}
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(ciphertext, ciphertext)
+	return ciphertext, nil
 }
