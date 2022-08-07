@@ -102,7 +102,7 @@ func (a *MixinnetAddress) UnmarshalJSON(b []byte) error {
 
 func (a MixinnetAddress) CreateUTXO(outputIndex int, amount decimal.Decimal) *Output {
 	r := NewKey(rand.Reader)
-	pubGhost := DeriveGhostPublicKey(&r, &a.PrivateSpendKey, &a.PrivateViewKey, outputIndex)
+	pubGhost := DeriveGhostPublicKey(&r, &a.PublicSpendKey, &a.PublicViewKey, outputIndex)
 	return &Output{
 		Type:   0,
 		Script: NewThresholdScript(1),
