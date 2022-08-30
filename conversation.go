@@ -24,12 +24,12 @@ const (
 
 // Participant conversation participant
 type Participant struct {
-	Action         string    `json:"action,omitempty"`
-	Type           string    `json:"type,omitempty"`
-	UserID         string    `json:"user_id,omitempty"`
-	Participant_id string    `json:"participant_id,omitempty"`
-	Role           string    `json:"role,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty"`
+	Action        string    `json:"action,omitempty"`
+	Type          string    `json:"type,omitempty"`
+	UserID        string    `json:"user_id,omitempty"`
+	ParticipantID string    `json:"participant_id,omitempty"`
+	Role          string    `json:"role,omitempty"`
+	CreatedAt     time.Time `json:"created_at,omitempty"`
 }
 
 // Conversation conversation
