@@ -11,6 +11,7 @@ const (
 	ConversationCategoryGroup   = "GROUP"
 
 	ParticipantActionCreate = "CREATE"
+	ParticipantActionUpdate = "UPDATE"
 	ParticipantActionAdd    = "ADD"
 	ParticipantActionRemove = "REMOVE"
 	ParticipantActionJoin   = "JOIN"
