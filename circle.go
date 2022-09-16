@@ -53,12 +53,17 @@ func (c *Client) CreateCircle(ctx context.Context, args CreateCircleParams) (*Ci
 }
 
 type UpdateCircleParams struct {
-	Name string `json:"name,omitempty"`
+	CircleID string `json:"circle_id,omitempty"`
+	Name     string `json:"name,omitempty"`
 }
 
-func (c *Client) UpdateCircle(ctx context.Context, circleID string, args UpdateCircleParams) (*Circle, error) {
+func (c *Client) UpdateCircle(ctx context.Context, args UpdateCircleParams) (*Circle, error) {
 	var circle Circle
-	if err := c.Post(ctx, "/circles/"+circleID, args, &circle); err != nil {
+	body := map[string]interface{}{
+		"name": args.Name,
+	}
+
+	if err := c.Post(ctx, "/circles/"+args.CircleID, body, &circle); err != nil {
 		return nil, err
 	}
 
@@ -71,17 +76,18 @@ func (c *Client) DeleteCircle(ctx context.Context, circleID string) error {
 }
 
 type ManageCircleParams struct {
+	CircleID string `json:"circle_id,omitempty"`
 	Action   string `json:"action,omitempty"`    // ADD or REMOVE
 	ItemType string `json:"item_type,omitempty"` // users or conversations
 	ItemID   string `json:"item_id,omitempty"`
 }
 
-func (c *Client) ManageCircle(ctx context.Context, circleID string, args ManageCircleParams) ([]*Circle, error) {
+func (c *Client) ManageCircle(ctx context.Context, args ManageCircleParams) ([]*Circle, error) {
 	var circles []*Circle
 	uri := fmt.Sprintf("%s/%s/circles", args.ItemType, args.ItemID)
 	body := map[string]interface{}{
 		"action":    args.Action,
-		"circle_id": circleID,
+		"circle_id": args.CircleID,
 	}
 
 	if err := c.Post(ctx, uri, body, &circles); err != nil {
@@ -98,12 +104,18 @@ type CircleItem struct {
 	UserID         string    `json:"user_id,omitempty"`
 }
 
-func (c *Client) ListCircleItems(ctx context.Context, circleID string, offset time.Time, limit int) ([]*CircleItem, error) {
+type ListCircleItemsParams struct {
+	CircleID string    `json:"circle_id,omitempty"`
+	Offset   time.Time `json:"offset,omitempty"`
+	Limit    int       `json:"limit,omitempty"`
+}
+
+func (c *Client) ListCircleItems(ctx context.Context, args ListCircleItemsParams) ([]*CircleItem, error) {
 	var items []*CircleItem
-	uri := fmt.Sprintf("/circles/%s/conversations", circleID)
+	uri := fmt.Sprintf("/circles/%s/conversations", args.CircleID)
 	params := map[string]string{
-		"offset": offset.Format(time.RFC3339Nano),
-		"limit":  strconv.Itoa(limit),
+		"offset": args.Offset.Format(time.RFC3339Nano),
+		"limit":  strconv.Itoa(args.Limit),
 	}
 
 	if err := c.Get(ctx, uri, params, &items); err != nil {
