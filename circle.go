@@ -92,9 +92,10 @@ func (c *Client) ManageCircle(ctx context.Context, circleID string, args ManageC
 }
 
 type CircleItem struct {
+	CreatedAt      time.Time `json:"created_at,omitempty"`
 	CircleID       string    `json:"circle_id,omitempty"`
 	ConversationID string    `json:"conversation_id,omitempty"`
-	CreatedAt      time.Time `json:"created_at,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
 }
 
 func (c *Client) ListCircleItems(ctx context.Context, circleID string, offset time.Time, limit int) ([]*CircleItem, error) {
