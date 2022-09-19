@@ -18,6 +18,7 @@ const (
 type Circle struct {
 	ID        string    `json:"circle_id,omitempty"`
 	Name      string    `json:"name,omitempty"`
+	UserID    string    `json:"user_id,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
@@ -79,16 +80,16 @@ type ManageCircleParams struct {
 	CircleID string `json:"circle_id,omitempty"`
 	Action   string `json:"action,omitempty"`    // ADD or REMOVE
 	ItemType string `json:"item_type,omitempty"` // users or conversations
-	ItemID   string `json:"item_id,omitempty"`
+	ItemID   string `json:"item_id,omitempty"`   // user_id or conversation_id
 }
 
 func (c *Client) ManageCircle(ctx context.Context, args ManageCircleParams) ([]*Circle, error) {
 	var circles []*Circle
 	uri := fmt.Sprintf("%s/%s/circles", args.ItemType, args.ItemID)
-	body := map[string]interface{}{
+	body := []interface{}{map[string]interface{}{
 		"action":    args.Action,
 		"circle_id": args.CircleID,
-	}
+	}}
 
 	if err := c.Post(ctx, uri, body, &circles); err != nil {
 		return nil, err
