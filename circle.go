@@ -83,26 +83,26 @@ type ManageCircleParams struct {
 	ItemID   string `json:"item_id,omitempty"`   // user_id or conversation_id
 }
 
-func (c *Client) ManageCircle(ctx context.Context, args ManageCircleParams) ([]*Circle, error) {
-	var circles []*Circle
+type CircleItem struct {
+	CreatedAt      time.Time `json:"created_at,omitempty"`
+	CircleID       string    `json:"circle_id,omitempty"`
+	ConversationID string    `json:"conversation_id,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
+}
+
+func (c *Client) ManageCircle(ctx context.Context, args ManageCircleParams) (*CircleItem, error) {
+	var items []*CircleItem
 	uri := fmt.Sprintf("%s/%s/circles", args.ItemType, args.ItemID)
 	body := []interface{}{map[string]interface{}{
 		"action":    args.Action,
 		"circle_id": args.CircleID,
 	}}
 
-	if err := c.Post(ctx, uri, body, &circles); err != nil {
+	if err := c.Post(ctx, uri, body, &items); err != nil {
 		return nil, err
 	}
 
-	return circles, nil
-}
-
-type CircleItem struct {
-	CreatedAt      time.Time `json:"created_at,omitempty"`
-	CircleID       string    `json:"circle_id,omitempty"`
-	ConversationID string    `json:"conversation_id,omitempty"`
-	UserID         string    `json:"user_id,omitempty"`
+	return items[0], nil
 }
 
 type ListCircleItemsParams struct {
