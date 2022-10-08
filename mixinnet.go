@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -31,6 +32,8 @@ func SendRawTransaction(ctx context.Context, raw string) (*Transaction, error) {
 			}
 		}
 		return nil, err
+	} else if tx.Hash == nil {
+		return nil, errors.New("nil transaction hash")
 	}
 
 	return GetTransaction(ctx, *tx.Hash)
