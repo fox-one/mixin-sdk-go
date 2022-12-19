@@ -126,6 +126,7 @@ type ListMultisigOutputsOption struct {
 	Offset         time.Time
 	Limit          int
 	OrderByCreated bool
+	State          string
 }
 
 // ListMultisigOutputs return a list of multisig outputs of special members & threshold
@@ -150,6 +151,10 @@ func (c *Client) ListMultisigOutputs(ctx context.Context, opt ListMultisigOutput
 
 	if opt.OrderByCreated {
 		params["order"] = "created"
+	}
+
+	if opt.State != "" {
+		params["state"] = opt.State
 	}
 
 	var utxos []*MultisigUTXO
