@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"sort"
@@ -192,7 +193,9 @@ func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*Multisig
 			return nil, err
 		}
 		tipBody := []byte(fmt.Sprintf("%s%s", TIPMultisigRequestSign, reqID))
-		pin = key.Sign(tipBody).String()
+		hash := sha256.New()
+		hash.Write(tipBody)
+		pin = key.Sign(hash.Sum(nil)).String()
 		params["pin_base64"] = c.EncryptPin(pin)
 	}
 
@@ -226,7 +229,9 @@ func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
 			return err
 		}
 		tipBody := []byte(fmt.Sprintf("%s%s", TIPMultisigRequestUnlock, reqID))
-		pin = key.Sign(tipBody).String()
+		hash := sha256.New()
+		hash.Write(tipBody)
+		pin = key.Sign(hash.Sum(nil)).String()
 		params["pin_base64"] = c.EncryptPin(pin)
 	}
 

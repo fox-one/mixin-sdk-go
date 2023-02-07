@@ -106,7 +106,9 @@ func (c *Client) DeleteAddress(ctx context.Context, addressID, pin string) error
 			return err
 		}
 		tipBody := []byte(fmt.Sprintf("%s%s", TIPAddressRemove, addressID))
-		pin = key.Sign(tipBody).String()
+		hash := sha256.New()
+		hash.Write(tipBody)
+		pin = key.Sign(hash.Sum(nil)).String()
 		body["pin_base64"] = c.EncryptPin(pin)
 	}
 

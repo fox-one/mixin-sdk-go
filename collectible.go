@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strconv"
@@ -175,7 +176,9 @@ func (c *Client) SignCollectibleRequest(ctx context.Context, reqID, pin string) 
 			return nil, err
 		}
 		tipBody := []byte(fmt.Sprintf("%s%s", TIPCollectibleRequestSign, reqID))
-		pin = key.Sign(tipBody).String()
+		hash := sha256.New()
+		hash.Write(tipBody)
+		pin = key.Sign(hash.Sum(nil)).String()
 		params["pin_base64"] = c.EncryptPin(pin)
 	}
 
@@ -214,7 +217,9 @@ func (c *Client) UnlockCollectibleRequest(ctx context.Context, reqID, pin string
 			return err
 		}
 		tipBody := []byte(fmt.Sprintf("%s%s", TIPCollectibleRequestUnlock, reqID))
-		pin = key.Sign(tipBody).String()
+		hash := sha256.New()
+		hash.Write(tipBody)
+		pin = key.Sign(hash.Sum(nil)).String()
 		params["pin_base64"] = c.EncryptPin(pin)
 	}
 
