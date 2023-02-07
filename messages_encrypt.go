@@ -141,10 +141,13 @@ func EncryptMessageData(data []byte, sessions []*Session, private ed25519.Privat
 		if err != nil {
 			return nil, err
 		}
-		var dst, priv, clientPub [32]byte
+		var priv, clientPub [32]byte
 		copy(clientPub[:], clientPublic[:])
 		privateKeyToCurve25519(&priv, private)
-		curve25519.ScalarMult(&dst, &priv, &clientPub)
+		dst, err := curve25519.X25519(priv[:], clientPub[:])
+		if err != nil {
+			return nil, err
+		}
 
 		block, err := aes.NewCipher(dst[:])
 		if err != nil {
@@ -192,10 +195,13 @@ func DecryptMessageData(data []byte, sessionID string, private ed25519.PrivateKe
 	var key []byte
 	for i := 35; i < prefixSize; i += size {
 		if uid, _ := uuid.FromBytes(data[i : i+16]); uid.String() == sessionID {
-			var dst, priv, pub [32]byte
+			var priv, pub [32]byte
 			copy(pub[:], data[3:35])
 			privateKeyToCurve25519(&priv, private)
-			curve25519.ScalarMult(&dst, &priv, &pub)
+			dst, err := curve25519.X25519(priv[:], pub[:])
+			if err != nil {
+				return nil, err
+			}
 
 			block, err := aes.NewCipher(dst[:])
 			if err != nil {
