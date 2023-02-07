@@ -30,20 +30,28 @@ func (c *Client) Withdraw(ctx context.Context, input WithdrawInput, pin string) 
 		if err != nil {
 			return nil, err
 		}
+
+		addr, err := c.ReadAddress(ctx, input.AddressID)
+		if err != nil {
+			return nil, err
+		}
+
 		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s",
-			TIPTransferCreate,
+		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s%s",
+			TIPWithdrawalCreate,
 			input.AddressID,
-			input.Amount.String(),
+			input.Amount.String(), addr.Fee.String(),
 			input.TraceID, input.Memo)))
 		tipBody := hash.Sum(nil)
 		pin = key.Sign(tipBody).String()
 
 		body = struct {
 			WithdrawInput
+			Fee string `json:"fee"`
 			Pin string `json:"pin_base64"`
 		}{
 			WithdrawInput: input,
+			Fee:           addr.Fee.String(),
 			Pin:           c.EncryptPin(pin),
 		}
 	}
