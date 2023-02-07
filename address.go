@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/shopspring/decimal"
@@ -25,12 +26,36 @@ type CreateAddressInput struct {
 }
 
 func (c *Client) CreateAddress(ctx context.Context, input CreateAddressInput, pin string) (*Address, error) {
-	body := struct {
-		CreateAddressInput
-		Pin string `json:"pin,omitempty"`
-	}{
-		CreateAddressInput: input,
-		Pin:                c.EncryptPin(pin),
+	var body interface{}
+	if len(pin) == 6 {
+		body = struct {
+			CreateAddressInput
+			Pin string `json:"pin,omitempty"`
+		}{
+			CreateAddressInput: input,
+			Pin:                c.EncryptPin(pin),
+		}
+	} else {
+		key, err := KeyFromString(pin)
+		if err != nil {
+			return nil, err
+		}
+		hash := sha256.New()
+		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s",
+			TIPAddressAdd,
+			input.AssetID, input.Destination,
+			input.Tag,
+			input.Label)))
+		tipBody := hash.Sum(nil)
+		pin = key.Sign(tipBody).String()
+
+		body = struct {
+			CreateAddressInput
+			Pin string `json:"pin_base64,omitempty"`
+		}{
+			CreateAddressInput: input,
+			Pin:                c.EncryptPin(pin),
+		}
 	}
 
 	var address Address
@@ -72,10 +97,19 @@ func ReadAddresses(ctx context.Context, accessToken, assetID string) ([]*Address
 }
 
 func (c *Client) DeleteAddress(ctx context.Context, addressID, pin string) error {
-	uri := fmt.Sprintf("/addresses/%s/delete", addressID)
-	body := map[string]interface{}{
-		"pin": c.EncryptPin(pin),
+	body := map[string]interface{}{}
+	if len(pin) == 6 {
+		body["pin"] = c.EncryptPin(pin)
+	} else {
+		key, err := KeyFromString(pin)
+		if err != nil {
+			return err
+		}
+		tipBody := []byte(fmt.Sprintf("%s%s", TIPAddressRemove, addressID))
+		pin = key.Sign(tipBody).String()
+		body["pin_base64"] = c.EncryptPin(pin)
 	}
 
+	uri := fmt.Sprintf("/addresses/%s/delete", addressID)
 	return c.Post(ctx, uri, body, nil)
 }

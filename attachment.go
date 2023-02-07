@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -51,7 +50,7 @@ func UploadAttachmentTo(ctx context.Context, uploadURL string, file []byte) erro
 
 	resp, err := uploadClient.Do(req)
 	if resp != nil {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}
 

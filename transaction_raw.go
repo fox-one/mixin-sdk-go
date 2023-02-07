@@ -2,6 +2,9 @@ package mixin
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -44,7 +47,23 @@ func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string)
 		"amount":   in.Amount,
 		"trace_id": in.TraceID,
 		"memo":     in.Memo,
-		"pin":      c.EncryptPin(pin),
+	}
+
+	if len(pin) == 6 {
+		paras["pin"] = c.EncryptPin(pin)
+	} else {
+		key, err := KeyFromString(pin)
+		if err != nil {
+			return nil, err
+		}
+		hash := sha256.New()
+		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%d%s%s%s",
+			TIPRawTransactionCreate, in.AssetID, in.OpponentKey,
+			strings.Join(in.OpponentMultisig.Receivers, ""), in.OpponentMultisig.Threshold,
+			in.Amount.String(), in.TraceID, in.Memo)))
+		tipBody := hash.Sum(nil)
+		pin = key.Sign(tipBody).String()
+		paras["pin_base64"] = c.EncryptPin(pin)
 	}
 
 	if in.OpponentKey != "" {

@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -165,11 +166,20 @@ func CreateCollectibleRequest(ctx context.Context, accessToken, action, raw stri
 
 // SignCollectibleRequest sign a collectibles request
 func (c *Client) SignCollectibleRequest(ctx context.Context, reqID, pin string) (*CollectibleRequest, error) {
-	uri := "/collectibles/requests/" + reqID + "/sign"
-	params := map[string]string{
-		"pin": c.EncryptPin(pin),
+	params := map[string]string{}
+	if len(pin) == 6 {
+		params["pin"] = c.EncryptPin(pin)
+	} else {
+		key, err := KeyFromString(pin)
+		if err != nil {
+			return nil, err
+		}
+		tipBody := []byte(fmt.Sprintf("%s%s", TIPCollectibleRequestSign, reqID))
+		pin = key.Sign(tipBody).String()
+		params["pin_base64"] = c.EncryptPin(pin)
 	}
 
+	uri := "/collectibles/requests/" + reqID + "/sign"
 	var req CollectibleRequest
 	if err := c.Post(ctx, uri, params, &req); err != nil {
 		return nil, err
@@ -195,12 +205,20 @@ func CancelCollectibleRequest(ctx context.Context, accessToken, reqID string) er
 
 // UnlockCollectibleRequest unlock a collectibles request
 func (c *Client) UnlockCollectibleRequest(ctx context.Context, reqID, pin string) error {
-	var (
-		uri    = "/collectibles/requests/" + reqID + "/unlock"
-		params = map[string]string{
-			"pin": c.EncryptPin(pin),
+	params := map[string]string{}
+	if len(pin) == 6 {
+		params["pin"] = c.EncryptPin(pin)
+	} else {
+		key, err := KeyFromString(pin)
+		if err != nil {
+			return err
 		}
-	)
+		tipBody := []byte(fmt.Sprintf("%s%s", TIPCollectibleRequestUnlock, reqID))
+		pin = key.Sign(tipBody).String()
+		params["pin_base64"] = c.EncryptPin(pin)
+	}
+
+	var uri = "/collectibles/requests/" + reqID + "/unlock"
 	if err := c.Post(ctx, uri, params, nil); err != nil {
 		return err
 	}

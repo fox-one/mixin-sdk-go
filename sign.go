@@ -3,7 +3,7 @@ package mixin
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -32,7 +32,7 @@ func SignRequest(r *http.Request) string {
 	var body []byte
 	if r.GetBody != nil {
 		if b, _ := r.GetBody(); b != nil {
-			body, _ = ioutil.ReadAll(b)
+			body, _ = io.ReadAll(b)
 			_ = b.Close()
 		}
 	}

@@ -21,7 +21,7 @@ var (
 
 var httpClient = resty.New().
 	SetHeader("Content-Type", "application/json").
-	SetHostURL(DefaultApiHost).
+	SetBaseURL(DefaultApiHost).
 	SetTimeout(10 * time.Second).
 	SetPreRequestHook(func(c *resty.Client, r *http.Request) error {
 		ctx := r.Context()
