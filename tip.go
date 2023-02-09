@@ -1,5 +1,9 @@
 package mixin
 
+import (
+	"crypto/sha256"
+)
+
 const (
 	TIPVerify                   = "TIP:VERIFY:"
 	TIPAddressAdd               = "TIP:ADDRESS:ADD:"
@@ -19,3 +23,13 @@ const (
 	TIPOAuthApprove             = "TIP:OAUTH:APPROVE:"
 	TIPProvisioningUpdate       = "TIP:PROVISIONING:UPDATE:"
 )
+
+func (c *Client) EncryptTipPin(key Key, action string, params ...string) string {
+	hash := sha256.New()
+	hash.Write([]byte(action))
+	for _, p := range params {
+		hash.Write([]byte(p))
+	}
+
+	return c.EncryptPin(key.Sign(hash.Sum(nil)).String())
+}

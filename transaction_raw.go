@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"strings"
 	"time"
@@ -49,21 +48,20 @@ func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string)
 		"memo":     in.Memo,
 	}
 
-	if len(pin) == 6 {
-		paras["pin"] = c.EncryptPin(pin)
+	if key, err := KeyFromString(pin); err == nil {
+		paras["pin_base64"] = c.EncryptTipPin(
+			key,
+			TIPRawTransactionCreate,
+			in.AssetID,
+			in.OpponentKey,
+			strings.Join(in.OpponentMultisig.Receivers, ""),
+			fmt.Sprint(in.OpponentMultisig.Threshold),
+			in.Amount.String(),
+			in.TraceID,
+			in.Memo,
+		)
 	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return nil, err
-		}
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%d%s%s%s",
-			TIPRawTransactionCreate, in.AssetID, in.OpponentKey,
-			strings.Join(in.OpponentMultisig.Receivers, ""), in.OpponentMultisig.Threshold,
-			in.Amount.String(), in.TraceID, in.Memo)))
-		tipBody := hash.Sum(nil)
-		pin = key.Sign(tipBody).String()
-		paras["pin_base64"] = c.EncryptPin(pin)
+		paras["pin"] = c.EncryptPin(pin)
 	}
 
 	if in.OpponentKey != "" {

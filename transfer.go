@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	"github.com/shopspring/decimal"
@@ -27,33 +26,29 @@ type TransferInput struct {
 
 func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {
 	var body interface{}
-	if len(pin) == 6 {
+	if key, err := KeyFromString(pin); err == nil {
+		body = struct {
+			*TransferInput
+			PinBase64 string `json:"pin_base64"`
+		}{
+			TransferInput: input,
+			PinBase64: c.EncryptTipPin(
+				key,
+				TIPTransferCreate,
+				input.AssetID,
+				input.OpponentID,
+				input.Amount.String(),
+				input.TraceID,
+				input.Memo,
+			),
+		}
+	} else {
 		body = struct {
 			*TransferInput
 			Pin string
 		}{
 			TransferInput: input,
 			Pin:           c.EncryptPin(pin),
-		}
-	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return nil, err
-		}
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s%s",
-			TIPTransferCreate,
-			input.AssetID, input.OpponentID,
-			input.Amount.String(),
-			input.TraceID, input.Memo)))
-		tipBody := hash.Sum(nil)
-		pin = key.Sign(tipBody).String()
-		body = struct {
-			*TransferInput
-			PinBase64 string `json:"pin_base64"`
-		}{
-			TransferInput: input,
-			PinBase64:     c.EncryptPin(pin),
 		}
 	}
 

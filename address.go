@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	"github.com/shopspring/decimal"
@@ -27,31 +26,25 @@ type CreateAddressInput struct {
 
 func (c *Client) CreateAddress(ctx context.Context, input CreateAddressInput, pin string) (*Address, error) {
 	var body interface{}
-	if len(pin) == 6 {
-		body = struct {
-			CreateAddressInput
-			Pin string `json:"pin,omitempty"`
-		}{
-			CreateAddressInput: input,
-			Pin:                c.EncryptPin(pin),
-		}
-	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return nil, err
-		}
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s",
-			TIPAddressAdd,
-			input.AssetID, input.Destination,
-			input.Tag,
-			input.Label)))
-		tipBody := hash.Sum(nil)
-		pin = key.Sign(tipBody).String()
-
+	if key, err := KeyFromString(pin); err == nil {
 		body = struct {
 			CreateAddressInput
 			Pin string `json:"pin_base64,omitempty"`
+		}{
+			CreateAddressInput: input,
+			Pin: c.EncryptTipPin(
+				key,
+				TIPAddressAdd,
+				input.AssetID,
+				input.Destination,
+				input.Tag,
+				input.Label,
+			),
+		}
+	} else {
+		body = struct {
+			CreateAddressInput
+			Pin string `json:"pin,omitempty"`
 		}{
 			CreateAddressInput: input,
 			Pin:                c.EncryptPin(pin),
@@ -98,18 +91,10 @@ func ReadAddresses(ctx context.Context, accessToken, assetID string) ([]*Address
 
 func (c *Client) DeleteAddress(ctx context.Context, addressID, pin string) error {
 	body := map[string]interface{}{}
-	if len(pin) == 6 {
-		body["pin"] = c.EncryptPin(pin)
+	if key, err := KeyFromString(pin); err == nil {
+		body["pin_base64"] = c.EncryptTipPin(key, TIPAddressRemove, addressID)
 	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return err
-		}
-		tipBody := []byte(fmt.Sprintf("%s%s", TIPAddressRemove, addressID))
-		hash := sha256.New()
-		hash.Write(tipBody)
-		pin = key.Sign(hash.Sum(nil)).String()
-		body["pin_base64"] = c.EncryptPin(pin)
+		body["pin"] = c.EncryptPin(pin)
 	}
 
 	uri := fmt.Sprintf("/addresses/%s/delete", addressID)

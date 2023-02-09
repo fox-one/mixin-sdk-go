@@ -2,8 +2,6 @@ package mixin
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 
 	"github.com/shopspring/decimal"
 )
@@ -17,41 +15,28 @@ type WithdrawInput struct {
 
 func (c *Client) Withdraw(ctx context.Context, input WithdrawInput, pin string) (*Snapshot, error) {
 	var body interface{}
-	if len(pin) == 6 {
+	if key, err := KeyFromString(pin); err == nil {
+		body = struct {
+			WithdrawInput
+			Pin string `json:"pin_base64"`
+		}{
+			WithdrawInput: input,
+			Pin: c.EncryptTipPin(
+				key,
+				TIPWithdrawalCreate,
+				input.AddressID,
+				input.Amount.String(),
+				"0", // fee
+				input.TraceID,
+				input.Memo,
+			),
+		}
+	} else {
 		body = struct {
 			WithdrawInput
 			Pin string
 		}{
 			WithdrawInput: input,
-			Pin:           c.EncryptPin(pin),
-		}
-	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return nil, err
-		}
-
-		addr, err := c.ReadAddress(ctx, input.AddressID)
-		if err != nil {
-			return nil, err
-		}
-
-		hash := sha256.New()
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s%s%s",
-			TIPWithdrawalCreate,
-			input.AddressID,
-			input.Amount.String(), addr.Fee.String(),
-			input.TraceID, input.Memo)))
-		tipBody := hash.Sum(nil)
-		pin = key.Sign(tipBody).String()
-
-		body = struct {
-			WithdrawInput
-			Fee string `json:"fee"`
-			Pin string `json:"pin_base64"`
-		}{
-			WithdrawInput: input,
-			Fee:           addr.Fee.String(),
 			Pin:           c.EncryptPin(pin),
 		}
 	}

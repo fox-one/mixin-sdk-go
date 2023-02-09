@@ -2,9 +2,7 @@ package mixin
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"sort"
 	"strconv"
 	"time"
@@ -185,18 +183,10 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 // SignMultisig sign a multisig request
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
 	params := map[string]string{}
-	if len(pin) == 6 {
-		params["pin"] = c.EncryptPin(pin)
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestSign, reqID)
 	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return nil, err
-		}
-		tipBody := []byte(fmt.Sprintf("%s%s", TIPMultisigRequestSign, reqID))
-		hash := sha256.New()
-		hash.Write(tipBody)
-		pin = key.Sign(hash.Sum(nil)).String()
-		params["pin_base64"] = c.EncryptPin(pin)
+		params["pin"] = c.EncryptPin(pin)
 	}
 
 	uri := "/multisigs/requests/" + reqID + "/sign"
@@ -221,18 +211,10 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 // UnlockMultisig unlock a multisig request
 func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
 	params := map[string]string{}
-	if len(pin) == 6 {
-		params["pin"] = c.EncryptPin(pin)
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestUnlock, reqID)
 	} else {
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return err
-		}
-		tipBody := []byte(fmt.Sprintf("%s%s", TIPMultisigRequestUnlock, reqID))
-		hash := sha256.New()
-		hash.Write(tipBody)
-		pin = key.Sign(hash.Sum(nil)).String()
-		params["pin_base64"] = c.EncryptPin(pin)
+		params["pin"] = c.EncryptPin(pin)
 	}
 
 	var uri = "/multisigs/requests/" + reqID + "/unlock"

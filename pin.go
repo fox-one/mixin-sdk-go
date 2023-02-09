@@ -11,17 +11,12 @@ import (
 
 func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	body := map[string]interface{}{}
-	if len(pin) == 6 {
-		body["pin"] = c.EncryptPin(pin)
-	} else {
+	if key, err := KeyFromString(pin); err == nil {
 		timestamp := uint64(time.Now().UnixNano())
-		key, err := KeyFromString(pin)
-		if err != nil {
-			return err
-		}
-		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
-		body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
+		body["pin_base64"] = c.EncryptTipPin(key, TIPVerify, fmt.Sprintf("%032d", timestamp))
 		body["timestamp"] = timestamp
+	} else {
+		body["pin"] = c.EncryptPin(pin)
 	}
 
 	return c.Post(ctx, "/pin/verify", body, nil)
