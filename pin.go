@@ -13,7 +13,8 @@ func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	body := map[string]interface{}{}
 	if key, err := KeyFromString(pin); err == nil {
 		timestamp := uint64(time.Now().UnixNano())
-		body["pin_base64"] = c.EncryptTipPin(key, TIPVerify, fmt.Sprintf("%032d", timestamp))
+		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
+		body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
 		body["timestamp"] = timestamp
 	} else {
 		body["pin"] = c.EncryptPin(pin)
