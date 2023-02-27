@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"flag"
 	"log"
@@ -91,7 +91,8 @@ func main() {
 	}
 
 	// create sub wallet
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	// privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	_, privateKey, _ := ed25519.GenerateKey(rand.Reader)
 	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
 	if err != nil {
 		log.Printf("CreateUser: %v", err)
