@@ -25,12 +25,31 @@ type TransferInput struct {
 }
 
 func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {
-	body := struct {
-		*TransferInput
-		Pin string
-	}{
-		TransferInput: input,
-		Pin:           c.EncryptPin(pin),
+	var body interface{}
+	if key, err := KeyFromString(pin); err == nil {
+		body = struct {
+			*TransferInput
+			PinBase64 string `json:"pin_base64"`
+		}{
+			TransferInput: input,
+			PinBase64: c.EncryptTipPin(
+				key,
+				TIPTransferCreate,
+				input.AssetID,
+				input.OpponentID,
+				input.Amount.String(),
+				input.TraceID,
+				input.Memo,
+			),
+		}
+	} else {
+		body = struct {
+			*TransferInput
+			Pin string
+		}{
+			TransferInput: input,
+			Pin:           c.EncryptPin(pin),
+		}
 	}
 
 	var snapshot Snapshot

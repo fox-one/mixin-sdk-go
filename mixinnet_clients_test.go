@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"golang.org/x/sync/errgroup"
@@ -16,11 +17,18 @@ func TestMixinNetClientFromContext(t *testing.T) {
 		g.Go(func() error {
 			c1 := MixinNetClientFromContext(ctx)
 			if c1 == nil {
-				t.Error("client is nil")
+				err := fmt.Errorf("client is nil")
+				t.Error(err)
+				return err
 			}
 
 			ctx := WithMixinNetHost(ctx, c1.BaseURL)
 			c2 := MixinNetClientFromContext(ctx)
+			if c2 == nil {
+				err := fmt.Errorf("client is nil")
+				t.Error(err)
+				return err
+			}
 			if c1.BaseURL != c2.BaseURL {
 				t.Error("client is not same")
 			}

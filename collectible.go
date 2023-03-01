@@ -165,11 +165,14 @@ func CreateCollectibleRequest(ctx context.Context, accessToken, action, raw stri
 
 // SignCollectibleRequest sign a collectibles request
 func (c *Client) SignCollectibleRequest(ctx context.Context, reqID, pin string) (*CollectibleRequest, error) {
-	uri := "/collectibles/requests/" + reqID + "/sign"
-	params := map[string]string{
-		"pin": c.EncryptPin(pin),
+	params := map[string]string{}
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPCollectibleRequestSign, reqID)
+	} else {
+		params["pin"] = c.EncryptPin(pin)
 	}
 
+	uri := "/collectibles/requests/" + reqID + "/sign"
 	var req CollectibleRequest
 	if err := c.Post(ctx, uri, params, &req); err != nil {
 		return nil, err
@@ -195,12 +198,14 @@ func CancelCollectibleRequest(ctx context.Context, accessToken, reqID string) er
 
 // UnlockCollectibleRequest unlock a collectibles request
 func (c *Client) UnlockCollectibleRequest(ctx context.Context, reqID, pin string) error {
-	var (
-		uri    = "/collectibles/requests/" + reqID + "/unlock"
-		params = map[string]string{
-			"pin": c.EncryptPin(pin),
-		}
-	)
+	params := map[string]string{}
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPCollectibleRequestUnlock, reqID)
+	} else {
+		params["pin"] = c.EncryptPin(pin)
+	}
+
+	var uri = "/collectibles/requests/" + reqID + "/unlock"
 	if err := c.Post(ctx, uri, params, nil); err != nil {
 		return err
 	}

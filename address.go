@@ -25,12 +25,30 @@ type CreateAddressInput struct {
 }
 
 func (c *Client) CreateAddress(ctx context.Context, input CreateAddressInput, pin string) (*Address, error) {
-	body := struct {
-		CreateAddressInput
-		Pin string `json:"pin,omitempty"`
-	}{
-		CreateAddressInput: input,
-		Pin:                c.EncryptPin(pin),
+	var body interface{}
+	if key, err := KeyFromString(pin); err == nil {
+		body = struct {
+			CreateAddressInput
+			Pin string `json:"pin_base64,omitempty"`
+		}{
+			CreateAddressInput: input,
+			Pin: c.EncryptTipPin(
+				key,
+				TIPAddressAdd,
+				input.AssetID,
+				input.Destination,
+				input.Tag,
+				input.Label,
+			),
+		}
+	} else {
+		body = struct {
+			CreateAddressInput
+			Pin string `json:"pin,omitempty"`
+		}{
+			CreateAddressInput: input,
+			Pin:                c.EncryptPin(pin),
+		}
 	}
 
 	var address Address
@@ -72,10 +90,13 @@ func ReadAddresses(ctx context.Context, accessToken, assetID string) ([]*Address
 }
 
 func (c *Client) DeleteAddress(ctx context.Context, addressID, pin string) error {
-	uri := fmt.Sprintf("/addresses/%s/delete", addressID)
-	body := map[string]interface{}{
-		"pin": c.EncryptPin(pin),
+	body := map[string]interface{}{}
+	if key, err := KeyFromString(pin); err == nil {
+		body["pin_base64"] = c.EncryptTipPin(key, TIPAddressRemove, addressID)
+	} else {
+		body["pin"] = c.EncryptPin(pin)
 	}
 
+	uri := fmt.Sprintf("/addresses/%s/delete", addressID)
 	return c.Post(ctx, uri, body, nil)
 }

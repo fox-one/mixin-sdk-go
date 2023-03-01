@@ -14,12 +14,31 @@ type WithdrawInput struct {
 }
 
 func (c *Client) Withdraw(ctx context.Context, input WithdrawInput, pin string) (*Snapshot, error) {
-	body := struct {
-		WithdrawInput
-		Pin string
-	}{
-		WithdrawInput: input,
-		Pin:           c.EncryptPin(pin),
+	var body interface{}
+	if key, err := KeyFromString(pin); err == nil {
+		body = struct {
+			WithdrawInput
+			Pin string `json:"pin_base64"`
+		}{
+			WithdrawInput: input,
+			Pin: c.EncryptTipPin(
+				key,
+				TIPWithdrawalCreate,
+				input.AddressID,
+				input.Amount.String(),
+				"0", // fee
+				input.TraceID,
+				input.Memo,
+			),
+		}
+	} else {
+		body = struct {
+			WithdrawInput
+			Pin string
+		}{
+			WithdrawInput: input,
+			Pin:           c.EncryptPin(pin),
+		}
 	}
 
 	var snapshot Snapshot

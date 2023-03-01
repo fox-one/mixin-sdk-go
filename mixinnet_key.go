@@ -104,7 +104,7 @@ func KeyMultPubPriv(pub, priv *Key) *Key {
 }
 
 func (k *Key) MultScalar(outputIndex int) *Key {
-	tmp := make([]byte, 12, 12)
+	tmp := make([]byte, 12)
 	length := binary.PutUvarint(tmp, uint64(outputIndex))
 	tmp = tmp[:length]
 

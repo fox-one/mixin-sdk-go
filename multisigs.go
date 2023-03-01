@@ -182,11 +182,14 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 
 // SignMultisig sign a multisig request
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
-	uri := "/multisigs/requests/" + reqID + "/sign"
-	params := map[string]string{
-		"pin": c.EncryptPin(pin),
+	params := map[string]string{}
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestSign, reqID)
+	} else {
+		params["pin"] = c.EncryptPin(pin)
 	}
 
+	uri := "/multisigs/requests/" + reqID + "/sign"
 	var req MultisigRequest
 	if err := c.Post(ctx, uri, params, &req); err != nil {
 		return nil, err
@@ -207,15 +210,16 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 
 // UnlockMultisig unlock a multisig request
 func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
-	var (
-		uri    = "/multisigs/requests/" + reqID + "/unlock"
-		params = map[string]string{
-			"pin": c.EncryptPin(pin),
-		}
-	)
+	params := map[string]string{}
+	if key, err := KeyFromString(pin); err == nil {
+		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestUnlock, reqID)
+	} else {
+		params["pin"] = c.EncryptPin(pin)
+	}
+
+	var uri = "/multisigs/requests/" + reqID + "/unlock"
 	if err := c.Post(ctx, uri, params, nil); err != nil {
 		return err
 	}
-
 	return nil
 }
