@@ -17,45 +17,60 @@ const (
 )
 
 type Code struct {
-	Type CodeType `json:"type"`
-	Data interface{}
+	Type    CodeType `json:"type"`
+	RawData []byte
 }
 
-func (c Code) User() *User {
-	user, ok := c.Data.(User)
-	if !ok {
+func (c *Code) User() *User {
+	if c.Type != TypeUser {
+		return nil
+	}
+	var user User
+	if err := json.Unmarshal(c.RawData, &user); err != nil {
 		return nil
 	}
 	return &user
 }
 
-func (c Code) Conversation() *Conversation {
-	conversation, ok := c.Data.(Conversation)
-	if !ok {
+func (c *Code) Conversation() *Conversation {
+	if c.Type != TypeConversation {
+		return nil
+	}
+	var conversation Conversation
+	if err := json.Unmarshal(c.RawData, &conversation); err != nil {
 		return nil
 	}
 	return &conversation
 }
 
-func (c Code) Payment() *Payment {
-	payment, ok := c.Data.(Payment)
-	if !ok {
+func (c *Code) Payment() *Payment {
+	if c.Type != TypePayment {
+		return nil
+	}
+	var payment Payment
+	if err := json.Unmarshal(c.RawData, &payment); err != nil {
 		return nil
 	}
 	return &payment
 }
 
-func (c Code) Multisig() *MultisigRequest {
-	multisig, ok := c.Data.(MultisigRequest)
-	if !ok {
+func (c *Code) Multisig() *MultisigRequest {
+	if c.Type != TypeMultisig {
+		return nil
+	}
+	var multisig MultisigRequest
+	if err := json.Unmarshal(c.RawData, &multisig); err != nil {
 		return nil
 	}
 	return &multisig
 }
 
-func (c Code) Collectible() *CollectibleRequest {
-	collectible, ok := c.Data.(CollectibleRequest)
-	if !ok {
+func (c *Code) Collectible() *CollectibleRequest {
+	if c.Type != TypeCollectible {
+		return nil
+	}
+	var collectible CollectibleRequest
+	if err := json.Unmarshal(c.RawData, &collectible); err != nil {
 		return nil
 	}
 	return &collectible
@@ -63,63 +78,15 @@ func (c Code) Collectible() *CollectibleRequest {
 
 func (c *Client) GetCode(ctx context.Context, codeString string) (*Code, error) {
 	uri := fmt.Sprintf("/codes/%s", codeString)
-	r, err := c.Request(ctx).SetQueryParams(nil).Get(uri)
-	if err != nil {
+	var data json.RawMessage
+	if err := c.Get(ctx, uri, nil, &data); err != nil {
 		return nil, err
 	}
 
-	data, err := DecodeResponse(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodeCode(data)
-}
-
-func decodeCode(data []byte) (*Code, error) {
 	var code Code
-	err := json.Unmarshal(data, &code)
-	if err != nil {
+	if err := json.Unmarshal(data, &code); err != nil {
 		return nil, err
 	}
-
-	switch code.Type {
-	case TypeUser:
-		var user User
-		err := json.Unmarshal(data, &user)
-		if err != nil {
-			return nil, err
-		}
-		code.Data = user
-	case TypeConversation:
-		var conversation Conversation
-		err := json.Unmarshal(data, &conversation)
-		if err != nil {
-			return nil, err
-		}
-		code.Data = conversation
-	case TypePayment:
-		var payment Payment
-		err := json.Unmarshal(data, &payment)
-		if err != nil {
-			return nil, err
-		}
-		code.Data = payment
-	case TypeMultisig:
-		var multisigRequest MultisigRequest
-		err := json.Unmarshal(data, &multisigRequest)
-		if err != nil {
-			return nil, err
-		}
-		code.Data = multisigRequest
-	case TypeCollectible:
-		var collectibleRequest CollectibleRequest
-		err := json.Unmarshal(data, &collectibleRequest)
-		if err != nil {
-			return nil, err
-		}
-		code.Data = collectibleRequest
-	}
-
+	code.RawData = data
 	return &code, nil
 }
