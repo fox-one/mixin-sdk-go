@@ -18,7 +18,7 @@ const (
 
 type Code struct {
 	Type    CodeType `json:"type"`
-	RawData []byte
+	RawData json.RawMessage
 }
 
 func (c *Code) User() *User {
