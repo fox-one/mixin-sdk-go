@@ -65,15 +65,7 @@ func (c *Client) GetCode(ctx context.Context, codeString string) (*Code, error) 
 	uri := fmt.Sprintf("/codes/%s", codeString)
 	r, err := c.Request(ctx).SetQueryParams(nil).Get(uri)
 	if err != nil {
-		if requestID := extractRequestID(r); requestID != "" {
-			return nil, WrapErrWithRequestID(err, requestID)
-		}
-
 		return nil, err
-	}
-
-	if requestID := extractRequestID(r); requestID != "" {
-		defer bindRequestID(&err, requestID)
 	}
 
 	data, err := DecodeResponse(r)
