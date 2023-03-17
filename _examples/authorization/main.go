@@ -58,6 +58,11 @@ func main() {
 		log.Panicln("authorize failed", err)
 	}
 
+	if auth.AuthorizationCode == "" {
+		log.Println("access denied")
+		return
+	}
+
 	log.Println("auth code is", auth.AuthorizationCode)
 
 	if callback, err := url.Parse(auth.App.RedirectURI); err == nil {
