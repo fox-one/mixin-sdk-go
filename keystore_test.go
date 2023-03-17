@@ -18,6 +18,7 @@ func decodeKeystoreAndPinFromEnv(t *testing.T) (*Keystore, string) {
 	env := "TEST_KEYSTORE_PATH"
 	path := os.Getenv(env)
 	if path == "" {
+		t.Logf("skip test, env %s not set", env)
 		t.SkipNow()
 	}
 
