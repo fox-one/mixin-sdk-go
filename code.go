@@ -9,11 +9,12 @@ import (
 type CodeType string
 
 const (
-	TypeUser         CodeType = "user"
-	TypeConversation CodeType = "conversation"
-	TypePayment      CodeType = "payment"
-	TypeMultisig     CodeType = "multisig_request"
-	TypeCollectible  CodeType = "non_fungible_request"
+	TypeUser          CodeType = "user"
+	TypeConversation  CodeType = "conversation"
+	TypePayment       CodeType = "payment"
+	TypeMultisig      CodeType = "multisig_request"
+	TypeCollectible   CodeType = "non_fungible_request"
+	TypeAuthorization CodeType = "authorization"
 )
 
 type Code struct {
@@ -74,6 +75,17 @@ func (c *Code) Collectible() *CollectibleRequest {
 		return nil
 	}
 	return &collectible
+}
+
+func (c *Code) Authorization() *Authorization {
+	if c.Type != TypeAuthorization {
+		return nil
+	}
+	var authorization Authorization
+	if err := json.Unmarshal(c.RawData, &authorization); err != nil {
+		return nil
+	}
+	return &authorization
 }
 
 func (c *Client) GetCode(ctx context.Context, codeString string) (*Code, error) {
