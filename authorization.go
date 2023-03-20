@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"log"
 	"strings"
 	"time"
 
@@ -69,8 +68,7 @@ func RequestAuthorization(ctx context.Context, clientID string, scopes []string,
 	}
 
 	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-	typ, r, err := conn.NextReader()
-	log.Println("read ws message", typ)
+	_, r, err := conn.NextReader()
 	if err != nil {
 		return nil, err
 	}
