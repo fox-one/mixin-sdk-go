@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	code   = flag.String("code", "", "oauth code")
-	scope  = flag.String("scope", "PROFILE:READ", "oauth scope")
-	config = flag.String("config", "", "keystore file path")
+	clientID = flag.String("client_id", "", "client id")
+	scope    = flag.String("scope", "PROFILE:READ", "oauth scope")
+	config   = flag.String("config", "", "keystore file path")
+	callback = flag.Bool("callback", false, "callback")
 )
 
 func main() {
@@ -42,17 +43,14 @@ func main() {
 		log.Panicln(err)
 	}
 
-	authCode, err := client.GetCode(ctx, *code)
-	if err != nil {
-		log.Panicln("get code detail failed", err)
-	}
-
-	auth := authCode.Authorization()
-	if auth == nil {
-		log.Panicln("invalid authorization")
-	}
-
 	scopes := strings.Fields(*scope)
+	verifier, challenge := mixin.RandomCodeChallenge()
+	auth, err := mixin.RequestAuthorization(ctx, *clientID, scopes, challenge)
+	if err != nil {
+		log.Panicln("request authorization failed", err)
+	}
+
+	log.Println("auth id is", auth.AuthorizationID)
 	auth, err = client.Authorize(ctx, auth.AuthorizationID, scopes, cfg.Pin)
 	if err != nil {
 		log.Panicln("authorize failed", err)
@@ -65,10 +63,19 @@ func main() {
 
 	log.Println("auth code is", auth.AuthorizationCode)
 
-	if callback, err := url.Parse(auth.App.RedirectURI); err == nil {
-		q := url.Values{}
-		q.Set("code", auth.AuthorizationCode)
-		callback.RawQuery = q.Encode()
-		log.Println("callback url is", callback.String())
+	if showCallback := *callback; showCallback {
+		if callbackURL, err := url.Parse(auth.App.RedirectURI); err == nil {
+			q := url.Values{}
+			q.Set("code", auth.AuthorizationCode)
+			callbackURL.RawQuery = q.Encode()
+			log.Println("callback url is", callbackURL.String())
+		}
+	} else {
+		token, _, err := mixin.AuthorizeToken(ctx, *clientID, "", auth.AuthorizationCode, verifier)
+		if err != nil {
+			log.Panicln("authorize token failed", err)
+		}
+
+		log.Println("token is", token)
 	}
 }
