@@ -2,7 +2,14 @@ package mixin
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type Authorization struct {
@@ -37,4 +44,62 @@ func (c *Client) Authorize(ctx context.Context, authorizationID string, scopes [
 	}
 
 	return &authorization, nil
+}
+
+func RequestAuthorization(ctx context.Context, clientID string, scopes []string, challenge string) (*Authorization, error) {
+	dialer := &websocket.Dialer{
+		Subprotocols:   []string{"Mixin-OAuth-1"},
+		ReadBufferSize: 1024,
+	}
+
+	conn, _, err := dialer.Dial(blazeURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	if err := writeMessage(conn, "REFRESH_OAUTH_CODE", map[string]interface{}{
+		"client_id":      clientID,
+		"scope":          strings.Join(scopes, " "),
+		"code_challenge": challenge,
+	}); err != nil {
+		return nil, err
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	_, r, err := conn.NextReader()
+	if err != nil {
+		return nil, err
+	}
+
+	var msg BlazeMessage
+	if err := parseBlazeMessage(r, &msg); err != nil {
+		return nil, err
+	}
+
+	if msg.Error != nil {
+		return nil, msg.Error
+	}
+
+	var auth Authorization
+	if err := json.Unmarshal(msg.Data, &auth); err != nil {
+		return nil, err
+	}
+
+	return &auth, nil
+}
+
+func CodeChallenge(b []byte) (verifier, challange string) {
+	verifier = base64.RawURLEncoding.EncodeToString(b)
+	h := sha256.New()
+	h.Write(b)
+	challange = base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	return
+}
+
+func RandomCodeChallenge() (verifier, challange string) {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return CodeChallenge(b)
 }
