@@ -24,6 +24,13 @@ type Asset struct {
 	Tag            string          `json:"tag,omitempty"`
 	Confirmations  int             `json:"confirmations,omitempty"`
 	Capitalization float64         `json:"capitalization,omitempty"`
+	DepositEntries []DepositEntry  `json:"deposit_entries"`
+}
+
+type DepositEntry struct {
+	Destination string   `json:"destination"`
+	Tag         string   `json:"tag"`
+	Properties  []string `json:"properties"`
 }
 
 func (c *Client) ReadAsset(ctx context.Context, assetID string) (*Asset, error) {
