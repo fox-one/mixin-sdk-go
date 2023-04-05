@@ -21,12 +21,14 @@ func (dec *Decoder) DecodeTransaction() (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !checkTxVersion(b) {
+
+	txVer := checkTxVersion(b)
+	if txVer < TxVersionCommonEncoding {
 		return nil, fmt.Errorf("invalid version %v", b)
 	}
 
 	var tx Transaction
-	tx.Version = TxVersion
+	tx.Version = txVer
 
 	err = dec.Read(tx.Asset[:])
 	if err != nil {

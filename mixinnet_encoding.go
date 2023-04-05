@@ -28,7 +28,7 @@ func NewEncoder() *Encoder {
 }
 
 func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
-	if signed.Version != TxVersion {
+	if signed.Version != TxVersionBlake3Hash && signed.Version != TxVersionCommonEncoding {
 		panic(signed)
 	}
 

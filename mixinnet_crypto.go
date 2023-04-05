@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -76,6 +77,10 @@ func (s *Script) UnmarshalJSON(b []byte) error {
 
 func NewHash(data []byte) Hash {
 	return sha3.Sum256(data)
+}
+
+func NewBlake3Hash(data []byte) Hash {
+	return Hash(blake3.Sum256(data))
 }
 
 func HashFromString(src string) (Hash, error) {

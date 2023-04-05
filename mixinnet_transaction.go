@@ -12,7 +12,10 @@ import (
 )
 
 const (
-	TxVersion = 0x02
+	TxVersionCommonEncoding = 0x02
+	TxVersionBlake3Hash     = 0x03
+
+	TxVersion = TxVersionBlake3Hash
 )
 
 type (
@@ -111,7 +114,7 @@ func (t *Transaction) DumpTransactionData() ([]byte, error) {
 		}
 		return buf.Bytes(), nil
 
-	case 2:
+	case TxVersionCommonEncoding, TxVersionBlake3Hash:
 		return NewEncoder().EncodeTransaction(t), nil
 
 	default:
@@ -140,8 +143,13 @@ func (t *Transaction) TransactionHash() (Hash, error) {
 			return Hash{}, err
 		}
 
-		h := NewHash(raw)
-		t.Hash = &h
+		if t.Version >= TxVersionBlake3Hash {
+			h := NewBlake3Hash(raw)
+			t.Hash = &h
+		} else {
+			h := NewHash(raw)
+			t.Hash = &h
+		}
 	}
 	return *t.Hash, nil
 }

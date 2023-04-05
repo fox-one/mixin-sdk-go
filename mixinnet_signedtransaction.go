@@ -19,7 +19,8 @@ func (t *TransactionV1) DumpTransaction() (string, error) {
 }
 
 func TransactionFromData(data []byte) (*Transaction, error) {
-	if !checkTxVersion(data) {
+	txVer := checkTxVersion(data)
+	if txVer < TxVersionCommonEncoding {
 		return transactionV1FromRaw(data)
 	}
 
@@ -56,10 +57,17 @@ func transactionV2FromRaw(bts []byte) (*Transaction, error) {
 	return NewDecoder(bts).DecodeTransaction()
 }
 
-func checkTxVersion(val []byte) bool {
-	if len(val) < 4 {
-		return false
+func checkTxVersion(val []byte) uint8 {
+	if len(val) >= 4 {
+		for _, version := range []uint8{
+			TxVersionCommonEncoding,
+			TxVersionBlake3Hash,
+		} {
+			v := append(magic, 0, version)
+			if bytes.Equal(v, val[:4]) {
+				return version
+			}
+		}
 	}
-	v := append(magic, 0, TxVersion)
-	return bytes.Equal(v, val[:4])
+	return 0
 }
