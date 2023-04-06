@@ -89,7 +89,7 @@ func main() {
 		}
 
 		if ok, err := mixin.VerifyTransaction(ctx, addr, h); ok || err != nil {
-			log.Printf("VerifyTransaction failed: %v; expect false bug got %v\n", err, ok)
+			log.Printf("VerifyTransaction %v failed: %v; expect false but got %v\n", h, err, ok)
 			return
 		}
 
@@ -184,7 +184,7 @@ func main() {
 		}
 
 		if ok, err := mixin.VerifyTransaction(ctx, addr, *tx.Hash); !ok || err != nil {
-			log.Printf("VerifyTransaction failed: %v; expect true bug got %v", err, ok)
+			log.Printf("VerifyTransaction %v failed: %v; expect true but got %v", tx.Hash, err, ok)
 			return
 		}
 	}

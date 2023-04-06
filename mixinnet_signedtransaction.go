@@ -62,6 +62,7 @@ func checkTxVersion(val []byte) uint8 {
 		for _, version := range []uint8{
 			TxVersionCommonEncoding,
 			TxVersionBlake3Hash,
+			TxVersionReferences,
 		} {
 			v := append(magic, 0, version)
 			if bytes.Equal(v, val[:4]) {
