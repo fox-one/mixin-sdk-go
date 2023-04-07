@@ -44,7 +44,13 @@ func main() {
 	}
 
 	scopes := strings.Fields(*scope)
-	verifier, challenge := mixin.RandomCodeChallenge()
+
+	var verifier, challenge string
+
+	if !*callback {
+		verifier, challenge = mixin.RandomCodeChallenge()
+	}
+
 	auth, err := mixin.RequestAuthorization(ctx, *clientID, scopes, challenge)
 	if err != nil {
 		log.Panicln("request authorization failed", err)
