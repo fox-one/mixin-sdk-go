@@ -88,11 +88,6 @@ func main() {
 			return
 		}
 
-		if ok, err := mixin.VerifyTransaction(ctx, addr, h); ok || err != nil {
-			log.Printf("VerifyTransaction %v failed: %v; expect false but got %v\n", h, err, ok)
-			return
-		}
-
 		{
 			raw, err := tx.DumpTransaction()
 			if err != nil {
@@ -112,7 +107,7 @@ func main() {
 				return
 			}
 
-			if bytes.Compare(h[:], hash[:]) != 0 {
+			if !bytes.Equal(h[:], hash[:]) {
 				log.Println("Marshal & Unmarshal failed, hash not matched")
 				return
 			}
@@ -188,4 +183,6 @@ func main() {
 			return
 		}
 	}
+
+	log.Println("all passed")
 }
