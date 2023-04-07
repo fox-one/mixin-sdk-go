@@ -287,6 +287,9 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		Extra:      []byte(input.Memo),
 		References: input.References,
 	}
+	if len(tx.Extra) > tx.getExtraLimit() {
+		return nil, errors.New("memo too long")
+	}
 	// add inputs
 	for _, input := range input.Inputs {
 		tx.Inputs = append(tx.Inputs, &Input{
