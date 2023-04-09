@@ -58,16 +58,13 @@ func transactionV2FromRaw(bts []byte) (*Transaction, error) {
 }
 
 func checkTxVersion(val []byte) uint8 {
-	if len(val) >= 4 {
-		for _, version := range []uint8{
-			TxVersionCommonEncoding,
-			TxVersionBlake3Hash,
-			TxVersionReferences,
-		} {
-			v := append(magic, 0, version)
-			if bytes.Equal(v, val[:4]) {
-				return version
-			}
+	for _, version := range []uint8{
+		TxVersionCommonEncoding,
+		TxVersionBlake3Hash,
+		TxVersionReferences,
+	} {
+		if bytes.HasPrefix(val, append(magic, 0, version)) {
+			return version
 		}
 	}
 	return 0
