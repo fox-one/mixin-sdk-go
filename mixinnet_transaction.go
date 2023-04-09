@@ -12,7 +12,46 @@ import (
 )
 
 const (
-	TxVersion = 0x02
+	TxVersionCommonEncoding = 0x02
+	TxVersionBlake3Hash     = 0x03
+	TxVersionReferences     = 0x04
+
+	TxVersion = TxVersionReferences
+)
+
+const (
+	OutputTypeScript              = 0x00
+	OutputTypeWithdrawalSubmit    = 0xa1
+	OutputTypeWithdrawalFuel      = 0xa2
+	OutputTypeNodePledge          = 0xa3
+	OutputTypeNodeAccept          = 0xa4
+	outputTypeNodeResign          = 0xa5
+	OutputTypeNodeRemove          = 0xa6
+	OutputTypeDomainAccept        = 0xa7
+	OutputTypeDomainRemove        = 0xa8
+	OutputTypeWithdrawalClaim     = 0xa9
+	OutputTypeNodeCancel          = 0xaa
+	OutputTypeCustodianEvolution  = 0xb1
+	OutputTypeCustodianMigration  = 0xb2
+	OutputTypeCustodianDeposit    = 0xb3
+	OutputTypeCustodianWithdrawal = 0xb4
+)
+
+const (
+	TransactionTypeScript           = 0x00
+	TransactionTypeMint             = 0x01
+	TransactionTypeDeposit          = 0x02
+	TransactionTypeWithdrawalSubmit = 0x03
+	TransactionTypeWithdrawalFuel   = 0x04
+	TransactionTypeWithdrawalClaim  = 0x05
+	TransactionTypeNodePledge       = 0x06
+	TransactionTypeNodeAccept       = 0x07
+	transactionTypeNodeResign       = 0x08
+	TransactionTypeNodeRemove       = 0x09
+	TransactionTypeDomainAccept     = 0x10
+	TransactionTypeDomainRemove     = 0x11
+	TransactionTypeNodeCancel       = 0x12
+	TransactionTypeUnknown          = 0xff
 )
 
 type (
@@ -66,11 +105,12 @@ type (
 		Signatures          []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
 		AggregatedSignature *AggregatedSignature    `json:"aggregated_signature,omitempty" msgpack:"-"`
 
-		Version uint8            `json:"version"`
-		Asset   Hash             `json:"asset"`
-		Inputs  []*Input         `json:"inputs"`
-		Outputs []*Output        `json:"outputs"`
-		Extra   TransactionExtra `json:"extra,omitempty"`
+		Version    uint8            `json:"version"`
+		Asset      Hash             `json:"asset"`
+		Inputs     []*Input         `json:"inputs"`
+		Outputs    []*Output        `json:"outputs"`
+		References []Hash           `msgpack:"-"`
+		Extra      TransactionExtra `json:"extra,omitempty"`
 	}
 
 	TransactionOutput struct {
@@ -80,10 +120,11 @@ type (
 	}
 
 	TransactionInput struct {
-		Memo    string
-		Inputs  []*MultisigUTXO
-		Outputs []TransactionOutput
-		Hint    string
+		Memo       string
+		Inputs     []*MultisigUTXO
+		Outputs    []TransactionOutput
+		References []Hash
+		Hint       string
 	}
 )
 
@@ -111,7 +152,7 @@ func (t *Transaction) DumpTransactionData() ([]byte, error) {
 		}
 		return buf.Bytes(), nil
 
-	case 2:
+	case TxVersionCommonEncoding, TxVersionBlake3Hash, TxVersionReferences:
 		return NewEncoder().EncodeTransaction(t), nil
 
 	default:
@@ -140,8 +181,13 @@ func (t *Transaction) TransactionHash() (Hash, error) {
 			return Hash{}, err
 		}
 
-		h := NewHash(raw)
-		t.Hash = &h
+		if t.Version >= TxVersionBlake3Hash {
+			h := NewBlake3Hash(raw)
+			t.Hash = &h
+		} else {
+			h := NewHash(raw)
+			t.Hash = &h
+		}
 	}
 	return *t.Hash, nil
 }
@@ -183,6 +229,14 @@ func (i *TransactionInput) Validate() error {
 		total   = i.TotalInputAmount()
 		asset   = i.Asset()
 	)
+
+	if len(i.Memo) > ExtraSizeGeneralLimit {
+		return errors.New("invalid memo, extra too long")
+	}
+
+	if len(i.Inputs) > SliceCountLimit || len(i.Outputs) > SliceCountLimit || len(i.References) > SliceCountLimit {
+		return fmt.Errorf("invalid tx inputs or outputs %d %d %d", len(i.Inputs), len(i.Outputs), len(i.References))
+	}
 
 	for _, input := range i.Inputs {
 		if asset != input.Asset() {
@@ -228,9 +282,13 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 	}
 
 	var tx = Transaction{
-		Version: TxVersion,
-		Asset:   input.Asset(),
-		Extra:   []byte(input.Memo),
+		Version:    TxVersion,
+		Asset:      input.Asset(),
+		Extra:      []byte(input.Memo),
+		References: input.References,
+	}
+	if len(tx.Extra) > tx.getExtraLimit() {
+		return nil, errors.New("memo too long")
 	}
 	// add inputs
 	for _, input := range input.Inputs {

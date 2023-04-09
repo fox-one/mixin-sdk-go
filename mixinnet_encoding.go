@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	MaximumEncodingInt = 0xFFFF
+	MinimumEncodingVersion = 0x1
+	MaximumEncodingInt     = 0xFFFF
 
 	AggregatedSignaturePrefix      = 0xFF01
 	AggregatedSignatureSparseMask  = byte(0x01)
@@ -27,8 +28,19 @@ func NewEncoder() *Encoder {
 	return &Encoder{buf: new(bytes.Buffer)}
 }
 
+func NewMinimumEncoder() *Encoder {
+	enc := NewEncoder()
+	enc.Write(magic)
+	enc.Write([]byte{0x00, MinimumEncodingVersion})
+	return enc
+}
+
 func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
-	if signed.Version != TxVersion {
+	switch signed.Version {
+	case TxVersionCommonEncoding,
+		TxVersionBlake3Hash,
+		TxVersionReferences:
+	default:
 		panic(signed)
 	}
 
@@ -48,9 +60,24 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 		enc.EncodeOutput(out)
 	}
 
-	el := len(signed.Extra)
-	enc.WriteInt(el)
-	enc.Write(signed.Extra)
+	if signed.Version >= TxVersionReferences {
+		rl := len(signed.References)
+		enc.WriteInt(rl)
+		for _, r := range signed.References {
+			enc.Write(r[:])
+		}
+
+		el := len(signed.Extra)
+		if el > ExtraSizeStorageCapacity {
+			panic(el)
+		}
+		enc.WriteUint32(uint32(el))
+		enc.Write(signed.Extra)
+	} else {
+		el := len(signed.Extra)
+		enc.WriteInt(el)
+		enc.Write(signed.Extra)
+	}
 
 	if signed.AggregatedSignature != nil {
 		enc.EncodeAggregatedSignature(signed.AggregatedSignature)
@@ -186,6 +213,11 @@ func (enc *Encoder) WriteUint16(d uint16) {
 	enc.Write(b)
 }
 
+func (enc *Encoder) WriteUint32(d uint32) {
+	b := uint32ToBytes(d)
+	enc.Write(b)
+}
+
 func (enc *Encoder) WriteUint64(d uint64) {
 	b := uint64ToByte(d)
 	enc.Write(b)
@@ -200,6 +232,12 @@ func (enc *Encoder) WriteInteger(d Integer) {
 func uint16ToByte(d uint16) []byte {
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, d)
+	return b
+}
+
+func uint32ToBytes(d uint32) []byte {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, d)
 	return b
 }
 

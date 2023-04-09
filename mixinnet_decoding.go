@@ -15,18 +15,31 @@ func NewDecoder(b []byte) *Decoder {
 	return &Decoder{buf: bytes.NewReader(b)}
 }
 
+func NewMinimumDecoder(b []byte) (*Decoder, error) {
+	if len(b) < 4 {
+		return nil, fmt.Errorf("invalid encoding version %x", b)
+	}
+	v := append(magic, 0, MinimumEncodingVersion)
+	if !bytes.Equal(v, b[:4]) {
+		return nil, fmt.Errorf("invalid encoding version %x", b)
+	}
+	return NewDecoder(b[4:]), nil
+}
+
 func (dec *Decoder) DecodeTransaction() (*Transaction, error) {
 	b := make([]byte, 4)
 	err := dec.Read(b)
 	if err != nil {
 		return nil, err
 	}
-	if !checkTxVersion(b) {
+
+	txVer := checkTxVersion(b)
+	if txVer < TxVersionCommonEncoding {
 		return nil, fmt.Errorf("invalid version %v", b)
 	}
 
 	var tx Transaction
-	tx.Version = TxVersion
+	tx.Version = txVer
 
 	err = dec.Read(tx.Asset[:])
 	if err != nil {
@@ -57,11 +70,38 @@ func (dec *Decoder) DecodeTransaction() (*Transaction, error) {
 		tx.Outputs = append(tx.Outputs, o)
 	}
 
-	eb, err := dec.ReadBytes()
-	if err != nil {
-		return nil, err
+	if tx.Version >= TxVersionReferences {
+		rl, err := dec.ReadInt()
+		if err != nil {
+			return nil, err
+		}
+		for ; rl > 0; rl -= 1 {
+			var r Hash
+			err := dec.Read(r[:])
+			if err != nil {
+				return nil, err
+			}
+			tx.References = append(tx.References, r)
+		}
+		el, err := dec.ReadUint32()
+		if err != nil {
+			return nil, err
+		}
+		if el > 0 {
+			b := make([]byte, el)
+			err = dec.Read(b)
+			if err != nil {
+				return nil, err
+			}
+			tx.Extra = b
+		}
+	} else {
+		eb, err := dec.ReadBytes()
+		if err != nil {
+			return nil, err
+		}
+		tx.Extra = eb
 	}
-	tx.Extra = eb
 
 	sl, err := dec.ReadInt()
 	if err != nil {
@@ -321,6 +361,16 @@ func (dec *Decoder) ReadUint16() (uint16, error) {
 	if d > MaximumEncodingInt {
 		return 0, fmt.Errorf("large int %d", d)
 	}
+	return d, nil
+}
+
+func (dec *Decoder) ReadUint32() (uint32, error) {
+	var b [4]byte
+	err := dec.Read(b[:])
+	if err != nil {
+		return 0, err
+	}
+	d := binary.BigEndian.Uint32(b[:])
 	return d, nil
 }
 

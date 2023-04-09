@@ -113,26 +113,30 @@ func (a MixinnetAddress) CreateUTXO(outputIndex int, amount decimal.Decimal) *Ou
 }
 
 // 检查 transaction 是否是由该主网地址签发。满足以下所有条件则返回  true:
-//	1. 所有 input 对应的 utxo 只有一个 keys， 即 不是多签地址 转出
-//	2. 该 input 的 mask & keys 可以使用该地址的 private view 和 public spend 碰撞通过
+//  1. 所有 input 对应的 utxo 只有一个 keys， 即 不是多签地址 转出
+//  2. 该 input 的 mask & keys 可以使用该地址的 private view 和 public spend 碰撞通过
 func VerifyTransaction(ctx context.Context, addr *MixinnetAddress, txHash Hash) (bool, error) {
 	if !addr.PrivateViewKey.HasValue() || !addr.PublicSpendKey.HasValue() {
 		return false, errors.New("invalid address: must contains both private view key and public spend key")
 	}
 
 	tx, err := GetTransaction(ctx, txHash)
-	if err != nil || !tx.Asset.HasValue() {
+	if err != nil {
 		return false, err
+	} else if !tx.Asset.HasValue() {
+		return false, errors.New("GetTransaction failed")
 	}
 
 	for _, input := range tx.Inputs {
 		preTx, err := GetTransaction(ctx, *input.Hash)
-		if err != nil || !preTx.Asset.HasValue() {
+		if err != nil {
 			return false, err
+		} else if !preTx.Asset.HasValue() {
+			return false, errors.New("GetTransaction failed")
 		}
 
 		if input.Index >= len(preTx.Outputs) {
-			return false, err
+			return false, errors.New("invalid output index")
 		}
 
 		output := preTx.Outputs[input.Index]

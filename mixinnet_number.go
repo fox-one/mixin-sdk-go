@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -52,6 +53,67 @@ func NewIntegerFromString(x string) (v Integer) {
 	s := d.Mul(decimal.New(1, Precision)).StringFixed(0)
 	v.i.SetString(s, 10)
 	return
+}
+
+func (x Integer) Add(y Integer) (v Integer) {
+	if x.Sign() < 0 || y.Sign() <= 0 {
+		panic(fmt.Sprint(x, y))
+	}
+
+	v.i.Add(&x.i, &y.i)
+	if v.Cmp(x) < 0 || v.Cmp(y) < 0 {
+		panic(fmt.Sprint(x, y))
+	}
+	return
+}
+
+func (x Integer) Sub(y Integer) (v Integer) {
+	if x.Sign() < 0 || y.Sign() <= 0 {
+		panic(fmt.Sprint(x, y))
+	}
+	if x.Cmp(y) < 0 {
+		panic(fmt.Sprint(x, y))
+	}
+
+	v.i.Sub(&x.i, &y.i)
+	return
+}
+
+func (x Integer) Mul(y int) (v Integer) {
+	if x.Sign() < 0 || y <= 0 {
+		panic(fmt.Sprint(x, y))
+	}
+
+	v.i.Mul(&x.i, big.NewInt(int64(y)))
+	return
+}
+
+func (x Integer) Div(y int) (v Integer) {
+	if x.Sign() < 0 || y <= 0 {
+		panic(fmt.Sprint(x, y))
+	}
+
+	v.i.Div(&x.i, big.NewInt(int64(y)))
+	return
+}
+
+func (x Integer) Count(y Integer) uint64 {
+	if x.Sign() <= 0 || y.Sign() <= 0 || x.Cmp(y) < 0 {
+		panic(fmt.Sprint(x, y))
+	}
+	c := new(big.Int).Div(&x.i, &y.i)
+	if !c.IsUint64() {
+		panic(fmt.Sprint(x, y))
+	}
+	return c.Uint64()
+}
+
+func (x Integer) Cmp(y Integer) int {
+	return x.i.Cmp(&y.i)
+}
+
+func (x Integer) Sign() int {
+	return x.i.Sign()
 }
 
 func (x Integer) String() string {
