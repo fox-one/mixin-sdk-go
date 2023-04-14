@@ -6,7 +6,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func (c *Client) callMixinNetRPC(ctx context.Context, method string, params ...interface{}) (*resty.Response, error) {
+func (c *Client) CallMixinNetRPC(ctx context.Context, method string, params ...interface{}) (*resty.Response, error) {
 	return c.Request(ctx).
 		SetBody(map[string]interface{}{
 			"method": method,
