@@ -15,7 +15,7 @@ func (c *Client) CallMixinNetRPC(ctx context.Context, method string, params ...i
 }
 
 func (c *Client) ReadConsensusInfo(ctx context.Context) (*ConsensusInfo, error) {
-	r, err := c.callMixinNetRPC(ctx, "getinfo")
+	r, err := c.CallMixinNetRPC(ctx, "getinfo")
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c *Client) ReadConsensusInfo(ctx context.Context) (*ConsensusInfo, error) 
 
 func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Hash, error) {
 	var tx Transaction
-	r, err := c.callMixinNetRPC(ctx, TxMethodSend, raw)
+	r, err := c.CallMixinNetRPC(ctx, TxMethodSend, raw)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *Client) SendRawTransaction(ctx context.Context, raw string) (*Hash, err
 func (c *Client) GetRawTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 	var tx Transaction
 
-	r, err := c.callMixinNetRPC(ctx, TxMethodGet, hash)
+	r, err := c.CallMixinNetRPC(ctx, TxMethodGet, hash)
 	if err != nil {
 		return nil, err
 	}
