@@ -11,24 +11,26 @@ import (
 )
 
 type Snapshot struct {
-	SnapshotID      string          `json:"snapshot_id"`
-	CreatedAt       time.Time       `json:"created_at,omitempty"`
-	TraceID         string          `json:"trace_id,omitempty"`
-	UserID          string          `json:"user_id,omitempty"`
-	AssetID         string          `json:"asset_id,omitempty"`
-	ChainID         string          `json:"chain_id,omitempty"`
-	OpponentID      string          `json:"opponent_id,omitempty"`
-	Source          string          `json:"source,omitempty"`
-	Amount          decimal.Decimal `json:"amount,omitempty"`
-	OpeningBalance  decimal.Decimal `json:"opening_balance,omitempty"`
-	ClosingBalance  decimal.Decimal `json:"closing_balance,omitempty"`
-	Memo            string          `json:"memo,omitempty"`
-	Type            string          `json:"type,omitempty"`
-	Sender          string          `json:"sender,omitempty"`
-	Receiver        string          `json:"receiver,omitempty"`
-	TransactionHash string          `json:"transaction_hash,omitempty"`
-	SnapshotHash    string          `json:"snapshot_hash,omitempty"`
-	SnapshotAt      *time.Time      `json:"snapshot_at,omitempty"`
+	SnapshotID        string          `json:"snapshot_id"`
+	CreatedAt         time.Time       `json:"created_at,omitempty"`
+	TraceID           string          `json:"trace_id,omitempty"`
+	UserID            string          `json:"user_id,omitempty"`
+	AssetID           string          `json:"asset_id,omitempty"`
+	ChainID           string          `json:"chain_id,omitempty"`
+	OpponentID        string          `json:"opponent_id,omitempty"`
+	OpponentReceivers []string        `json:"opponent_receivers,omitempty"`
+	OpponentThreshold uint8           `json:"opponent_threshold,omitempty"`
+	Source            string          `json:"source,omitempty"`
+	Amount            decimal.Decimal `json:"amount,omitempty"`
+	OpeningBalance    decimal.Decimal `json:"opening_balance,omitempty"`
+	ClosingBalance    decimal.Decimal `json:"closing_balance,omitempty"`
+	Memo              string          `json:"memo,omitempty"`
+	Type              string          `json:"type,omitempty"`
+	Sender            string          `json:"sender,omitempty"`
+	Receiver          string          `json:"receiver,omitempty"`
+	TransactionHash   string          `json:"transaction_hash,omitempty"`
+	SnapshotHash      string          `json:"snapshot_hash,omitempty"`
+	SnapshotAt        *time.Time      `json:"snapshot_at,omitempty"`
 
 	Asset *Asset `json:"asset,omitempty"`
 }
