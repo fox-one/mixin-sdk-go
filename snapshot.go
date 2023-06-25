@@ -18,6 +18,7 @@ type Snapshot struct {
 	AssetID           string          `json:"asset_id,omitempty"`
 	ChainID           string          `json:"chain_id,omitempty"`
 	OpponentID        string          `json:"opponent_id,omitempty"`
+	OpponentKey       string          `json:"opponent_key,omitempty"`
 	OpponentReceivers []string        `json:"opponent_receivers,omitempty"`
 	OpponentThreshold uint8           `json:"opponent_threshold,omitempty"`
 	Source            string          `json:"source,omitempty"`
