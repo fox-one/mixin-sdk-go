@@ -27,12 +27,14 @@ type (
 func NewMixinnetAddress(rand io.Reader, public ...bool) *MixinnetAddress {
 	var a = MixinnetAddress{
 		PrivateSpendKey: NewKey(rand),
-		PrivateViewKey:  NewKey(rand),
 	}
 
 	if len(public) > 0 && public[0] {
-		a.PrivateViewKey = a.PublicSpendKey.DeterministicHashDerive()
+		a.PrivateViewKey = a.PrivateSpendKey.DeterministicHashDerive()
+	} else {
+		a.PrivateViewKey = NewKey(rand)
 	}
+
 	a.PublicSpendKey = a.PrivateSpendKey.Public()
 	a.PublicViewKey = a.PrivateViewKey.Public()
 
