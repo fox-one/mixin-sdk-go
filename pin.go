@@ -15,13 +15,20 @@ func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	if len(pin) > 6 {
 		timestamp := uint64(time.Now().UnixNano())
 		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
-		if key, err := KeyFromString(pin); err == nil {
-			body["timestamp"] = timestamp
-			body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
-		} else if privateTipBuf, err := hex.DecodeString(pin); err == nil {
-			body["timestamp"] = timestamp
-			body["pin_base64"] = c.EncryptPin(hex.EncodeToString(ed25519.Sign(ed25519.PrivateKey(privateTipBuf), tipBody)))
+		body["timestamp"] = timestamp
+
+		if pinBts, err := hex.DecodeString(pin); err == nil {
+			switch len(pinBts) {
+			case ed25519.PrivateKeySize:
+				body["pin_base64"] = c.EncryptPin(hex.EncodeToString(ed25519.Sign(pinBts, tipBody)))
+
+			case 32:
+				var key Key
+				copy(key[:], pinBts)
+				body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
+			}
 		}
+
 	}
 
 	if _, ok := body["pin_base64"]; !ok {
