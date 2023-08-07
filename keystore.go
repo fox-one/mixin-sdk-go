@@ -167,5 +167,5 @@ func (k *KeystoreAuth) EncryptPin(pin string) string {
 
 	mode := cipher.NewCBCEncrypter(k.pinCipher, iv)
 	mode.CryptBlocks(cipherText[aes.BlockSize:], pinByte)
-	return base64.StdEncoding.EncodeToString(cipherText)
+	return base64.RawURLEncoding.EncodeToString(cipherText)
 }
