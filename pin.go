@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -11,12 +12,19 @@ import (
 
 func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	body := map[string]interface{}{}
-	if key, err := KeyFromString(pin); err == nil {
+	if len(pin) > 6 {
 		timestamp := uint64(time.Now().UnixNano())
 		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
-		body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
-		body["timestamp"] = timestamp
-	} else {
+		if key, err := KeyFromString(pin); err == nil {
+			body["timestamp"] = timestamp
+			body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
+		} else if privateTipBuf, err := hex.DecodeString(pin); err == nil {
+			body["timestamp"] = timestamp
+			body["pin_base64"] = c.EncryptPin(hex.EncodeToString(ed25519.Sign(ed25519.PrivateKey(privateTipBuf), tipBody)))
+		}
+	}
+
+	if _, ok := body["pin_base64"]; !ok {
 		body["pin"] = c.EncryptPin(pin)
 	}
 
