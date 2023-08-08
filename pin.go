@@ -48,7 +48,7 @@ var (
 // ValidatePinPattern validate the pin with pinRegex
 func ValidatePinPattern(pin string) error {
 	if len(pin) > 6 {
-		if pinBts, err := hex.DecodeString(pin); err == nil && len(pinBts) == 32 {
+		if pinBts, err := hex.DecodeString(pin); err == nil && (len(pinBts) == 32 || len(pinBts) == 64) {
 			return nil
 		}
 	}
