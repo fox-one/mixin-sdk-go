@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"bytes"
+	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
@@ -41,15 +42,25 @@ func NewKeyFromSeed(seed []byte) Key {
 }
 
 func KeyFromString(s string) (Key, error) {
-	var key Key
+	var key [32]byte
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return key, err
 	}
-	if len(b) != len(key) {
+	if len(b) == len(key) {
+		copy(key[:], b)
+	} else if len(b) == 64 {
+		h := sha512.Sum512(b[:32])
+		x := h[:32]
+		var wideBytes [64]byte
+		copy(wideBytes[:], x[:])
+		wideBytes[0] &= 248
+		wideBytes[31] &= 63
+		wideBytes[31] |= 64
+		edwards25519.ScReduce(&key, &wideBytes)
+	} else {
 		return key, fmt.Errorf("invalid key size %d", len(b))
 	}
-	copy(key[:], b)
 	return key, nil
 }
 

@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -12,26 +11,12 @@ import (
 
 func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	body := map[string]interface{}{}
-	if len(pin) > 6 {
+	if key, err := KeyFromString(pin); err == nil {
 		timestamp := uint64(time.Now().UnixNano())
 		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
 		body["timestamp"] = timestamp
-
-		if pinBts, err := hex.DecodeString(pin); err == nil {
-			switch len(pinBts) {
-			case ed25519.PrivateKeySize:
-				body["pin_base64"] = c.EncryptPin(hex.EncodeToString(ed25519.Sign(pinBts, tipBody)))
-
-			case 32:
-				var key Key
-				copy(key[:], pinBts)
-				body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
-			}
-		}
-
-	}
-
-	if _, ok := body["pin_base64"]; !ok {
+		body["pin_base64"] = c.EncryptPin(key.Sign(tipBody).String())
+	} else {
 		body["pin"] = c.EncryptPin(pin)
 	}
 
@@ -63,7 +48,7 @@ var (
 // ValidatePinPattern validate the pin with pinRegex
 func ValidatePinPattern(pin string) error {
 	if len(pin) > 6 {
-		if pinBts, err := hex.DecodeString(pin); err == nil && len(pinBts) == 32 {
+		if pinBts, err := hex.DecodeString(pin); err == nil && (len(pinBts) == 32 || len(pinBts) == 64) {
 			return nil
 		}
 	}
