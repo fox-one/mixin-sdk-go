@@ -137,7 +137,7 @@ func createAndTestUser(ctx context.Context, dapp *mixin.Client, userPin string) 
 	if err != nil {
 		log.Panicf("KeyFromString(%s) failed: %v", userPin, err)
 	}
-	log.Println("try ModifyPin", tipPin, tipPin.Public())
+	log.Println("try ModifyPin", userPin, tipPin, tipPin.Public())
 	if err := subClient.ModifyPin(ctx, newPin, tipPin.Public().String()); err != nil {
 		log.Panicf("ModifyPin (%s) failed: %v", tipPin, err)
 	}
