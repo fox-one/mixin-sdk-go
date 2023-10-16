@@ -116,7 +116,7 @@ func (nm *NFOMemo) Encode() []byte {
 		nw.writeSlice(nm.Collection.Bytes())
 		nw.writeSlice(nm.Token)
 		st := tokenBytesStrip(nm.Token)
-		if bytes.Compare(nm.Token, st) != 0 {
+		if !bytes.Equal(nm.Token, st) {
 			panic(hex.EncodeToString(nm.Token))
 		}
 	} else {
@@ -166,7 +166,7 @@ func DecodeNFOMemo(b []byte) (*NFOMemo, error) {
 		if err != nil {
 			return nil, err
 		}
-		if bytes.Compare(nm.Class, DefaultClass) != 0 {
+		if !bytes.Equal(nm.Class, DefaultClass) {
 			return nil, fmt.Errorf("invalid class %s", hex.EncodeToString(nm.Class))
 		}
 		collection, err := nr.readBytes()
@@ -182,7 +182,7 @@ func DecodeNFOMemo(b []byte) (*NFOMemo, error) {
 			return nil, err
 		}
 		st := tokenBytesStrip(nm.Token)
-		if bytes.Compare(nm.Token, st) != 0 {
+		if !bytes.Equal(nm.Token, st) {
 			return nil, fmt.Errorf("invalid token format %s", hex.EncodeToString(nm.Token))
 		}
 	}
