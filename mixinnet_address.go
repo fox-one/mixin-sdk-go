@@ -102,7 +102,7 @@ func (a *MixinnetAddress) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (a MixinnetAddress) CreateUTXO(outputIndex int, amount decimal.Decimal) *Output {
+func (a MixinnetAddress) CreateUTXO(outputIndex uint64, amount decimal.Decimal) *Output {
 	r := NewKey(rand.Reader)
 	pubGhost := DeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, outputIndex)
 	return &Output{
@@ -137,7 +137,7 @@ func VerifyTransaction(ctx context.Context, addr *MixinnetAddress, txHash Hash) 
 			return false, errors.New("GetTransaction failed")
 		}
 
-		if input.Index >= len(preTx.Outputs) {
+		if input.Index >= uint64(len(preTx.Outputs)) {
 			return false, errors.New("invalid output index")
 		}
 

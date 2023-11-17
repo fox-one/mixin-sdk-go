@@ -7,18 +7,17 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/fox-one/mixin-sdk-go/edwards25519"
+	"filippo.io/edwards25519"
 )
 
 type (
 	Signature [64]byte
 )
 
-func (privateKey *Key) Sign(message []byte) *Signature {
+func (privateKey *Key) Sign(message []byte) Signature {
 	var digest1, messageDigest, hramDigest [64]byte
-	var expandedSecretKey [32]byte
-	copy(expandedSecretKey[:], privateKey[:])
 
+	// the hash costs almost nothing compared to elliptic curve ops
 	h := sha512.New()
 	h.Write(privateKey[:32])
 	h.Sum(digest1[:0])
@@ -27,70 +26,73 @@ func (privateKey *Key) Sign(message []byte) *Signature {
 	h.Write(message)
 	h.Sum(messageDigest[:0])
 
-	var messageDigestReduced [32]byte
-	edwards25519.ScReduce(&messageDigestReduced, &messageDigest)
-	var R edwards25519.ExtendedGroupElement
-	edwards25519.GeScalarMultBase(&R, &messageDigestReduced)
+	z, err := edwards25519.NewScalar().SetUniformBytes(messageDigest[:])
+	if err != nil {
+		panic(err)
+	}
 
-	var encodedR [32]byte
-	R.ToBytes(&encodedR)
+	R := edwards25519.NewIdentityPoint().ScalarBaseMult(z)
 
 	pub := privateKey.Public()
 	h.Reset()
-	h.Write(encodedR[:])
+	h.Write(R.Bytes())
 	h.Write(pub[:])
-	h.Write(message)
+	h.Write(message[:])
 	h.Sum(hramDigest[:0])
-	var hramDigestReduced [32]byte
-	edwards25519.ScReduce(&hramDigestReduced, &hramDigest)
+	x, err := edwards25519.NewScalar().SetUniformBytes(hramDigest[:])
+	if err != nil {
+		panic(err)
+	}
 
-	var s [32]byte
-	edwards25519.ScMulAdd(&s, &hramDigestReduced, &expandedSecretKey, &messageDigestReduced)
+	y, err := edwards25519.NewScalar().SetCanonicalBytes(privateKey[:])
+	if err != nil {
+		panic(privateKey.String())
+	}
+	s := edwards25519.NewScalar().MultiplyAdd(x, y, z)
 
 	var signature Signature
-	copy(signature[:], encodedR[:])
-	copy(signature[32:], s[:])
+	copy(signature[:], R.Bytes())
+	copy(signature[32:], s.Bytes())
 
-	return &signature
+	return signature
 }
 
-func (publicKey *Key) VerifyWithChallenge(message []byte, sig *Signature, hReduced [32]byte) bool {
-	var A edwards25519.ExtendedGroupElement
-	var publicKeyBytes [32]byte
-	copy(publicKeyBytes[:], publicKey[:])
-	if !A.FromBytes(&publicKeyBytes) {
-		return false
-	}
-	edwards25519.FeNeg(&A.X, &A.X)
-	edwards25519.FeNeg(&A.T, &A.T)
-
-	var R edwards25519.ProjectiveGroupElement
-	var s [32]byte
-	copy(s[:], sig[32:])
-
-	if !edwards25519.ScMinimal(&s) {
-		return false
-	}
-
-	edwards25519.GeDoubleScalarMultVartime(&R, &hReduced, &A, &s)
-
-	var checkR [32]byte
-	R.ToBytes(&checkR)
-	return bytes.Equal(sig[:32], checkR[:])
+func (privateKey *Key) SignHash(h Hash) Signature {
+	return privateKey.Sign(h[:])
 }
 
-func (publicKey *Key) Verify(message []byte, sig *Signature) bool {
+func (publicKey *Key) VerifyWithChallenge(sig Signature, a *edwards25519.Scalar) bool {
+	p, err := edwards25519.NewIdentityPoint().SetBytes(publicKey[:])
+	if err != nil {
+		return false
+	}
+	A := edwards25519.NewIdentityPoint().Negate(p)
+
+	b, err := edwards25519.NewScalar().SetCanonicalBytes(sig[32:])
+	if err != nil {
+		return false
+	}
+	R := edwards25519.NewIdentityPoint().VarTimeDoubleScalarBaseMult(a, A, b)
+	return bytes.Equal(sig[:32], R.Bytes())
+}
+
+func (publicKey *Key) VerifyRaw(message []byte, sig Signature) bool {
 	h := sha512.New()
 	h.Write(sig[:32])
 	h.Write(publicKey[:])
-	h.Write(message)
+	h.Write(message[:])
 	var digest [64]byte
 	h.Sum(digest[:0])
 
-	var hReduced [32]byte
-	edwards25519.ScReduce(&hReduced, &digest)
+	x, err := edwards25519.NewScalar().SetUniformBytes(digest[:])
+	if err != nil {
+		panic(err)
+	}
+	return publicKey.VerifyWithChallenge(sig, x)
+}
 
-	return publicKey.VerifyWithChallenge(message, sig, hReduced)
+func (publicKey *Key) Verify(message Hash, sig Signature) bool {
+	return publicKey.VerifyRaw(message[:], sig)
 }
 
 func (s Signature) String() string {

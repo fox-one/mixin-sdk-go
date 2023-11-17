@@ -114,7 +114,7 @@ func (c *Client) MakeCollectibleTransaction(
 		Extra:   token.NFO,
 		Inputs: []*Input{{
 			Hash:  &output.TransactionHash,
-			Index: output.OutputIndex,
+			Index: uint64(output.OutputIndex),
 		}},
 	}
 
