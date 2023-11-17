@@ -9,43 +9,41 @@ import (
 )
 
 type (
-	// Only use in Legacy Network
-	TransactionOutput struct {
+	SafeTransactionOutput struct {
 		Receivers []string
 		Threshold uint8
 		Amount    decimal.Decimal
 	}
 
-	// Only use in Legacy Network
-	TransactionInput struct {
+	SafeTransactionInput struct {
 		Memo       string
-		Inputs     []*MultisigUTXO
-		Outputs    []TransactionOutput
+		Inputs     []*SafeUtxo
+		Outputs    []SafeTransactionOutput
 		References []Hash
 		Hint       string
 	}
 )
 
-func (i *TransactionInput) AppendUTXO(utxo *MultisigUTXO) {
+func (i *SafeTransactionInput) AppendUTXO(utxo *SafeUtxo) {
 	i.Inputs = append(i.Inputs, utxo)
 }
 
-func (i *TransactionInput) AppendOutput(receivers []string, threshold uint8, amount decimal.Decimal) {
-	i.Outputs = append(i.Outputs, TransactionOutput{
+func (i *SafeTransactionInput) AppendOutput(receivers []string, threshold uint8, amount decimal.Decimal) {
+	i.Outputs = append(i.Outputs, SafeTransactionOutput{
 		Receivers: receivers,
 		Threshold: threshold,
 		Amount:    amount,
 	})
 }
 
-func (i *TransactionInput) Asset() Hash {
+func (i *SafeTransactionInput) Asset() Hash {
 	if len(i.Inputs) == 0 {
 		return Hash{}
 	}
-	return i.Inputs[0].Asset()
+	return i.Inputs[0].Asset
 }
 
-func (i *TransactionInput) TotalInputAmount() decimal.Decimal {
+func (i *SafeTransactionInput) TotalInputAmount() decimal.Decimal {
 	var total decimal.Decimal
 	for _, input := range i.Inputs {
 		total = total.Add(input.Amount)
@@ -53,7 +51,7 @@ func (i *TransactionInput) TotalInputAmount() decimal.Decimal {
 	return total
 }
 
-func (i *TransactionInput) Validate() error {
+func (i *SafeTransactionInput) Validate() error {
 	if len(i.Inputs) == 0 {
 		return errors.New("no input utxo")
 	}
@@ -73,20 +71,20 @@ func (i *TransactionInput) Validate() error {
 	}
 
 	for _, input := range i.Inputs {
-		if asset != input.Asset() {
+		if asset.String() != input.Asset.String() {
 			return errors.New("invalid input utxo, asset not matched")
 		}
 
 		if len(members) == 0 {
-			for _, u := range input.Members {
+			for _, u := range input.Receivers {
 				members[u] = true
 			}
 			continue
 		}
-		if len(members) != len(input.Members) {
+		if len(members) != len(input.Receivers) {
 			return errors.New("invalid input utxo, member not matched")
 		}
-		for _, m := range input.Members {
+		for _, m := range input.Receivers {
 			if _, f := members[m]; !f {
 				return errors.New("invalid input utxo, member not matched")
 			}
@@ -110,13 +108,13 @@ func (i *TransactionInput) Validate() error {
 	return nil
 }
 
-func (c *Client) MakeMultisigTransaction(ctx context.Context, input *TransactionInput) (*Transaction, error) {
+func (c *Client) SafeBuildTransaction(ctx context.Context, input *SafeTransactionInput) (*Transaction, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
 	var tx = Transaction{
-		Version:    TxVersionReferences,
+		Version:    TxVersion,
 		Asset:      input.Asset(),
 		Extra:      []byte(input.Memo),
 		References: input.References,
@@ -128,7 +126,7 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 	for _, input := range input.Inputs {
 		tx.Inputs = append(tx.Inputs, &Input{
 			Hash:  &input.TransactionHash,
-			Index: uint64(input.OutputIndex),
+			Index: input.OutputIndex,
 		})
 	}
 
@@ -142,24 +140,24 @@ func (c *Client) MakeMultisigTransaction(ctx context.Context, input *Transaction
 		}
 
 		if change.IsPositive() {
-			outputs = append(outputs, TransactionOutput{
-				Receivers: input.Inputs[0].Members,
-				Threshold: input.Inputs[0].Threshold,
+			outputs = append(outputs, SafeTransactionOutput{
+				Receivers: input.Inputs[0].Receivers,
+				Threshold: input.Inputs[0].ReceiversThreshold,
 				Amount:    change,
 			})
 		}
 	}
 
-	ghostInputs := make([]*GhostInput, 0, len(outputs))
+	ghostInputs := make([]*GhostKeyInput, 0, len(outputs))
 	for idx, output := range outputs {
-		ghostInputs = append(ghostInputs, &GhostInput{
+		ghostInputs = append(ghostInputs, &GhostKeyInput{
 			Receivers: output.Receivers,
 			Index:     idx,
-			Hint:      input.Hint,
+			Hint:      uuidHash(append([]byte(input.Hint), byte(idx))),
 		})
 	}
 
-	ghosts, err := c.BatchReadGhostKeys(ctx, ghostInputs)
+	ghosts, err := c.SafeCreateGhostKeys(ctx, ghostInputs)
 	if err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ import (
 
 func TestGetTransaction(t *testing.T) {
 	ctx := context.Background()
+	UseSafeMixinNetHosts()
 	hash, err := HashFromString("b6c4574730650502fda85a2a6bcb442f027a72b0d1ed25021834ad39e7423586")
 	require.Nil(t, err)
 

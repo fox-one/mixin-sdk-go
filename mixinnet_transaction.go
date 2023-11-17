@@ -159,7 +159,7 @@ func (t *Transaction) DumpTransactionData() ([]byte, error) {
 		}
 		return buf.Bytes(), nil
 
-	case TxVersionCommonEncoding, TxVersionBlake3Hash, TxVersionReferences:
+	case TxVersionCommonEncoding, TxVersionBlake3Hash, TxVersionReferences, TxVersionHashSignature:
 		return NewEncoder().EncodeTransaction(t), nil
 
 	default:

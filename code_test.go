@@ -11,7 +11,7 @@ func TestGetCode(t *testing.T) {
 	ctx := context.Background()
 	store := newKeystoreFromEnv(t)
 
-	c, err := NewFromKeystore(store)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client")
 
 	code, err := c.GetCode(ctx, "c76310d8-c563-499e-9866-c61ae2cbee11")

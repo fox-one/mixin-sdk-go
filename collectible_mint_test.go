@@ -15,7 +15,7 @@ func TestGenerateCollectibleTokenID(t *testing.T) {
 	tokenID := GenerateCollectibleTokenID(collection, token)
 
 	store := newKeystoreFromEnv(t)
-	client, err := NewFromKeystore(store)
+	client, err := NewFromKeystore(&store.Keystore)
 	require.NoError(t, err)
 
 	ctx := context.Background()

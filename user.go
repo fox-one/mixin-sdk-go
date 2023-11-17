@@ -24,17 +24,23 @@ type User struct {
 	CreatedAt                time.Time `json:"created_at,omitempty"`
 	IsVerified               bool      `json:"is_verified,omitempty"`
 	IsScam                   bool      `json:"is_scam,omitempty"`
-	SessionID                string    `json:"session_id,omitempty"`
-	PinToken                 string    `json:"pin_token,omitempty"`
+	IsDeactivated            bool      `json:"is_deactivated,omitempty"`
 	CodeID                   string    `json:"code_id,omitempty"`
 	CodeURL                  string    `json:"code_url,omitempty"`
-	HasPin                   bool      `json:"has_pin,omitempty"`
+	SessionID                string    `json:"session_id,omitempty"`
 	DeviceStatus             string    `json:"device_status,omitempty"`
+	HasSafe                  bool      `json:"has_safe,omitempty"`
+	HasPin                   bool      `json:"has_pin,omitempty"`
 	HasEmergencyContact      bool      `json:"has_emergency_contact,omitempty"`
 	ReceiveMessageSource     string    `json:"receive_message_source,omitempty"`
 	AcceptConversationSource string    `json:"accept_conversation_source,omitempty"`
 	AcceptSearchSource       string    `json:"accept_search_source,omitempty"`
 	FiatCurrency             string    `json:"fiat_currency,omitempty"`
+	PinToken                 string    `json:"pin_token,omitempty"`
+	PinTokenBase64           string    `json:"pin_token_base64,omitempty"`
+	SaltBase64               string    `json:"salt_base64,omitempty"`
+	TipKeyBase64             string    `json:"tip_key_base64,omitempty"`
+	TipCounter               int       `json:"tip_counter,omitempty"`
 
 	App *App `json:"app,omitempty"`
 }

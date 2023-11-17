@@ -13,11 +13,15 @@ func TestConversation(t *testing.T) {
 	ctx := context.Background()
 	store := newKeystoreFromEnv(t)
 
-	c, err := NewFromKeystore(store)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client")
 
 	me, err := c.UserMe(ctx)
 	require.Nil(t, err, "UserMe")
+
+	if me.App == nil {
+		t.SkipNow()
+	}
 
 	id := newUUID()
 

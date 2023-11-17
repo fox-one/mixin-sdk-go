@@ -39,7 +39,8 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 	switch signed.Version {
 	case TxVersionCommonEncoding,
 		TxVersionBlake3Hash,
-		TxVersionReferences:
+		TxVersionReferences,
+		TxVersionHashSignature:
 	default:
 		panic(signed)
 	}

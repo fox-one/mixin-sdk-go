@@ -109,7 +109,7 @@ func (c *Client) MakeCollectibleTransaction(
 	threshold uint8,
 ) (*Transaction, error) {
 	tx := &Transaction{
-		Version: TxVersion,
+		Version: TxVersionReferences,
 		Asset:   token.MixinID,
 		Extra:   token.NFO,
 		Inputs: []*Input{{

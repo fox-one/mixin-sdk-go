@@ -23,6 +23,7 @@ const (
 	TIPOAuthApprove             = "TIP:OAUTH:APPROVE:"
 	TIPProvisioningUpdate       = "TIP:PROVISIONING:UPDATE:"
 	TIPAppOwnershipTransfer     = "TIP:APP:OWNERSHIP:TRANSFER:"
+	TIPSequencerRegister        = "SEQUENCER:REGISTER:"
 )
 
 func (c *Client) EncryptTipPin(key Key, action string, params ...string) string {
