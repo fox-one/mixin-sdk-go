@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	SafeUtxoStateUnspent = "unspent"
-	SafeUtxoStateSigned  = "signed"
-	SafeUtxoStateSpent   = "spent"
+	SafeUtxoStateUnspent SafeUtxoState = "unspent"
+	SafeUtxoStateSigned  SafeUtxoState = "signed"
+	SafeUtxoStateSpent   SafeUtxoState = "spent"
 )
 
 type (
@@ -49,9 +49,10 @@ type SafeListUtxoOption struct {
 	Members   []string
 	Threshold uint8
 	Offset    uint64
+	Asset     string
 	Limit     int
 	Order     string
-	State     string
+	State     SafeUtxoState
 }
 
 func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*SafeUtxo, error) {
@@ -85,7 +86,11 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 	params["order"] = opt.Order
 
 	if opt.State != "" {
-		params["state"] = opt.State
+		params["state"] = string(opt.State)
+	}
+
+	if opt.Asset != "" {
+		params["asset"] = opt.Asset
 	}
 
 	var utxos = []*SafeUtxo{}
