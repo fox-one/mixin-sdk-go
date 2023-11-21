@@ -10,8 +10,8 @@ import (
 )
 
 func TestUploadAttachment(t *testing.T) {
-	s := newKeystoreFromEnv(t)
-	c, err := NewFromKeystore(s)
+	store := newKeystoreFromEnv(t)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client from keystore")
 
 	ctx := context.Background()

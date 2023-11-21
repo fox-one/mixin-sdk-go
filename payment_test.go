@@ -12,7 +12,7 @@ func TestClient_VerifyPayment(t *testing.T) {
 	ctx := context.Background()
 	store := newKeystoreFromEnv(t)
 
-	c, err := NewFromKeystore(store)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client")
 
 	t.Run("test normal payment", func(t *testing.T) {

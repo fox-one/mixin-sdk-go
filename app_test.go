@@ -11,7 +11,7 @@ func TestUpdateApp(t *testing.T) {
 	ctx := context.Background()
 	store := newKeystoreFromEnv(t)
 
-	c, err := NewFromKeystore(store)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client")
 
 	app, err := c.ReadApp(ctx, store.ClientID)

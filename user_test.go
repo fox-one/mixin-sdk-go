@@ -14,7 +14,7 @@ func TestCreateUser(t *testing.T) {
 
 	store := newKeystoreFromEnv(t)
 
-	botClient, err := NewFromKeystore(store)
+	botClient, err := NewFromKeystore(&store.Keystore)
 	require.NoError(err, "init bot client")
 
 	// create a user with a RSA key

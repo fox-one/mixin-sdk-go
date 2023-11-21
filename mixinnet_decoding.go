@@ -63,7 +63,7 @@ func (dec *Decoder) DecodeTransaction() (*Transaction, error) {
 		return nil, err
 	}
 	for ; ol > 0; ol -= 1 {
-		o, err := dec.ReadOutput()
+		o, err := dec.ReadOutput(txVer)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +152,7 @@ func (dec *Decoder) ReadInput() (*Input, error) {
 	if err != nil {
 		return nil, err
 	}
-	in.Index = ii
+	in.Index = uint64(ii)
 
 	gb, err := dec.ReadBytes()
 	if err != nil {
@@ -180,13 +180,13 @@ func (dec *Decoder) ReadInput() (*Input, error) {
 		if err != nil {
 			return nil, err
 		}
-		d.TransactionHash = string(th)
+		d.Transaction = string(th)
 
 		oi, err := dec.ReadUint64()
 		if err != nil {
 			return nil, err
 		}
-		d.OutputIndex = oi
+		d.Index = oi
 
 		amt, err := dec.ReadInteger()
 		if err != nil {
@@ -224,7 +224,7 @@ func (dec *Decoder) ReadInput() (*Input, error) {
 	return &in, nil
 }
 
-func (dec *Decoder) ReadOutput() (*Output, error) {
+func (dec *Decoder) ReadOutput(ver uint8) (*Output, error) {
 	var o Output
 
 	var t [2]byte
@@ -272,28 +272,43 @@ func (dec *Decoder) ReadOutput() (*Output, error) {
 		return nil, err
 	} else if hw {
 		var w WithdrawalData
-		err := dec.Read(w.Chain[:])
-		if err != nil {
-			return nil, err
-		}
+		if ver < TxVersionHashSignature {
+			err := dec.Read(w.Chain[:])
+			if err != nil {
+				return nil, err
+			}
 
-		ak, err := dec.ReadBytes()
-		if err != nil {
-			return nil, err
-		}
-		w.AssetKey = string(ak)
+			ak, err := dec.ReadBytes()
+			if err != nil {
+				return nil, err
+			}
+			w.AssetKey = string(ak)
 
-		ab, err := dec.ReadBytes()
-		if err != nil {
-			return nil, err
-		}
-		w.Address = string(ab)
+			ab, err := dec.ReadBytes()
+			if err != nil {
+				return nil, err
+			}
+			w.Address = string(ab)
 
-		tb, err := dec.ReadBytes()
-		if err != nil {
-			return nil, err
+			tb, err := dec.ReadBytes()
+			if err != nil {
+				return nil, err
+			}
+			w.Tag = string(tb)
+		} else {
+			var w WithdrawalData
+			ab, err := dec.ReadBytes()
+			if err != nil {
+				return nil, err
+			}
+			w.Address = string(ab)
+
+			tb, err := dec.ReadBytes()
+			if err != nil {
+				return nil, err
+			}
+			w.Tag = string(tb)
 		}
-		w.Tag = string(tb)
 
 		o.Withdrawal = &w
 	}
@@ -339,16 +354,8 @@ func (dec *Decoder) Read(b []byte) error {
 }
 
 func (dec *Decoder) ReadInt() (int, error) {
-	var b [2]byte
-	err := dec.Read(b[:])
-	if err != nil {
-		return 0, err
-	}
-	d := binary.BigEndian.Uint16(b[:])
-	if d > MaximumEncodingInt {
-		return 0, fmt.Errorf("large int %d", d)
-	}
-	return int(d), nil
+	d, err := dec.ReadUint16()
+	return int(d), err
 }
 
 func (dec *Decoder) ReadUint16() (uint16, error) {
@@ -397,6 +404,10 @@ func (dec *Decoder) ReadInteger() (Integer, error) {
 	var d Integer
 	d.i.SetBytes(b)
 	return d, nil
+}
+
+func (dec *Decoder) ReadByte() (byte, error) {
+	return dec.buf.ReadByte()
 }
 
 func (dec *Decoder) ReadBytes() ([]byte, error) {
@@ -470,4 +481,18 @@ func (dec *Decoder) ReadAggregatedSignature() (*AggregatedSignature, error) {
 		return nil, fmt.Errorf("invalid mask type %d", typ)
 	}
 	return &js, nil
+}
+
+func checkTxVersion(val []byte) uint8 {
+	for _, version := range []uint8{
+		TxVersionCommonEncoding,
+		TxVersionBlake3Hash,
+		TxVersionReferences,
+		TxVersionHashSignature,
+	} {
+		if bytes.HasPrefix(val, append(magic, 0, version)) {
+			return version
+		}
+	}
+	return 0
 }

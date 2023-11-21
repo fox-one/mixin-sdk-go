@@ -11,15 +11,34 @@ import (
 )
 
 func TestKeyFromString(t *testing.T) {
+	msg := []byte("sign message")
+
 	for i := 0; i < 2000; i++ {
-		pub, priv, err := ed25519.GenerateKey(rand.Reader)
-		require.NoError(t, err, "ed25519.GenerateKey")
+		priv := GenerateEd25519Key()
+		pub := priv.Public().(ed25519.PublicKey)
 
 		key, err := KeyFromString(hex.EncodeToString(priv))
-		require.NoError(t, err, "KeyFromString", hex.EncodeToString(priv))
-		require.True(t, key.CheckScalar(), "CheckScalar")
+		require.NoError(t, err, "KeyFromString(%s)", hex.EncodeToString(priv))
 		pubKey := key.Public()
 		require.True(t, pubKey.CheckKey(), "CheckKey")
-		require.True(t, bytes.Equal(pub, pubKey[:]), "Public Key not matched", key, pubKey, hex.EncodeToString(pub))
+		require.True(t, bytes.Equal(pub[:], pubKey[:]), "public Key of (%s) not matched: %s != %s", key, pubKey, hex.EncodeToString(pub))
+
+		{
+			sigBytes, err := priv.Sign(rand.Reader, msg, &ed25519.Options{})
+			require.Nil(t, err)
+
+			var sig Signature
+			copy(sig[:], sigBytes)
+			require.True(t, pubKey.Verify(msg, sig))
+			require.True(t, ed25519.Verify(pub, msg, sigBytes))
+		}
+
+		{
+			sig := key.Sign(msg)
+			sigBytes := make([]byte, len(sig))
+			copy(sigBytes, sig[:])
+			require.True(t, pubKey.Verify(msg, sig))
+			require.True(t, ed25519.Verify(pub, msg, sigBytes))
+		}
 	}
 }

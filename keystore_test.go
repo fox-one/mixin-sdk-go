@@ -14,7 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func decodeKeystoreAndPinFromEnv(t *testing.T) (*Keystore, string) {
+type (
+	SpenderKeystore struct {
+		Keystore
+		SpendKey *Key   `json:"spend_key"`
+		Pin      string `json:"pin"`
+	}
+)
+
+func decodeKeystoreAndPinFromEnv(t *testing.T) *SpenderKeystore {
 	env := "TEST_KEYSTORE_PATH"
 	path := os.Getenv(env)
 	if path == "" {
@@ -27,24 +35,20 @@ func decodeKeystoreAndPinFromEnv(t *testing.T) (*Keystore, string) {
 
 	defer f.Close()
 
-	var store struct {
-		Keystore
-		Pin string `json:"pin,omitempty"`
-	}
+	var store SpenderKeystore
 	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
 
-	return &store.Keystore, store.Pin
+	return &store
 }
 
-func newKeystoreFromEnv(t *testing.T) *Keystore {
-	keystore, _ := decodeKeystoreAndPinFromEnv(t)
-	return keystore
+func newKeystoreFromEnv(t *testing.T) *SpenderKeystore {
+	return decodeKeystoreAndPinFromEnv(t)
 }
 
 func TestKeystoreAuth(t *testing.T) {
 	s := newKeystoreFromEnv(t)
 
-	auth, err := AuthFromKeystore(s)
+	auth, err := AuthFromKeystore(&s.Keystore)
 	require.Nil(t, err, "auth from keystore")
 
 	sig := SignRaw("GET", "/me", nil)

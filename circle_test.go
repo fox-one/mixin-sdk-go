@@ -9,8 +9,8 @@ import (
 )
 
 func TestCircle(t *testing.T) {
-	s := newKeystoreFromEnv(t)
-	c, err := NewFromKeystore(s)
+	store := newKeystoreFromEnv(t)
+	c, err := NewFromKeystore(&store.Keystore)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

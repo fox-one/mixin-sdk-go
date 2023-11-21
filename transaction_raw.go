@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/shopspring/decimal"
 )
 
 // RawTransaction raw transaction
@@ -23,21 +21,6 @@ type RawTransaction struct {
 	TransactionHash string    `json:"transaction_hash,omitempty"`
 	SnapshotHash    string    `json:"snapshot_hash,omitempty"`
 	SnapshotAt      time.Time `json:"snapshot_at"`
-}
-
-// GhostKeys transaction ghost keys
-type GhostKeys struct {
-	Mask Key   `json:"mask"`
-	Keys []Key `json:"keys"`
-}
-
-func (g GhostKeys) DumpOutput(threshold uint8, amount decimal.Decimal) *Output {
-	return &Output{
-		Mask:   g.Mask,
-		Keys:   g.Keys,
-		Amount: NewIntegerFromDecimal(amount),
-		Script: NewThresholdScript(threshold),
-	}
 }
 
 func (c *Client) Transaction(ctx context.Context, in *TransferInput, pin string) (*RawTransaction, error) {

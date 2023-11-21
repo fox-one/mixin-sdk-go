@@ -10,9 +10,9 @@ import (
 
 func TestAddress(t *testing.T) {
 	ctx := context.Background()
-	store, pin := decodeKeystoreAndPinFromEnv(t)
+	store := decodeKeystoreAndPinFromEnv(t)
 
-	c, err := NewFromKeystore(store)
+	c, err := NewFromKeystore(&store.Keystore)
 	require.Nil(t, err, "init client")
 
 	input := CreateAddressInput{
@@ -22,7 +22,7 @@ func TestAddress(t *testing.T) {
 		Label:       "my btc address",
 	}
 
-	address, err := c.CreateAddress(ctx, input, pin)
+	address, err := c.CreateAddress(ctx, input, store.Pin)
 	require.Nil(t, err, "create address")
 
 	t.Run("read address", func(t *testing.T) {

@@ -39,7 +39,8 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 	switch signed.Version {
 	case TxVersionCommonEncoding,
 		TxVersionBlake3Hash,
-		TxVersionReferences:
+		TxVersionReferences,
+		TxVersionHashSignature:
 	default:
 		panic(signed)
 	}
@@ -57,7 +58,7 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 	ol := len(signed.Outputs)
 	enc.WriteInt(ol)
 	for _, out := range signed.Outputs {
-		enc.EncodeOutput(out)
+		enc.EncodeOutput(out, signed.Version)
 	}
 
 	if signed.Version >= TxVersionReferences {
@@ -97,7 +98,7 @@ func (enc *Encoder) EncodeTransaction(signed *Transaction) []byte {
 
 func (enc *Encoder) EncodeInput(in *Input) {
 	enc.Write(in.Hash[:])
-	enc.WriteInt(in.Index)
+	enc.WriteUint16(uint16(in.Index))
 
 	enc.WriteInt(len(in.Genesis))
 	enc.Write(in.Genesis)
@@ -111,10 +112,10 @@ func (enc *Encoder) EncodeInput(in *Input) {
 		enc.WriteInt(len(d.AssetKey))
 		enc.Write([]byte(d.AssetKey))
 
-		enc.WriteInt(len(d.TransactionHash))
-		enc.Write([]byte(d.TransactionHash))
+		enc.WriteInt(len(d.Transaction))
+		enc.Write([]byte(d.Transaction))
 
-		enc.WriteUint64(d.OutputIndex)
+		enc.WriteUint64(d.Index)
 		enc.WriteInteger(d.Amount)
 	}
 
@@ -131,7 +132,7 @@ func (enc *Encoder) EncodeInput(in *Input) {
 	}
 }
 
-func (enc *Encoder) EncodeOutput(o *Output) {
+func (enc *Encoder) EncodeOutput(o *Output, ver uint8) {
 	enc.Write([]byte{0x00, o.Type})
 	enc.WriteInteger(o.Amount)
 	enc.WriteInt(len(o.Keys))
@@ -146,17 +147,27 @@ func (enc *Encoder) EncodeOutput(o *Output) {
 	if w := o.Withdrawal; w == nil {
 		enc.Write(null)
 	} else {
-		enc.Write(magic)
-		enc.Write(w.Chain[:])
+		if ver < TxVersionHashSignature {
+			enc.Write(magic)
+			enc.Write(w.Chain[:])
 
-		enc.WriteInt(len(w.AssetKey))
-		enc.Write([]byte(w.AssetKey))
+			enc.WriteInt(len(w.AssetKey))
+			enc.Write([]byte(w.AssetKey))
 
-		enc.WriteInt(len(w.Address))
-		enc.Write([]byte(w.Address))
+			enc.WriteInt(len(w.Address))
+			enc.Write([]byte(w.Address))
 
-		enc.WriteInt(len(w.Tag))
-		enc.Write([]byte(w.Tag))
+			enc.WriteInt(len(w.Tag))
+			enc.Write([]byte(w.Tag))
+		} else {
+			enc.Write(magic)
+
+			enc.WriteInt(len(w.Address))
+			enc.Write([]byte(w.Address))
+
+			enc.WriteInt(len(w.Tag))
+			enc.Write([]byte(w.Tag))
+		}
 	}
 }
 

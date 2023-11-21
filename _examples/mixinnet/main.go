@@ -17,8 +17,6 @@ import (
 var (
 	config = flag.String("config", "", "keystore file path")
 	pin    = flag.String("pin", "", "pin")
-
-	ctx = context.Background()
 )
 
 func main() {
@@ -60,6 +58,7 @@ func main() {
 			log.Printf("Transaction: %v\n", err)
 			return
 		}
+		log.Printf("send to address: %v; hash: %v\n", addr, snapshot.TransactionHash)
 
 		h, err := mixin.HashFromString(snapshot.TransactionHash)
 		if err != nil {
@@ -76,11 +75,24 @@ func main() {
 			break
 		}
 
+		{
+			tx.Hash = nil
+			hash1, err := tx.TransactionHash()
+			if err != nil {
+				log.Printf("tx.TransactionHash: %v\n", err)
+				return
+			}
+			if !bytes.Equal(h[:], hash1[:]) {
+				log.Println("transaction hash verify failed", h, hash1)
+			}
+		}
+
 		// verify output
 		if key := mixin.ViewGhostOutputKey(&tx.Outputs[0].Keys[0], &addr.PrivateViewKey, &tx.Outputs[0].Mask, 0); key.String() != addr.PublicSpendKey.String() {
 			log.Printf("ViewGhostOutputKey check failed: %v != %v\n", key, addr.PublicSpendKey)
 			return
 		}
+		log.Println("ViewGhostOutputKey passed")
 
 		privGhost = mixin.DeriveGhostPrivateKey(&tx.Outputs[0].Mask, &addr.PrivateViewKey, &addr.PrivateSpendKey, 0)
 		if privGhost.Public().String() != tx.Outputs[0].Keys[0].String() {
@@ -142,9 +154,10 @@ func main() {
 				return
 			}
 
+			sig := privGhost.Sign(raw)
 			tx.Signatures = []map[uint16]*mixin.Signature{
 				{
-					0: privGhost.Sign(raw),
+					0: &sig,
 				},
 			}
 		}
@@ -169,6 +182,8 @@ func main() {
 			log.Printf("TransactionHash: %v\n", err)
 			return
 		}
+		log.Println("Transaction sent,", h)
+
 		for i := 0; i < 5; i++ {
 			if tx, err = client.GetRawTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
 				log.Printf("GetRawTransaction %v failed: %v\n", h, err)
@@ -182,6 +197,7 @@ func main() {
 			log.Printf("VerifyTransaction %v failed: %v; expect true but got %v", tx.Hash, err, ok)
 			return
 		}
+		log.Println("VerifyTransaction passed")
 	}
 
 	log.Println("all passed")

@@ -10,7 +10,19 @@ import (
 )
 
 var (
-	mixinnetHosts = []string{
+	safeMixinnetHosts = []string{
+		"http://mixin-node-42.f1ex.io:8239",
+		"http://mixin-node-fes.f1ex.io:8239",
+		"http://mixin-node-box-1.b.watch:8239",
+		"http://mixin-node-box-2.b.watch:8239",
+		"http://mixin-node-box-3.b.watch:8239",
+		"http://mixin-node-box-4.b.watch:8239",
+		"http://mixin-node-lehigh-1.hotot.org:8239",
+		"http://mixin-node-lehigh-2.hotot.org:8239",
+		"http://mixin-node-okashi.mixin.fan:8239",
+	}
+
+	legacyMixinnetHosts = []string{
 		"http://node-42.f1ex.io:8239",
 		"http://mixin-node-01.b.watch:8239",
 		"http://mixin-node-02.b.watch:8239",
@@ -18,8 +30,18 @@ var (
 		"http://node-okashi.mixin.fan:8239",
 	}
 
+	mixinnetHosts = legacyMixinnetHosts
+
 	mixinNetClients sync.Map
 )
+
+func UseSafeMixinNetHosts() {
+	mixinnetHosts = safeMixinnetHosts
+}
+
+func UseLegacyMixinNetHosts() {
+	mixinnetHosts = legacyMixinnetHosts
+}
 
 func UseMixinNetHosts(hosts []string) {
 	if len(hosts) == 0 {
