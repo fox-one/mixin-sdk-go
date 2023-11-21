@@ -39,6 +39,10 @@ func UseSafeMixinNetHosts() {
 	mixinnetHosts = safeMixinnetHosts
 }
 
+func UseLegacyMixinNetHosts() {
+	mixinnetHosts = legacyMixinnetHosts
+}
+
 func UseMixinNetHosts(hosts []string) {
 	if len(hosts) == 0 {
 		panic("empty mixin net host")

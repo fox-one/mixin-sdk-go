@@ -47,7 +47,7 @@ func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, trace string
 			Keys: make([]Key, len(ma.xinMembers)),
 		}
 		for i, a := range ma.xinMembers {
-			k := DeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, uint64(outputIndex))
+			k := SafeDeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, uint64(outputIndex))
 			gkr.Keys[i] = *k
 		}
 		return gkr, nil

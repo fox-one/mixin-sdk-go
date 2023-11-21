@@ -29,7 +29,7 @@ func TestKeyFromString(t *testing.T) {
 
 			var sig Signature
 			copy(sig[:], sigBytes)
-			require.True(t, pubKey.VerifyRaw(msg, sig))
+			require.True(t, pubKey.Verify(msg, sig))
 			require.True(t, ed25519.Verify(pub, msg, sigBytes))
 		}
 
@@ -37,7 +37,7 @@ func TestKeyFromString(t *testing.T) {
 			sig := key.Sign(msg)
 			sigBytes := make([]byte, len(sig))
 			copy(sigBytes, sig[:])
-			require.True(t, pubKey.VerifyRaw(msg, sig))
+			require.True(t, pubKey.Verify(msg, sig))
 			require.True(t, ed25519.Verify(pub, msg, sigBytes))
 		}
 	}

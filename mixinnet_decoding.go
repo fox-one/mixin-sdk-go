@@ -485,6 +485,9 @@ func (dec *Decoder) ReadAggregatedSignature() (*AggregatedSignature, error) {
 
 func checkTxVersion(val []byte) uint8 {
 	for _, version := range []uint8{
+		TxVersionCommonEncoding,
+		TxVersionBlake3Hash,
+		TxVersionReferences,
 		TxVersionHashSignature,
 	} {
 		if bytes.HasPrefix(val, append(magic, 0, version)) {

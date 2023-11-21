@@ -76,7 +76,7 @@ func (publicKey *Key) VerifyWithChallenge(sig Signature, a *edwards25519.Scalar)
 	return bytes.Equal(sig[:32], R.Bytes())
 }
 
-func (publicKey *Key) VerifyRaw(message []byte, sig Signature) bool {
+func (publicKey *Key) Verify(message []byte, sig Signature) bool {
 	h := sha512.New()
 	h.Write(sig[:32])
 	h.Write(publicKey[:])
@@ -91,8 +91,8 @@ func (publicKey *Key) VerifyRaw(message []byte, sig Signature) bool {
 	return publicKey.VerifyWithChallenge(sig, x)
 }
 
-func (publicKey *Key) Verify(message Hash, sig Signature) bool {
-	return publicKey.VerifyRaw(message[:], sig)
+func (publicKey *Key) VerifyHash(message Hash, sig Signature) bool {
+	return publicKey.Verify(message[:], sig)
 }
 
 func (s Signature) String() string {

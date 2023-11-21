@@ -102,9 +102,9 @@ func (a *MixinnetAddress) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (a MixinnetAddress) CreateUTXO(outputIndex uint64, amount decimal.Decimal) *Output {
+func (a MixinnetAddress) CreateUTXO(outputIndex uint64, amount decimal.Decimal, hashFuncs ...func([]byte) Hash) *Output {
 	r := NewKey(rand.Reader)
-	pubGhost := DeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, outputIndex)
+	pubGhost := DeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, outputIndex, hashFuncs...)
 	return &Output{
 		Type:   0,
 		Script: NewThresholdScript(1),
@@ -112,6 +112,10 @@ func (a MixinnetAddress) CreateUTXO(outputIndex uint64, amount decimal.Decimal) 
 		Mask:   r.Public(),
 		Keys:   []Key{*pubGhost},
 	}
+}
+
+func (a MixinnetAddress) CreateSafeUTXO(outputIndex uint64, amount decimal.Decimal) *Output {
+	return a.CreateUTXO(outputIndex, amount, NewBlake3Hash)
 }
 
 // 检查 transaction 是否是由该主网地址签发。满足以下所有条件则返回  true:
@@ -145,7 +149,11 @@ func VerifyTransaction(ctx context.Context, addr *MixinnetAddress, txHash Hash) 
 		if len(output.Keys) != 1 {
 			return false, nil
 		}
-		k := ViewGhostOutputKey(&output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index)
+		hashFunc := NewBlake3Hash
+		if preTx.Version < TxVersionHashSignature {
+			hashFunc = NewHash
+		}
+		k := ViewGhostOutputKey(&output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index, hashFunc)
 		if !bytes.Equal(k[:], addr.PublicSpendKey[:]) {
 			return false, nil
 		}

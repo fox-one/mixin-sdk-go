@@ -115,7 +115,7 @@ func KeyMultPubPriv(pub, priv *Key) *edwards25519.Point {
 	return v
 }
 
-func HashScalar(k *edwards25519.Point, outputIndex uint64) *edwards25519.Scalar {
+func HashScalar(k *edwards25519.Point, outputIndex uint64, hashFuncs ...func([]byte) Hash) *edwards25519.Scalar {
 	tmp := make([]byte, 12)
 	length := binary.PutUvarint(tmp, outputIndex)
 	tmp = tmp[:length]
@@ -124,18 +124,24 @@ func HashScalar(k *edwards25519.Point, outputIndex uint64) *edwards25519.Scalar 
 	var buf bytes.Buffer
 	buf.Write(k.Bytes())
 	buf.Write(tmp)
-	hash := NewBlake3Hash(buf.Bytes())
+
+	hashFunc := NewHash
+	if len(hashFuncs) > 0 {
+		hashFunc = hashFuncs[0]
+	}
+
+	hash := hashFunc(buf.Bytes())
 	copy(src[:32], hash[:])
-	hash = NewBlake3Hash(hash[:])
+	hash = hashFunc(hash[:])
 	copy(src[32:], hash[:])
 	s, err := edwards25519.NewScalar().SetUniformBytes(src[:])
 	if err != nil {
 		panic(err)
 	}
 
-	hash = NewBlake3Hash(s.Bytes())
+	hash = hashFunc(s.Bytes())
 	copy(src[:32], hash[:])
-	hash = NewBlake3Hash(hash[:])
+	hash = hashFunc(hash[:])
 	copy(src[32:], hash[:])
 	x, err := edwards25519.NewScalar().SetUniformBytes(src[:])
 	if err != nil {
@@ -144,8 +150,8 @@ func HashScalar(k *edwards25519.Point, outputIndex uint64) *edwards25519.Scalar 
 	return x
 }
 
-func DeriveGhostPublicKey(r, A, B *Key, outputIndex uint64) *Key {
-	x := HashScalar(KeyMultPubPriv(A, r), outputIndex)
+func DeriveGhostPublicKey(r, A, B *Key, outputIndex uint64, hashFuncs ...func([]byte) Hash) *Key {
+	x := HashScalar(KeyMultPubPriv(A, r), outputIndex, hashFuncs...)
 	p1, err := edwards25519.NewIdentityPoint().SetBytes(B[:])
 	if err != nil {
 		panic(B.String())
@@ -157,8 +163,8 @@ func DeriveGhostPublicKey(r, A, B *Key, outputIndex uint64) *Key {
 	return &key
 }
 
-func DeriveGhostPrivateKey(R, a, b *Key, outputIndex uint64) *Key {
-	x := HashScalar(KeyMultPubPriv(R, a), outputIndex)
+func DeriveGhostPrivateKey(R, a, b *Key, outputIndex uint64, hashFuncs ...func([]byte) Hash) *Key {
+	x := HashScalar(KeyMultPubPriv(R, a), outputIndex, hashFuncs...)
 	y, err := edwards25519.NewScalar().SetCanonicalBytes(b[:])
 	if err != nil {
 		panic(b.String())
@@ -169,8 +175,8 @@ func DeriveGhostPrivateKey(R, a, b *Key, outputIndex uint64) *Key {
 	return &key
 }
 
-func ViewGhostOutputKey(P, a, R *Key, outputIndex uint64) *Key {
-	x := HashScalar(KeyMultPubPriv(R, a), outputIndex)
+func ViewGhostOutputKey(P, a, R *Key, outputIndex uint64, hashFuncs ...func([]byte) Hash) *Key {
+	x := HashScalar(KeyMultPubPriv(R, a), outputIndex, hashFuncs...)
 	p1, err := edwards25519.NewIdentityPoint().SetBytes(P[:])
 	if err != nil {
 		panic(P.String())
