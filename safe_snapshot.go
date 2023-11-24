@@ -30,8 +30,8 @@ func (c *Client) ReadSafeSnapshot(ctx context.Context, snapshotID string) (*Safe
 	return &snapshot, nil
 }
 
-func ReadSafeSnapshot(ctx context.Context, accessToken string, assetID string, offset time.Time, order string, limit int) ([]*SafeSnapshot, error) {
-	return NewFromAccessToken(accessToken).ReadSafeSnapshots(ctx, assetID, offset, order, limit)
+func ReadSafeSnapshot(ctx context.Context, accessToken, snapshotID string) (*SafeSnapshot, error) {
+	return NewFromAccessToken(accessToken).ReadSafeSnapshot(ctx, snapshotID)
 }
 
 func (c *Client) ReadSafeSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*SafeSnapshot, error) {
