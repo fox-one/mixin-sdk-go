@@ -11,6 +11,7 @@ import (
 type (
 	SafeSnapshot struct {
 		SnapshotID      string          `json:"snapshot_id,omitempty"`
+		RequestID       string          `json:"request_id,omitempty"`
 		UserID          string          `json:"user_id,omitempty"`
 		OpponentID      string          `json:"opponent_id,omitempty"`
 		TransactionHash *Hash           `json:"transaction_hash,omitempty"`

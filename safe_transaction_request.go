@@ -42,7 +42,7 @@ type (
 )
 
 func (c *Client) SafeCreateTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
-	var resp = []*SafeTransactionRequest{}
+	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transaction/requests", inputs, &resp); err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *Client) SafeReadTransactionRequest(ctx context.Context, requestID strin
 }
 
 func (c *Client) SafeSubmitTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
-	var resp = []*SafeTransactionRequest{}
+	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transactions", inputs, &resp); err != nil {
 		return nil, err
 	}
