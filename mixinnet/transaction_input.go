@@ -1,7 +1,6 @@
 package mixinnet
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -85,7 +84,7 @@ func (i *TransactionInput) Validate() error {
 	return nil
 }
 
-func (input *TransactionInput) BuildTransaction(ctx context.Context) (*Transaction, error) {
+func (input *TransactionInput) BuildTransaction() (*Transaction, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
