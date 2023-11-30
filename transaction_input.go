@@ -45,7 +45,7 @@ func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.Trans
 		if len(output.Address.uuidMembers) > 0 {
 			ghostInputs = append(ghostInputs, &SafeGhostKeyInput{
 				Receivers: output.Address.Members(),
-				Index:     int(output.Address.Threshold),
+				Index:     len(input.Outputs) + i,
 				Hint:      uuidHash([]byte(fmt.Sprintf("trace:%s;index:%d", input.Hint, len(input.Outputs)+i))),
 			})
 		}
