@@ -181,7 +181,7 @@ func DeriveGhostPrivateKey(txVer uint8, R, a, b *Key, outputIndex uint64) *Key {
 	return &key
 }
 
-func ViewGhostOutputKey(txVer uint8, P, a, R *Key, outputIndex uint64, hashFuncs ...func([]byte) Hash) *Key {
+func ViewGhostOutputKey(txVer uint8, P, a, R *Key, outputIndex uint64) *Key {
 	x := HashScalar(txVer, KeyMultPubPriv(R, a), outputIndex)
 	p1, err := edwards25519.NewIdentityPoint().SetBytes(P[:])
 	if err != nil {

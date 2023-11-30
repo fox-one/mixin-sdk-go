@@ -14,7 +14,8 @@ const (
 	TxVersionReferences     = 0x04
 	TxVersionHashSignature  = 0x05
 
-	TxVersion = TxVersionHashSignature
+	TxVersionLegacy = TxVersionReferences
+	TxVersion       = TxVersionHashSignature
 )
 
 const (
@@ -135,7 +136,7 @@ func TransactionFromData(data []byte) (*Transaction, error) {
 	return NewDecoder(data).DecodeTransaction()
 }
 
-func (t *Transaction) DumpTransactionData() ([]byte, error) {
+func (t *Transaction) DumpData() ([]byte, error) {
 	switch t.Version {
 	case 0, 1:
 		tx := TransactionV1{
@@ -168,22 +169,22 @@ func (t *Transaction) DumpTransactionData() ([]byte, error) {
 }
 
 func (t *Transaction) Dump() (string, error) {
-	bts, err := t.DumpTransactionData()
+	bts, err := t.DumpData()
 	if err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(bts), nil
 }
 
-func (t Transaction) DumpTransactionPayload() ([]byte, error) {
+func (t Transaction) DumpPayload() ([]byte, error) {
 	t.Signatures = nil
 	t.AggregatedSignature = nil
-	return t.DumpTransactionData()
+	return t.DumpData()
 }
 
 func (t *Transaction) TransactionHash() (Hash, error) {
 	if t.Hash == nil {
-		raw, err := t.DumpTransactionPayload()
+		raw, err := t.DumpPayload()
 		if err != nil {
 			return Hash{}, err
 		}

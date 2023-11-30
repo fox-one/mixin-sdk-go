@@ -16,8 +16,8 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.2
 	github.com/zeebo/blake3 v0.2.3
-	golang.org/x/crypto v0.15.0
-	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/crypto v0.16.0
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect

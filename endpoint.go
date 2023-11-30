@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -101,9 +100,5 @@ func init() {
 
 	if rawURL, ok := os.LookupEnv("MIXIN_SDK_BLAZE_URL"); ok && rawURL != "" {
 		UseBlazeURL(rawURL)
-	}
-
-	if hosts, ok := os.LookupEnv("MIXIN_SDK_MIXINNET_HOSTS"); ok && hosts != "" {
-		UseMixinNetHosts(strings.Split(hosts, ","))
 	}
 }

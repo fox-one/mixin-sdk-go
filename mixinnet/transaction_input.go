@@ -25,14 +25,6 @@ type (
 	}
 )
 
-func (i *TransactionInput) AppendUTXO(utxo *InputUTXO) {
-	i.Inputs = append(i.Inputs, utxo)
-}
-
-func (i *TransactionInput) AppendOutput(output *Output) {
-	i.Outputs = append(i.Outputs, output)
-}
-
 func (i *TransactionInput) Asset() Hash {
 	if len(i.Inputs) == 0 {
 		return Hash{}
@@ -84,7 +76,7 @@ func (i *TransactionInput) Validate() error {
 	return nil
 }
 
-func (input *TransactionInput) BuildTransaction() (*Transaction, error) {
+func (input *TransactionInput) Build() (*Transaction, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

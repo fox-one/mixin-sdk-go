@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -14,16 +15,16 @@ type (
 	}
 
 	SafeTransactionReceiver struct {
-		Members    []string `json:"members,omitempty"`
-		MemberHash Hash     `json:"members_hash,omitempty"`
-		Threshold  uint8    `json:"threshold,omitempty"`
+		Members    []string      `json:"members,omitempty"`
+		MemberHash mixinnet.Hash `json:"members_hash,omitempty"`
+		Threshold  uint8         `json:"threshold,omitempty"`
 	}
 
 	SafeTransactionRequest struct {
 		RequestID        string                     `json:"request_id,omitempty"`
 		TransactionHash  string                     `json:"transaction_hash,omitempty"`
 		UserID           string                     `json:"user_id,omitempty"`
-		Asset            Hash                       `json:"asset,omitempty"`
+		Asset            mixinnet.Hash              `json:"asset,omitempty"`
 		Amount           decimal.Decimal            `json:"amount,omitempty"`
 		CreatedAt        time.Time                  `json:"created_at,omitempty"`
 		UpdatedAt        time.Time                  `json:"updated_at,omitempty"`
@@ -37,7 +38,7 @@ type (
 		SnapshotAt       *time.Time                 `json:"snapshot_at,omitempty"`
 		State            SafeUtxoState              `json:"state,omitempty"`
 		RawTransaction   string                     `json:"raw_transaction"`
-		Views            []Key                      `json:"views,omitempty"`
+		Views            []mixinnet.Key             `json:"views,omitempty"`
 	}
 )
 

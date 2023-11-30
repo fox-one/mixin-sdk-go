@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/base64"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"golang.org/x/crypto/sha3"
 )
 
 func (c *Client) SafeMigrate(ctx context.Context, priv string, pin string) (*User, error) {
-	privKey, err := KeyFromString(priv)
+	privKey, err := mixinnet.KeyFromString(priv)
 	if err != nil {
 		return nil, err
 	}
 	pubKey := privKey.Public()
-	pinKey, err := KeyFromString(pin)
+	pinKey, err := mixinnet.KeyFromString(pin)
 	if err != nil {
 		return nil, err
 	}

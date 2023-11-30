@@ -3,6 +3,7 @@ package mixin
 import (
 	"context"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -15,7 +16,7 @@ type WithdrawInput struct {
 
 func (c *Client) Withdraw(ctx context.Context, input WithdrawInput, pin string) (*Snapshot, error) {
 	var body interface{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		body = struct {
 			WithdrawInput
 			Pin string `json:"pin_base64"`

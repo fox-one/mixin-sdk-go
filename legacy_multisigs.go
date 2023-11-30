@@ -3,10 +3,10 @@ package mixin
 import (
 	"context"
 	"errors"
-	"sort"
 	"strconv"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -32,7 +32,7 @@ type (
 		UserID          string          `json:"user_id"`
 		UTXOID          string          `json:"utxo_id"`
 		AssetID         string          `json:"asset_id"`
-		TransactionHash Hash            `json:"transaction_hash"`
+		TransactionHash mixinnet.Hash   `json:"transaction_hash"`
 		OutputIndex     int             `json:"output_index"`
 		Sender          string          `json:"sender,omitempty"`
 		Amount          decimal.Decimal `json:"amount"`
@@ -59,7 +59,7 @@ type (
 		Memo            string          `json:"memo"`
 		Action          string          `json:"action"`
 		State           string          `json:"state"`
-		TransactionHash Hash            `json:"transaction_hash"`
+		TransactionHash mixinnet.Hash   `json:"transaction_hash"`
 		RawTransaction  string          `json:"raw_transaction"`
 		CreatedAt       time.Time       `json:"created_at"`
 		UpdatedAt       time.Time       `json:"updated_at"`
@@ -67,17 +67,8 @@ type (
 	}
 )
 
-func (utxo MultisigUTXO) Asset() Hash {
-	return NewHash([]byte(utxo.AssetID))
-}
-
-func HashMembers(ids []string) string {
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
-	var in string
-	for _, id := range ids {
-		in = in + id
-	}
-	return NewHash([]byte(in)).String()
+func (utxo MultisigUTXO) Asset() mixinnet.Hash {
+	return mixinnet.NewHash([]byte(utxo.AssetID))
 }
 
 // ReadMultisigs return a list of multisig utxos
@@ -145,7 +136,7 @@ func (c *Client) ListMultisigOutputs(ctx context.Context, opt ListMultisigOutput
 			return nil, errors.New("invalid members")
 		}
 
-		params["members"] = HashMembers(opt.Members)
+		params["members"] = mixinnet.HashMembers(opt.Members)
 		params["threshold"] = strconv.Itoa(int(opt.Threshold))
 	}
 
@@ -183,7 +174,7 @@ func (c *Client) CreateMultisig(ctx context.Context, action, raw string) (*Multi
 // SignMultisig sign a multisig request
 func (c *Client) SignMultisig(ctx context.Context, reqID, pin string) (*MultisigRequest, error) {
 	params := map[string]string{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestSign, reqID)
 	} else {
 		params["pin"] = c.EncryptPin(pin)
@@ -211,7 +202,7 @@ func (c *Client) CancelMultisig(ctx context.Context, reqID string) error {
 // UnlockMultisig unlock a multisig request
 func (c *Client) UnlockMultisig(ctx context.Context, reqID, pin string) error {
 	params := map[string]string{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		params["pin_base64"] = c.EncryptTipPin(key, TIPMultisigRequestUnlock, reqID)
 	} else {
 		params["pin"] = c.EncryptPin(pin)

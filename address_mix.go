@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/gofrs/uuid"
 )
 
@@ -19,7 +20,7 @@ type (
 		Version     byte
 		Threshold   byte
 		uuidMembers []uuid.UUID
-		xinMembers  []*MixinnetAddress
+		xinMembers  []*mixinnet.Address
 	}
 )
 
@@ -56,7 +57,7 @@ func NewMainnetMixAddress(members []string, threshold byte) (*MixAddress, error)
 		Threshold: threshold,
 	}
 	for _, s := range members {
-		a, err := NewMixinnetAddressFromString(s)
+		a, err := mixinnet.AddressFromString(s)
 		if err != nil {
 			return nil, fmt.Errorf("invalid member (%v): %v", s, err)
 		}
@@ -102,12 +103,12 @@ func (ma *MixAddress) String() string {
 	}
 
 	data := append([]byte(MixAddressPrefix), payload...)
-	checksum := NewHash(data)
+	checksum := mixinnet.NewHash(data)
 	payload = append(payload, checksum[:4]...)
 	return MixAddressPrefix + base58.Encode(payload)
 }
 
-func NewMixAddressFromString(s string) (*MixAddress, error) {
+func MixAddressFromString(s string) (*MixAddress, error) {
 	var ma MixAddress
 	if !strings.HasPrefix(s, MixAddressPrefix) {
 		return nil, fmt.Errorf("invalid address prefix %s", s)
@@ -117,7 +118,7 @@ func NewMixAddressFromString(s string) (*MixAddress, error) {
 		return nil, fmt.Errorf("invalid address length %d", len(data))
 	}
 	payload := data[:len(data)-4]
-	checksum := NewHash(append([]byte(MixAddressPrefix), payload...))
+	checksum := mixinnet.NewHash(append([]byte(MixAddressPrefix), payload...))
 	if !bytes.Equal(checksum[:4], data[len(data)-4:]) {
 		return nil, fmt.Errorf("invalid address checksum %x", checksum[:4])
 	}
@@ -143,7 +144,7 @@ func NewMixAddressFromString(s string) (*MixAddress, error) {
 		}
 	} else if len(mp) == 64*int(total) {
 		for i := 0; i < int(total); i++ {
-			var a MixinnetAddress
+			var a mixinnet.Address
 			copy(a.PublicSpendKey[:], mp[i*64:i*64+32])
 			copy(a.PublicViewKey[:], mp[i*64+32:i*64+64])
 			ma.xinMembers = append(ma.xinMembers, &a)

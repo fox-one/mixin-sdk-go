@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,12 +25,12 @@ func TestSafeMigrate(t *testing.T) {
 	subClient, err := NewFromKeystore(keystore)
 	require.NoError(err, "Ed25519 user client")
 
-	pin := NewKey(rand.Reader)
+	pin := mixinnet.GenerateKey(rand.Reader)
 	err = subClient.ModifyPin(context.TODO(), "", pin.Public().String())
 	require.NoError(err, "the Ed25519 user modifies pin")
 	require.NoError(subClient.VerifyPin(ctx, pin.String()), "the Ed25519 user verify pin")
 
-	spendKey := NewKey(rand.Reader)
+	spendKey := mixinnet.GenerateKey(rand.Reader)
 	user, err := subClient.SafeMigrate(ctx, spendKey.String(), pin.String())
 	require.NoError(err, "migrate failed")
 	require.Equal(subClient.ClientID, user.UserID)

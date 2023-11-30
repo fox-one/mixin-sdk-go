@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/gofrs/uuid"
 )
 
@@ -75,7 +76,7 @@ func main() {
 
 			handleUnspentOutput(ctx, client, output, token)
 		case mixin.CollectibleOutputStateSigned:
-			handleSignedOutput(ctx, client, output)
+			handleSignedOutput(ctx, output)
 		}
 	}
 }
@@ -84,12 +85,12 @@ func handleUnspentOutput(ctx context.Context, client *mixin.Client, output *mixi
 	log.Println("handle unspent output", output.OutputID, token.TokenID)
 
 	receivers := []string{"8017d200-7870-4b82-b53f-74bae1d2dad7"}
-	tx, err := client.MakeCollectibleTransaction(ctx, output, token, receivers, 1)
+	tx, err := client.MakeCollectibleTransaction(ctx, mixinnet.TxVersionReferences, output, token, receivers, 1)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	signedTx, err := tx.DumpTransaction()
+	signedTx, err := tx.Dump()
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -101,16 +102,16 @@ func handleUnspentOutput(ctx context.Context, client *mixin.Client, output *mixi
 	}
 
 	// sign
-	req, err = client.SignCollectibleRequest(ctx, req.RequestID, *pin)
+	_, err = client.SignCollectibleRequest(ctx, req.RequestID, *pin)
 	if err != nil {
 		log.Panicln(err)
 	}
 }
 
-func handleSignedOutput(ctx context.Context, client *mixin.Client, output *mixin.CollectibleOutput) {
+func handleSignedOutput(ctx context.Context, output *mixin.CollectibleOutput) {
 	log.Println("handle signed output", output.OutputID)
 
-	tx, err := mixin.TransactionFromRaw(output.SignedTx)
+	tx, err := mixinnet.TransactionFromRaw(output.SignedTx)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -119,6 +120,7 @@ func handleSignedOutput(ctx context.Context, client *mixin.Client, output *mixin
 		return
 	}
 
+	client := mixinnet.DefaultClient(false)
 	if _, err := client.SendRawTransaction(ctx, output.SignedTx); err != nil {
 		log.Panicln(err)
 	}

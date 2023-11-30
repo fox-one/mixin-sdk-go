@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,7 +27,7 @@ type TransferInput struct {
 
 func (c *Client) Transfer(ctx context.Context, input *TransferInput, pin string) (*Snapshot, error) {
 	var body interface{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		body = struct {
 			*TransferInput
 			PinBase64 string `json:"pin_base64"`

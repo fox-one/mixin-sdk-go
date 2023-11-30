@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -14,7 +15,7 @@ type (
 		RequestID       string          `json:"request_id,omitempty"`
 		UserID          string          `json:"user_id,omitempty"`
 		OpponentID      string          `json:"opponent_id,omitempty"`
-		TransactionHash *Hash           `json:"transaction_hash,omitempty"`
+		TransactionHash *mixinnet.Hash  `json:"transaction_hash,omitempty"`
 		AssetID         string          `json:"asset_id,omitempty"`
 		Amount          decimal.Decimal `json:"amount,omitempty"`
 		Memo            string          `json:"memo,omitempty"`

@@ -16,6 +16,19 @@ type (
 	}
 )
 
+var (
+	defaultLegacyMixinNetClient = NewClient(false)
+	defaultSafeMixinNetClient   = NewClient(true)
+)
+
+func DefaultClient(safe bool) *Client {
+	if safe {
+		return defaultSafeMixinNetClient
+	} else {
+		return defaultLegacyMixinNetClient
+	}
+}
+
 func NewClient(safe bool, hosts ...string) *Client {
 	if len(hosts) == 0 {
 		if safe {

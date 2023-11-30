@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -48,7 +49,8 @@ func main() {
 		log.Panicln(err)
 	}
 
-	ctx := mixin.WithMixinNetHost(context.Background(), mixin.RandomMixinNetHost())
+	mnClient := mixinnet.DefaultClient(false)
+	ctx := mnClient.WithHost(context.Background(), mnClient.RandomHost())
 
 	me, err := client.UserMe(ctx)
 	if err != nil {

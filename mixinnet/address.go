@@ -145,11 +145,7 @@ func (c *Client) VerifyTransaction(ctx context.Context, addr *Address, txHash Ha
 		if len(output.Keys) != 1 {
 			return false, nil
 		}
-		hashFunc := NewBlake3Hash
-		if preTx.Version < TxVersionHashSignature {
-			hashFunc = NewHash
-		}
-		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index, hashFunc)
+		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index)
 		if !bytes.Equal(k[:], addr.PublicSpendKey[:]) {
 			return false, nil
 		}

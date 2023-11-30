@@ -3,35 +3,27 @@ package mixin
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 
-	"github.com/shopspring/decimal"
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 )
 
 type (
 	// GhostKeys transaction ghost keys
-	GhostKeys struct {
-		Mask Key   `json:"mask"`
-		Keys []Key `json:"keys"`
+	SafeGhostKeys struct {
+		Mask mixinnet.Key   `json:"mask"`
+		Keys []mixinnet.Key `json:"keys"`
 	}
 
-	GhostKeyInput struct {
+	SafeGhostKeyInput struct {
 		Receivers []string `json:"receivers"`
 		Index     int      `json:"index"`
 		Hint      string   `json:"hint"`
 	}
 )
 
-func (g GhostKeys) DumpOutput(threshold uint8, amount decimal.Decimal) *Output {
-	return &Output{
-		Mask:   g.Mask,
-		Keys:   g.Keys,
-		Amount: NewIntegerFromDecimal(amount),
-		Script: NewThresholdScript(threshold),
-	}
-}
-
-func (c *Client) SafeCreateGhostKeys(ctx context.Context, inputs []*GhostKeyInput) ([]*GhostKeys, error) {
-	var resp []*GhostKeys
+func (c *Client) SafeCreateGhostKeys(ctx context.Context, inputs []*SafeGhostKeyInput) ([]*SafeGhostKeys, error) {
+	var resp []*SafeGhostKeys
 	if err := c.Post(ctx, "/safe/keys", inputs, &resp); err != nil {
 		return nil, err
 	}
@@ -39,25 +31,25 @@ func (c *Client) SafeCreateGhostKeys(ctx context.Context, inputs []*GhostKeyInpu
 	return resp, nil
 }
 
-func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, trace string, ma *MixAddress, outputIndex uint) (*GhostKeys, error) {
+func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, txVer uint8, trace string, ma *MixAddress, outputIndex uint) (*SafeGhostKeys, error) {
 	if len(ma.xinMembers) > 0 {
-		r := NewKey(rand.Reader)
-		gkr := &GhostKeys{
+		r := mixinnet.GenerateKey(rand.Reader)
+		gkr := &SafeGhostKeys{
 			Mask: r.Public(),
-			Keys: make([]Key, len(ma.xinMembers)),
+			Keys: make([]mixinnet.Key, len(ma.xinMembers)),
 		}
 		for i, a := range ma.xinMembers {
-			k := SafeDeriveGhostPublicKey(&r, &a.PublicViewKey, &a.PublicSpendKey, uint64(outputIndex))
+			k := mixinnet.DeriveGhostPublicKey(txVer, &r, &a.PublicViewKey, &a.PublicSpendKey, uint64(outputIndex))
 			gkr.Keys[i] = *k
 		}
 		return gkr, nil
 	}
 
-	gks, err := c.SafeCreateGhostKeys(ctx, []*GhostKeyInput{
+	gks, err := c.SafeCreateGhostKeys(ctx, []*SafeGhostKeyInput{
 		{
 			Receivers: ma.Members(),
 			Index:     int(ma.Threshold),
-			Hint:      trace,
+			Hint:      uuidHash([]byte(fmt.Sprintf("trace:%s;index:%d", trace, outputIndex))),
 		},
 	})
 	if err != nil {

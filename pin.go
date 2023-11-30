@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 )
 
 func (c *Client) VerifyPin(ctx context.Context, pin string) error {
 	body := map[string]interface{}{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		timestamp := uint64(time.Now().UnixNano())
 		tipBody := []byte(fmt.Sprintf("%s%032d", TIPVerify, timestamp))
 		body["timestamp"] = timestamp

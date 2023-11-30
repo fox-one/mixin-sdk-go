@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -32,7 +33,7 @@ type CollectibleOutput struct {
 	OutputID           string          `json:"output_id,omitempty"`
 	TokenID            string          `json:"token_id,omitempty"`
 	Extra              string          `json:"extra,omitempty"`
-	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
+	TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
 	OutputIndex        int             `json:"output_index,omitempty"`
 	Amount             decimal.Decimal `json:"amount,omitempty"`
 	Senders            []string        `json:"senders,omitempty"`
@@ -59,7 +60,7 @@ type CollectibleRequest struct {
 	Signers            []string        `json:"signers,omitempty"`
 	Action             string          `json:"action,omitempty"`
 	State              string          `json:"state,omitempty"`
-	TransactionHash    Hash            `json:"transaction_hash,omitempty"`
+	TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
 	RawTransaction     string          `json:"raw_transaction,omitempty"`
 	CodeID             string          `json:"code_id"`
 }
@@ -84,7 +85,7 @@ func (c *Client) ReadCollectibleOutputs(ctx context.Context, members []string, t
 			return nil, errors.New("invalid members")
 		}
 
-		params["members"] = HashMembers(members)
+		params["members"] = mixinnet.HashMembers(members)
 		params["threshold"] = strconv.Itoa(int(threshold))
 	}
 
@@ -103,16 +104,17 @@ func ReadCollectibleOutputs(ctx context.Context, accessToken string, members []s
 
 func (c *Client) MakeCollectibleTransaction(
 	ctx context.Context,
+	txVer uint8,
 	output *CollectibleOutput,
 	token *CollectibleToken,
 	receivers []string,
 	threshold uint8,
-) (*Transaction, error) {
-	tx := &Transaction{
-		Version: TxVersionReferences,
+) (*mixinnet.Transaction, error) {
+	tx := &mixinnet.Transaction{
+		Version: txVer,
 		Asset:   token.MixinID,
 		Extra:   token.NFO,
-		Inputs: []*Input{{
+		Inputs: []*mixinnet.Input{{
 			Hash:  &output.TransactionHash,
 			Index: uint64(output.OutputIndex),
 		}},
@@ -127,7 +129,14 @@ func (c *Client) MakeCollectibleTransaction(
 		return nil, err
 	}
 
-	tx.Outputs = []*Output{ghostInputs[0].DumpOutput(threshold, output.Amount)}
+	tx.Outputs = []*mixinnet.Output{
+		{
+			Keys:   ghostInputs[0].Keys,
+			Mask:   ghostInputs[0].Mask,
+			Amount: mixinnet.IntegerFromDecimal(output.Amount),
+			Script: mixinnet.NewThresholdScript(threshold),
+		},
+	}
 	return tx, nil
 }
 
@@ -135,12 +144,13 @@ func (c *Client) MakeCollectibleTransaction(
 func MakeCollectibleTransaction(
 	ctx context.Context,
 	accessToken string,
+	txVer uint8,
 	output *CollectibleOutput,
 	token *CollectibleToken,
 	receivers []string,
 	threshold uint8,
-) (*Transaction, error) {
-	return NewFromAccessToken(accessToken).MakeCollectibleTransaction(ctx, output, token, receivers, threshold)
+) (*mixinnet.Transaction, error) {
+	return NewFromAccessToken(accessToken).MakeCollectibleTransaction(ctx, txVer, output, token, receivers, threshold)
 }
 
 // CreateCollectibleRequest create a collectibles request
@@ -166,7 +176,7 @@ func CreateCollectibleRequest(ctx context.Context, accessToken, action, raw stri
 // SignCollectibleRequest sign a collectibles request
 func (c *Client) SignCollectibleRequest(ctx context.Context, reqID, pin string) (*CollectibleRequest, error) {
 	params := map[string]string{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		params["pin_base64"] = c.EncryptTipPin(key, TIPCollectibleRequestSign, reqID)
 	} else {
 		params["pin"] = c.EncryptPin(pin)
@@ -199,7 +209,7 @@ func CancelCollectibleRequest(ctx context.Context, accessToken, reqID string) er
 // UnlockCollectibleRequest unlock a collectibles request
 func (c *Client) UnlockCollectibleRequest(ctx context.Context, reqID, pin string) error {
 	params := map[string]string{}
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		params["pin_base64"] = c.EncryptTipPin(key, TIPCollectibleRequestUnlock, reqID)
 	} else {
 		params["pin"] = c.EncryptPin(pin)
