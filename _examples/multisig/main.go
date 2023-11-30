@@ -121,32 +121,46 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
-	amount := utxo.Amount.Div(decimal.NewFromFloat(2)).Truncate(8)
-	if amount.IsZero() {
-		amount = utxo.Amount
-	}
-
-	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
-		Memo:   "multisig test",
-		Inputs: []*mixin.MultisigUTXO{utxo},
-		Outputs: []mixin.TransactionOutput{
+	input := mixinnet.TransactionInput{
+		TxVersion: mixinnet.TxVersionLegacy,
+		Memo:      "multisig test",
+		Inputs: []*mixinnet.InputUTXO{
 			{
-				Receivers: []string{client.ClientID},
-				Threshold: 1,
-				Amount:    amount,
+				Input: mixinnet.Input{
+					Hash:  &utxo.TransactionHash,
+					Index: uint64(utxo.OutputIndex),
+				},
+				Asset:  utxo.Asset(),
+				Amount: utxo.Amount,
 			},
 		},
 		Hint: newUUID(),
-	})
-
+	}
+	mixAddr, err := mixin.NewMixAddress([]string{client.ClientID}, 1)
 	if err != nil {
-		log.Panicf("MakeMultisigTransaction: %v", err)
+		log.Panicf("NewMixAddress: %v", err)
 	}
 
-	raw, err := tx.DumpTransaction()
+	if err := client.AppendOutputsToInput(ctx, &input, []*mixin.TransactionOutputInput{
+		{
+			Address: *mixAddr,
+			Amount:  utxo.Amount,
+		},
+	}); err != nil {
+		log.Panicf("AppendOutputsToInput: %v", err)
+	}
+
+	tx, err := input.Build()
+	if err != nil {
+		log.Panicf("TransactionInput.Build: %v", err)
+	}
+
+	raw, err := tx.Dump()
 	if err != nil {
 		log.Panicf("DumpTransaction: %v", err)
 	}
+
+	log.Println("raw transaction", raw)
 
 	{
 		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
@@ -154,7 +168,7 @@ func main() {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
 
-		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
+		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
@@ -200,7 +214,7 @@ func main() {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
 
-		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
+		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
@@ -215,7 +229,7 @@ func main() {
 			log.Panicf("CreateMultisig: %v", err)
 		}
 
-		txHash, err := client.SendRawTransaction(ctx, req.RawTransaction)
+		txHash, err := mnClient.SendRawTransaction(ctx, req.RawTransaction)
 		if err != nil {
 			log.Panicf("SendRawTransaction: %v\n", err)
 		}
