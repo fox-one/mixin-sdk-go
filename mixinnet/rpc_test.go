@@ -11,7 +11,7 @@ func TestRPC(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("legacy-network", func(t *testing.T) {
-		client := DefaultClient(false)
+		client := NewClient(DefaultLegacyConfig)
 
 		info, err := client.ReadConsensusInfo(ctx)
 		require.Nil(t, err, "ReadConsensusInfo")
@@ -42,7 +42,7 @@ func TestRPC(t *testing.T) {
 	})
 
 	t.Run("safe-network", func(t *testing.T) {
-		client := DefaultClient(true)
+		client := NewClient(DefaultSafeConfig)
 
 		info, err := client.ReadConsensusInfo(ctx)
 		require.Nil(t, err, "ReadConsensusInfo")

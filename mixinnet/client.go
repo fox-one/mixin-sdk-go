@@ -9,6 +9,11 @@ import (
 )
 
 type (
+	Config struct {
+		Safe  bool
+		Hosts []string
+	}
+
 	Client struct {
 		http.Client
 		safe  bool
@@ -17,37 +22,31 @@ type (
 )
 
 var (
-	defaultLegacyMixinNetClient = NewClient(false)
-	defaultSafeMixinNetClient   = NewClient(true)
+	DefaultLegacyConfig = Config{
+		Safe:  false,
+		Hosts: legacyHosts,
+	}
+	DefaultSafeConfig = Config{
+		Safe:  true,
+		Hosts: safeHosts,
+	}
 )
 
-func DefaultClient(safe bool) *Client {
-	if safe {
-		return defaultSafeMixinNetClient
-	} else {
-		return defaultLegacyMixinNetClient
-	}
-}
-
-func NewClient(safe bool, hosts ...string) *Client {
-	if len(hosts) == 0 {
-		if safe {
-			hosts = safeHosts
+func NewClient(cfg Config) *Client {
+	if len(cfg.Hosts) == 0 {
+		if cfg.Safe {
+			cfg.Hosts = safeHosts
 		} else {
-			hosts = legacyHosts
+			cfg.Hosts = legacyHosts
 		}
 	}
 	return &Client{
-		hosts: hosts,
-		safe:  safe,
+		hosts: cfg.Hosts,
+		safe:  cfg.Safe,
 		Client: http.Client{
 			Timeout: 10 * time.Second,
 		},
 	}
-}
-
-func (c *Client) SetHosts(hosts []string) {
-	c.hosts = hosts
 }
 
 func (c *Client) CallMixinNetRPC(ctx context.Context, resp interface{}, method string, params ...interface{}) error {

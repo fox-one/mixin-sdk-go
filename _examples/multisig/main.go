@@ -42,7 +42,7 @@ func main() {
 		log.Panicln(err)
 	}
 
-	mnClient := mixinnet.DefaultClient(false)
+	mnClient := mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
 	ctx := mnClient.WithHost(context.Background(), mnClient.RandomHost())
 
 	me, err := client.UserMe(ctx)

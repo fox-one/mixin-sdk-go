@@ -31,7 +31,11 @@ func SafeSignTransaction(ctx context.Context, spendKey mixinnet.Key, request *Sa
 		}
 	}
 	viewOffset := 0
-	client := mixinnet.DefaultClient(tx.Version >= mixinnet.TxVersionHashSignature)
+	cfg := mixinnet.DefaultSafeConfig
+	if tx.Version < mixinnet.TxVersionHashSignature {
+		cfg = mixinnet.DefaultLegacyConfig
+	}
+	client := mixinnet.NewClient(cfg)
 	for i, input := range tx.Inputs {
 		utxos, ok := inputUtxos[mixinnet.Hash(*input.Hash)]
 		if !ok {

@@ -23,7 +23,7 @@ type (
 func NewMonitor(host string) *Monitor {
 	return &Monitor{
 		host:   host,
-		client: mixinnet.NewClient(true, host),
+		client: mixinnet.NewClient(mixinnet.Config{Safe: true, Hosts: []string{host}}),
 	}
 }
 

@@ -120,7 +120,7 @@ func handleSignedOutput(ctx context.Context, output *mixin.CollectibleOutput) {
 		return
 	}
 
-	client := mixinnet.DefaultClient(false)
+	client := mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
 	if _, err := client.SendRawTransaction(ctx, output.SignedTx); err != nil {
 		log.Panicln(err)
 	}

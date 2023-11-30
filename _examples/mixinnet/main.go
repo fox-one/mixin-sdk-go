@@ -43,7 +43,7 @@ func main() {
 		addr      = mixinnet.GenerateAddress(rand.Reader)
 		tx        *mixinnet.Transaction
 		privGhost *mixinnet.Key
-		mnClient  = mixinnet.DefaultClient(false)
+		mnClient  = mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
 
 		ctx = mnClient.WithHost(context.Background(), mnClient.RandomHost())
 	)
