@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"

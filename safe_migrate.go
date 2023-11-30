@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"golang.org/x/crypto/sha3"
 )
 

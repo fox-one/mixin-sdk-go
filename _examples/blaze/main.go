@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2"
 	"github.com/gofrs/uuid"
 )
 

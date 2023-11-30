@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"filippo.io/edwards25519"
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 )
 
 func SafeSignTransaction(ctx context.Context, spendKey mixinnet.Key, request *SafeTransactionRequest, inputUtxos map[mixinnet.Hash]map[uint64]*SafeUtxo) (*mixinnet.Transaction, error) {

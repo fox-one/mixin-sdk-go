@@ -3,7 +3,7 @@ package mixin
 import (
 	"encoding/base64"
 
-	"github.com/fox-one/mixin-sdk-go/nft"
+	"github.com/fox-one/mixin-sdk-go/v2/nft"
 	"golang.org/x/crypto/sha3"
 )
 

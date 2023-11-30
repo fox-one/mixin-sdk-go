@@ -26,7 +26,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2"
 )
 
 func main() {

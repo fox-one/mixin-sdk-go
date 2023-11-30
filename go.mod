@@ -1,4 +1,4 @@
-module github.com/fox-one/mixin-sdk-go
+module github.com/fox-one/mixin-sdk-go/v2
 
 go 1.16
 

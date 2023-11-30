@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 )
 
 func (c *Client) VerifyPin(ctx context.Context, pin string) error {

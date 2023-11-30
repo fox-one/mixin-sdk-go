@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 )
 
 func (c *Client) TransferOwnership(ctx context.Context, newOwner, pin string) error {

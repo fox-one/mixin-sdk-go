@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/stretchr/testify/require"
 )
 

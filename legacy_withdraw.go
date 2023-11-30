@@ -3,7 +3,7 @@ package mixin
 import (
 	"context"
 
-	"github.com/fox-one/mixin-sdk-go/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
