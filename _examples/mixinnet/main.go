@@ -133,53 +133,36 @@ func main() {
 	}
 
 	{
-		input := mixinnet.TransactionInput{
-			TxVersion: mixinnet.TxVersionLegacy,
-			Memo:      "transaction test to mainnet address",
-			Hint:      uuid.Must(uuid.NewV4()).String(),
-			Inputs: []*mixinnet.InputUTXO{
-				{
-					Input: mixinnet.Input{
-						Hash:  tx.Hash,
-						Index: 0,
-					},
-					Asset:  tx.Asset,
-					Amount: decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-				},
-			},
-		}
 		mixAddr, err := mixin.NewMainnetMixAddress([]string{addr.String()}, 1)
 		if err != nil {
 			log.Printf("mixin.NewMainnetMixAddress failed: %v\n", err)
 			return
 		}
-
-		{
-			inputs := []*mixin.TransactionOutputInput{
+		tx, err = client.MakeLegacyTransaction(
+			ctx,
+			uuid.Must(uuid.NewV4()).String(),
+			[]*mixin.MultisigUTXO{
+				{
+					AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+					TransactionHash: *tx.Hash,
+					OutputIndex:     0,
+					Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+					Members:         []string{client.ClientID},
+					Threshold:       1,
+				},
+			},
+			[]*mixin.TransactionOutputInput{
 				{
 					Address: *mixAddr,
 					Amount:  decimal.New(1, -8),
 				},
-			}
-			if amount := decimal.RequireFromString(tx.Outputs[0].Amount.String()); amount.GreaterThan(decimal.New(1, -8)) {
-				mixAddr, err := mixin.NewMixAddress([]string{client.ClientID}, 1)
-				if err != nil {
-					log.Printf("mixin.NewMainnetMixAddress failed: %v\n", err)
-					return
-				}
-				inputs = append(inputs, &mixin.TransactionOutputInput{
-					Address: *mixAddr,
-					Amount:  amount.Sub(decimal.New(1, -8)),
-				})
-			}
-			if err := client.AppendOutputsToInput(ctx, &input, inputs); err != nil {
-				log.Printf("AppendOutputsToInput failed: %v\n", err)
-				return
-			}
-		}
-		tx, err = input.Build()
+			},
+			nil,
+			"transaction test to mixinnet address",
+		)
+
 		if err != nil {
-			log.Printf("TransactionInput.Build: %v\n", err)
+			log.Printf("MakeLegacyTransaction failed: %v\n", err)
 			return
 		}
 
@@ -250,39 +233,30 @@ func main() {
 	}
 
 	{
-		input := mixinnet.TransactionInput{
-			TxVersion: mixinnet.TxVersionLegacy,
-			Memo:      "transaction test to mixin wallet",
-			Hint:      uuid.Must(uuid.NewV4()).String(),
-			Inputs: []*mixinnet.InputUTXO{
+		tx, err = client.MakeLegacyTransaction(
+			ctx,
+			uuid.Must(uuid.NewV4()).String(),
+			[]*mixin.MultisigUTXO{
 				{
-					Input: mixinnet.Input{
-						Hash:  tx.Hash,
-						Index: 0,
-					},
-					Asset:  tx.Asset,
-					Amount: decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+					AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+					TransactionHash: *tx.Hash,
+					OutputIndex:     0,
+					Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+					Members:         []string{client.ClientID},
+					Threshold:       1,
 				},
 			},
-		}
-		// mixAddr, err := mixin.NewMainnetMixAddress([]string{addr.String()}, 1)
-		mixAddr, err := mixin.NewMixAddress([]string{client.ClientID}, 1)
-		if err != nil {
-			log.Printf("mixin.NewMainnetMixAddress failed: %v\n", err)
-			return
-		}
-		if err := client.AppendOutputsToInput(ctx, &input, []*mixin.TransactionOutputInput{
-			{
-				Address: *mixAddr,
-				Amount:  decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+			[]*mixin.TransactionOutputInput{
+				{
+					Address: *mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
+					Amount:  decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+				},
 			},
-		}); err != nil {
-			log.Printf("AppendOutputsToInput failed: %v\n", err)
-			return
-		}
-		tx, err = input.Build()
+			nil,
+			"transaction test to mixin wallet",
+		)
 		if err != nil {
-			log.Printf("TransactionInput.Build: %v\n", err)
+			log.Printf("MakeLegacyTransaction: %v\n", err)
 			return
 		}
 

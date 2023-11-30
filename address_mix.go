@@ -24,6 +24,22 @@ type (
 	}
 )
 
+func RequireNewMixAddress(members []string, threshold byte) *MixAddress {
+	addr, err := NewMixAddress(members, threshold)
+	if err != nil {
+		panic(err)
+	}
+	return addr
+}
+
+func RequireNewMainnetMixAddress(members []string, threshold byte) *MixAddress {
+	addr, err := NewMainnetMixAddress(members, threshold)
+	if err != nil {
+		panic(err)
+	}
+	return addr
+}
+
 func NewMixAddress(members []string, threshold byte) (*MixAddress, error) {
 	if len(members) > 255 {
 		return nil, fmt.Errorf("invlaid member count: %d", len(members))

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -23,12 +21,7 @@ var (
 )
 
 func newUUID() string {
-	u, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
-	}
-
-	return u.String()
+	return uuid.Must(uuid.NewV4()).String()
 }
 
 func main() {
@@ -58,7 +51,7 @@ func main() {
 	}
 
 	// create sub wallet
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	privateKey := mixin.GenerateEd25519Key()
 	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
 	if err != nil {
 		log.Printf("CreateUser: %v", err)
@@ -121,38 +114,21 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
-	input := mixinnet.TransactionInput{
-		TxVersion: mixinnet.TxVersionLegacy,
-		Memo:      "multisig test",
-		Inputs: []*mixinnet.InputUTXO{
+	tx, err := client.MakeLegacyTransaction(
+		ctx,
+		newUUID(),
+		[]*mixin.MultisigUTXO{utxo},
+		[]*mixin.TransactionOutputInput{
 			{
-				Input: mixinnet.Input{
-					Hash:  &utxo.TransactionHash,
-					Index: uint64(utxo.OutputIndex),
-				},
-				Asset:  utxo.Asset(),
-				Amount: utxo.Amount,
+				Address: *mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
+				Amount:  utxo.Amount,
 			},
 		},
-		Hint: newUUID(),
-	}
-	mixAddr, err := mixin.NewMixAddress([]string{client.ClientID}, 1)
+		nil,
+		"multisig test",
+	)
 	if err != nil {
-		log.Panicf("NewMixAddress: %v", err)
-	}
-
-	if err := client.AppendOutputsToInput(ctx, &input, []*mixin.TransactionOutputInput{
-		{
-			Address: *mixAddr,
-			Amount:  utxo.Amount,
-		},
-	}); err != nil {
-		log.Panicf("AppendOutputsToInput: %v", err)
-	}
-
-	tx, err := input.Build()
-	if err != nil {
-		log.Panicf("TransactionInput.Build: %v", err)
+		log.Panicf("MakeLegacyTransaction: %v", err)
 	}
 
 	raw, err := tx.Dump()

@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
@@ -33,52 +32,33 @@ func TestBuildTransaction(t *testing.T) {
 			t.Log("empty unspent utxo")
 			return
 		}
-		input := mixinnet.TransactionInput{
-			TxVersion: mixinnet.TxVersionHashSignature,
-			Memo:      "TestSafeMakeTransaction",
-			Inputs: []*mixinnet.InputUTXO{
-				{
-					Input: mixinnet.Input{
-						Hash:  &utxos[0].TransactionHash,
-						Index: utxos[0].OutputIndex,
-					},
-					Asset:  utxos[0].Asset,
-					Amount: utxos[0].Amount,
-				},
+
+		addr := RequireNewMixAddress([]string{dapp.ClientID}, 1)
+		outputs := []*TransactionOutputInput{
+			{
+				Address: *addr,
+				Amount:  decimal.New(1, -8),
 			},
-			Hint: uuid.Must(uuid.NewV4()).String(),
+		}
+		if utxos[0].Amount.GreaterThan(decimal.New(1, -8)) {
+			outputs = append(outputs, &TransactionOutputInput{
+				Address: *addr,
+				Amount:  utxos[0].Amount.Sub(decimal.New(1, -8)),
+			})
 		}
 
-		addr, err := NewMixAddress([]string{"6a00a4bc-229e-3c39-978a-91d2d6c382bf"}, byte(1))
-		require.NoError(err, "NewMixAddress")
-
-		{
-			outputs := []*TransactionOutputInput{
-				{
-					Address: *addr,
-					Amount:  decimal.New(1, -8),
-				},
-			}
-			if utxos[0].Amount.GreaterThan(decimal.New(1, -8)) {
-				outputs = append(outputs, &TransactionOutputInput{
-					Address: *addr,
-					Amount:  utxos[0].Amount.Sub(decimal.New(1, -8)),
-				})
-			}
-
-			require.NoError(dapp.AppendOutputsToInput(ctx, &input, outputs), "AppendOutputsToInput")
-		}
-
-		tx, err := input.Build()
-		require.NoError(err, "TransactionInput.Build")
+		tx, err := dapp.MakeSafeTransaction(
+			ctx,
+			uuid.Must(uuid.NewV4()).String(),
+			utxos,
+			outputs,
+			nil,
+			"TestSafeMakeTransaction",
+		)
+		require.NoError(err, "MakeSafeTransaction")
 
 		raw, err := tx.Dump()
 		require.NoError(err, "Dump")
-
-		{
-			bts, _ := json.MarshalIndent(tx, "", "  ")
-			t.Log(string(bts))
-		}
 		t.Log(raw)
 
 		requests, err := dapp.SafeCreateTransactionRequest(ctx, []*SafeTransactionRequestInput{
@@ -121,6 +101,8 @@ func TestBuildTransaction(t *testing.T) {
 
 		_, err = dapp.SafeReadTransactionRequest(ctx, requests1[0].RequestID)
 		require.NoError(err, "SafeReadTransactionRequest")
+
+		t.Log(requests1[0].TransactionHash)
 	})
 
 }

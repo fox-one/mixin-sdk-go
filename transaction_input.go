@@ -70,7 +70,6 @@ func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.Trans
 			r := mixinnet.GenerateKey(rand.Reader)
 			keys := make([]mixinnet.Key, len(output.Address.xinMembers))
 			for i, addr := range output.Address.xinMembers {
-				fmt.Println("DeriveGhostPublicKey", i, input.TxVersion, addr.PublicViewKey, addr.PublicSpendKey, uint64(len(input.Outputs)))
 				keys[i] = *mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint64(len(input.Outputs)))
 			}
 			input.Outputs = append(input.Outputs, &mixinnet.Output{
@@ -93,4 +92,102 @@ func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.Trans
 		}
 	}
 	return nil
+}
+
+func (c *Client) MakeLegacyTransaction(ctx context.Context, hint string, utxos []*MultisigUTXO, outputs []*TransactionOutputInput, references []mixinnet.Hash, memo string) (*mixinnet.Transaction, error) {
+	if len(utxos) == 0 {
+		return nil, fmt.Errorf("empty utxos")
+	}
+
+	input := &mixinnet.TransactionInput{
+		TxVersion:  mixinnet.TxVersionLegacy,
+		Memo:       memo,
+		Hint:       hint,
+		References: references,
+		Inputs:     make([]*mixinnet.InputUTXO, len(utxos)),
+	}
+	for i, utxo := range utxos {
+		input.Inputs[i] = &mixinnet.InputUTXO{
+			Input: mixinnet.Input{
+				Hash:  &utxo.TransactionHash,
+				Index: uint64(utxo.OutputIndex),
+			},
+			Asset:  utxo.Asset(),
+			Amount: utxo.Amount,
+		}
+	}
+
+	// refund the change
+	{
+		change := input.TotalInputAmount()
+		for _, output := range outputs {
+			change = change.Sub(output.Amount)
+		}
+
+		if change.IsPositive() {
+			mixAddr, err := NewMixAddress(utxos[0].Members, utxos[0].Threshold)
+			if err != nil {
+				return nil, err
+			}
+			outputs = append(outputs, &TransactionOutputInput{
+				Address: *mixAddr,
+				Amount:  change,
+			})
+		}
+	}
+
+	if err := c.AppendOutputsToInput(ctx, input, outputs); err != nil {
+		return nil, err
+	}
+
+	return input.Build()
+}
+
+func (c *Client) MakeSafeTransaction(ctx context.Context, hint string, utxos []*SafeUtxo, outputs []*TransactionOutputInput, references []mixinnet.Hash, memo string) (*mixinnet.Transaction, error) {
+	if len(utxos) == 0 {
+		return nil, fmt.Errorf("empty utxos")
+	}
+
+	input := &mixinnet.TransactionInput{
+		TxVersion:  mixinnet.TxVersion,
+		Memo:       memo,
+		Hint:       hint,
+		References: references,
+		Inputs:     make([]*mixinnet.InputUTXO, len(utxos)),
+	}
+	for i, utxo := range utxos {
+		input.Inputs[i] = &mixinnet.InputUTXO{
+			Input: mixinnet.Input{
+				Hash:  &utxo.TransactionHash,
+				Index: uint64(utxo.OutputIndex),
+			},
+			Asset:  utxo.Asset,
+			Amount: utxo.Amount,
+		}
+	}
+
+	// refund the change
+	{
+		change := input.TotalInputAmount()
+		for _, output := range outputs {
+			change = change.Sub(output.Amount)
+		}
+
+		if change.IsPositive() {
+			mixAddr, err := NewMixAddress(utxos[0].Receivers, utxos[0].ReceiversThreshold)
+			if err != nil {
+				return nil, err
+			}
+			outputs = append(outputs, &TransactionOutputInput{
+				Address: *mixAddr,
+				Amount:  change,
+			})
+		}
+	}
+
+	if err := c.AppendOutputsToInput(ctx, input, outputs); err != nil {
+		return nil, err
+	}
+
+	return input.Build()
 }
