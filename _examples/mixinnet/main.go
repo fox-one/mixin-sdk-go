@@ -12,7 +12,6 @@ import (
 
 	"github.com/fox-one/mixin-sdk-go/v2"
 	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
-	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -133,36 +132,25 @@ func main() {
 	}
 
 	{
-		mixAddr, err := mixin.NewMainnetMixAddress([]string{addr.String()}, 1)
-		if err != nil {
-			log.Printf("mixin.NewMainnetMixAddress failed: %v\n", err)
-			return
-		}
-		tx, err = client.MakeLegacyTransaction(
-			ctx,
-			uuid.Must(uuid.NewV4()).String(),
-			[]*mixin.MultisigUTXO{
-				{
-					AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-					TransactionHash: *tx.Hash,
-					OutputIndex:     0,
-					Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-					Members:         []string{client.ClientID},
-					Threshold:       1,
-				},
+		builder := mixin.NewLegacyTransactionBuilder([]*mixin.MultisigUTXO{
+			{
+				AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+				TransactionHash: *tx.Hash,
+				OutputIndex:     0,
+				Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+				Members:         []string{client.ClientID},
+				Threshold:       1,
 			},
-			[]*mixin.TransactionOutputInput{
-				{
-					Address: *mixAddr,
-					Amount:  decimal.New(1, -8),
-				},
+		})
+		builder.Memo = "transaction test to mixinnet address"
+		tx, err = client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
+			{
+				Address: mixin.RequireNewMainnetMixAddress([]string{addr.String()}, 1),
+				Amount:  decimal.New(1, -8),
 			},
-			nil,
-			"transaction test to mixinnet address",
-		)
-
+		})
 		if err != nil {
-			log.Printf("MakeLegacyTransaction failed: %v\n", err)
+			log.Printf("MakeTransaction failed: %v\n", err)
 			return
 		}
 
@@ -233,30 +221,25 @@ func main() {
 	}
 
 	{
-		tx, err = client.MakeLegacyTransaction(
-			ctx,
-			uuid.Must(uuid.NewV4()).String(),
-			[]*mixin.MultisigUTXO{
-				{
-					AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-					TransactionHash: *tx.Hash,
-					OutputIndex:     0,
-					Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-					Members:         []string{client.ClientID},
-					Threshold:       1,
-				},
+		builder := mixin.NewLegacyTransactionBuilder([]*mixin.MultisigUTXO{
+			{
+				AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
+				TransactionHash: *tx.Hash,
+				OutputIndex:     0,
+				Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+				Members:         []string{client.ClientID},
+				Threshold:       1,
 			},
-			[]*mixin.TransactionOutputInput{
-				{
-					Address: *mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
-					Amount:  decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-				},
+		})
+		builder.Memo = "transaction test to mixinnet address"
+		tx, err = client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
+			{
+				Address: mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
+				Amount:  decimal.RequireFromString(tx.Outputs[0].Amount.String()),
 			},
-			nil,
-			"transaction test to mixin wallet",
-		)
+		})
 		if err != nil {
-			log.Printf("MakeLegacyTransaction: %v\n", err)
+			log.Printf("MakeTransaction failed: %v\n", err)
 			return
 		}
 

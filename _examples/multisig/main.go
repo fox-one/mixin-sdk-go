@@ -114,21 +114,18 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
-	tx, err := client.MakeLegacyTransaction(
-		ctx,
-		newUUID(),
+	builder := mixin.NewLegacyTransactionBuilder(
 		[]*mixin.MultisigUTXO{utxo},
-		[]*mixin.TransactionOutputInput{
-			{
-				Address: *mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
-				Amount:  utxo.Amount,
-			},
-		},
-		nil,
-		"multisig test",
 	)
+	builder.Memo = "multisig test"
+	tx, err := client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
+		{
+			Address: mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
+			Amount:  utxo.Amount,
+		},
+	})
 	if err != nil {
-		log.Panicf("MakeLegacyTransaction: %v", err)
+		log.Panicf("TransactionBuilder.Build: %v", err)
 	}
 
 	raw, err := tx.Dump()
