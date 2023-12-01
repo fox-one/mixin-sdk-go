@@ -82,7 +82,7 @@ type (
 
 	Input struct {
 		Hash    *Hash        `json:"hash,omitempty"`
-		Index   uint64       `json:"index,omitempty"`
+		Index   uint8        `json:"index,omitempty"`
 		Genesis []byte       `json:"genesis,omitempty"`
 		Deposit *DepositData `json:"deposit,omitempty"`
 		Mint    *MintData    `json:"mint,omitempty"`

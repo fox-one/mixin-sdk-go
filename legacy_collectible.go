@@ -34,7 +34,7 @@ type CollectibleOutput struct {
 	TokenID            string          `json:"token_id,omitempty"`
 	Extra              string          `json:"extra,omitempty"`
 	TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
-	OutputIndex        int             `json:"output_index,omitempty"`
+	OutputIndex        uint8           `json:"output_index,omitempty"`
 	Amount             decimal.Decimal `json:"amount,omitempty"`
 	Senders            []string        `json:"senders,omitempty"`
 	SendersThreshold   uint8           `json:"senders_threshold,omitempty"`
@@ -116,7 +116,7 @@ func (c *Client) MakeCollectibleTransaction(
 		Extra:   token.NFO,
 		Inputs: []*mixinnet.Input{{
 			Hash:  &output.TransactionHash,
-			Index: uint64(output.OutputIndex),
+			Index: output.OutputIndex,
 		}},
 	}
 

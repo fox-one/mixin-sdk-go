@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
-	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -34,75 +32,56 @@ func TestBuildTransaction(t *testing.T) {
 		}
 
 		addr := RequireNewMixAddress([]string{dapp.ClientID}, 1)
-		outputs := []*TransactionOutputInput{
+		outputs := []*TransactionOutput{
 			{
-				Address: *addr,
+				Address: addr,
 				Amount:  decimal.New(1, -8),
 			},
 		}
+
 		if utxos[0].Amount.GreaterThan(decimal.New(1, -8)) {
-			outputs = append(outputs, &TransactionOutputInput{
-				Address: *addr,
+			outputs = append(outputs, &TransactionOutput{
+				Address: addr,
 				Amount:  utxos[0].Amount.Sub(decimal.New(1, -8)),
 			})
 		}
 
-		tx, err := dapp.MakeSafeTransaction(
-			ctx,
-			uuid.Must(uuid.NewV4()).String(),
-			utxos,
-			outputs,
-			nil,
-			"TestSafeMakeTransaction",
-		)
+		b := NewSafeTransactionBuilder(utxos)
+		b.Memo = "TestSafeMakeTransaction"
+
+		tx, err := dapp.MakeTransaction(ctx, b, outputs)
 		require.NoError(err, "MakeSafeTransaction")
 
 		raw, err := tx.Dump()
 		require.NoError(err, "Dump")
 		t.Log(raw)
 
-		requests, err := dapp.SafeCreateTransactionRequest(ctx, []*SafeTransactionRequestInput{
-			{
-				RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeCreateTransactionRequest")),
-				RawTransaction: raw,
-			},
+		request, err := dapp.SafeCreateTransactionRequest(ctx, &SafeTransactionRequestInput{
+			RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeCreateTransactionRequest")),
+			RawTransaction: raw,
 		})
 		require.NoError(err, "SafeCreateTransactionRequest")
-
-		inputUtxos := make(map[mixinnet.Hash]map[uint64]*SafeUtxo, len(utxos))
-		for _, utxo := range utxos {
-			if m, ok := inputUtxos[utxo.TransactionHash]; ok {
-				m[utxo.OutputIndex] = utxo
-			} else {
-				inputUtxos[utxo.TransactionHash] = map[uint64]*SafeUtxo{
-					utxo.OutputIndex: utxo,
-				}
-			}
-		}
-
-		signedTx, err := SafeSignTransaction(
-			ctx,
-			*store.SpendKey,
-			requests[0],
-			inputUtxos,
+		err = SafeSignTransaction(
+			tx,
+			store.SpendKey,
+			request.Views,
+			0,
 		)
 		require.NoError(err, "SafeSignTransaction")
 
-		signedRaw, err := signedTx.Dump()
+		signedRaw, err := tx.Dump()
 		require.NoError(err, "tx.Dump")
 
-		requests1, err := dapp.SafeSubmitTransactionRequest(ctx, []*SafeTransactionRequestInput{
-			{
-				RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeSubmitTransactionRequest")),
-				RawTransaction: signedRaw,
-			},
+		request1, err := dapp.SafeSubmitTransactionRequest(ctx, &SafeTransactionRequestInput{
+			RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeSubmitTransactionRequest")),
+			RawTransaction: signedRaw,
 		})
 		require.NoError(err, "SafeSubmitTransactionRequest")
 
-		_, err = dapp.SafeReadTransactionRequest(ctx, requests1[0].RequestID)
+		_, err = dapp.SafeReadTransactionRequest(ctx, request1.RequestID)
 		require.NoError(err, "SafeReadTransactionRequest")
 
-		t.Log(requests1[0].TransactionHash)
+		t.Log(request1.TransactionHash)
 	})
 
 }

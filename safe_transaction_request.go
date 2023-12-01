@@ -42,13 +42,22 @@ type (
 	}
 )
 
-func (c *Client) SafeCreateTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
+func (c *Client) SafeCreateTransactionRequests(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
 	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transaction/requests", inputs, &resp); err != nil {
 		return nil, err
 	}
 
 	return resp, nil
+}
+
+func (c *Client) SafeCreateTransactionRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeTransactionRequest, error) {
+	requests, err := c.SafeCreateTransactionRequests(ctx, []*SafeTransactionRequestInput{input})
+	if err != nil {
+		return nil, err
+	}
+
+	return requests[0], nil
 }
 
 func (c *Client) SafeReadTransactionRequest(ctx context.Context, requestID string) (*SafeTransactionRequest, error) {
@@ -60,11 +69,20 @@ func (c *Client) SafeReadTransactionRequest(ctx context.Context, requestID strin
 	return &resp, nil
 }
 
-func (c *Client) SafeSubmitTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
+func (c *Client) SafeSubmitTransactionRequests(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
 	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transactions", inputs, &resp); err != nil {
 		return nil, err
 	}
 
 	return resp, nil
+}
+
+func (c *Client) SafeSubmitTransactionRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeTransactionRequest, error) {
+	requests, err := c.SafeSubmitTransactionRequests(ctx, []*SafeTransactionRequestInput{input})
+	if err != nil {
+		return nil, err
+	}
+
+	return requests[0], nil
 }

@@ -44,7 +44,7 @@ func (c *Client) GetTransaction(ctx context.Context, hash Hash) (*Transaction, e
 	return &tx, nil
 }
 
-func (c *Client) GetUTXO(ctx context.Context, hash Hash, outputIndex uint64) (*UTXO, error) {
+func (c *Client) GetUTXO(ctx context.Context, hash Hash, outputIndex uint8) (*UTXO, error) {
 	var utxo UTXO
 	if err := c.CallMixinNetRPC(ctx, &utxo, TxMethodGetUtxo, hash, outputIndex); err != nil {
 		return nil, err

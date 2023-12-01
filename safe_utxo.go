@@ -24,7 +24,7 @@ type (
 		OutputID           string          `json:"output_id,omitempty"`
 		RequestID          string          `json:"request_id,omitempty"`
 		TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
-		OutputIndex        uint64          `json:"output_index,omitempty"`
+		OutputIndex        uint8           `json:"output_index,omitempty"`
 		Asset              mixinnet.Hash   `json:"asset,omitempty"`
 		Amount             decimal.Decimal `json:"amount,omitempty"`
 		Mask               mixinnet.Key    `json:"mask,omitempty"`

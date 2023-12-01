@@ -9,7 +9,7 @@ import (
 )
 
 type (
-	// GhostKeys transaction ghost keys
+	// SafeGhostKeys transaction ghost keys
 	SafeGhostKeys struct {
 		Mask mixinnet.Key   `json:"mask"`
 		Keys []mixinnet.Key `json:"keys"`
