@@ -16,7 +16,9 @@ func SafeSignTransaction(tx *mixinnet.Transaction, spendKey mixinnet.Key, views 
 		return err
 	}
 
-	tx.Signatures = make([]map[uint16]*mixinnet.Signature, len(tx.Inputs))
+	if tx.Signatures == nil {
+		tx.Signatures = make([]map[uint16]*mixinnet.Signature, len(tx.Inputs))
+	}
 
 	for idx, view := range views {
 		x, err := view.ToScalar()
@@ -27,9 +29,12 @@ func SafeSignTransaction(tx *mixinnet.Transaction, spendKey mixinnet.Key, views 
 		var key mixinnet.Key
 		copy(key[:], t.Bytes())
 		sig := key.SignHash(txHash)
-		tx.Signatures[idx] = map[uint16]*mixinnet.Signature{
-			k: &sig,
+
+		if tx.Signatures[idx] == nil {
+			tx.Signatures[idx] = make(map[uint16]*mixinnet.Signature)
 		}
+
+		tx.Signatures[idx][k] = &sig
 	}
 
 	return nil
