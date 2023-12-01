@@ -102,7 +102,7 @@ func (a *Address) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (a Address) CreateUTXO(txVer uint8, outputIndex uint64, amount decimal.Decimal) *Output {
+func (a Address) CreateUTXO(txVer uint8, outputIndex uint8, amount decimal.Decimal) *Output {
 	r := GenerateKey(rand.Reader)
 	pubGhost := DeriveGhostPublicKey(txVer, &r, &a.PublicViewKey, &a.PublicSpendKey, outputIndex)
 	return &Output{
@@ -145,7 +145,7 @@ func (c *Client) VerifyTransaction(ctx context.Context, addr *Address, txHash Ha
 		if len(output.Keys) != 1 {
 			return false, nil
 		}
-		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, uint64(input.Index))
+		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index)
 		if !bytes.Equal(k[:], addr.PublicSpendKey[:]) {
 			return false, nil
 		}

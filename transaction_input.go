@@ -137,13 +137,13 @@ func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.Trans
 		if len(output.Address.xinMembers) > 0 {
 			r := mixinnet.GenerateKey(rand.Reader)
 			for _, addr := range output.Address.xinMembers {
-				key := mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint64(len(input.Outputs)))
+				key := mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint8(len(input.Outputs)))
 				txOutput.Keys = append(txOutput.Keys, *key)
 			}
 
 			txOutput.Mask = r.Public()
 		} else if len(output.Address.uuidMembers) > 0 {
-			index := len(input.Outputs)
+			index := uint8(len(input.Outputs))
 			ghostInputs = append(ghostInputs, &SafeGhostKeyInput{
 				Receivers: output.Address.Members(),
 				Index:     index,

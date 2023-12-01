@@ -17,7 +17,7 @@ type (
 
 	SafeGhostKeyInput struct {
 		Receivers []string `json:"receivers"`
-		Index     int      `json:"index"`
+		Index     uint8    `json:"index"`
 		Hint      string   `json:"hint"`
 	}
 )
@@ -31,7 +31,7 @@ func (c *Client) SafeCreateGhostKeys(ctx context.Context, inputs []*SafeGhostKey
 	return resp, nil
 }
 
-func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, txVer uint8, trace string, ma *MixAddress, outputIndex uint) (*SafeGhostKeys, error) {
+func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, txVer uint8, trace string, ma *MixAddress, outputIndex uint8) (*SafeGhostKeys, error) {
 	if len(ma.xinMembers) > 0 {
 		r := mixinnet.GenerateKey(rand.Reader)
 		gkr := &SafeGhostKeys{
@@ -39,7 +39,7 @@ func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, txVer uint8,
 			Keys: make([]mixinnet.Key, len(ma.xinMembers)),
 		}
 		for i, a := range ma.xinMembers {
-			k := mixinnet.DeriveGhostPublicKey(txVer, &r, &a.PublicViewKey, &a.PublicSpendKey, uint64(outputIndex))
+			k := mixinnet.DeriveGhostPublicKey(txVer, &r, &a.PublicViewKey, &a.PublicSpendKey, outputIndex)
 			gkr.Keys[i] = *k
 		}
 		return gkr, nil
@@ -48,7 +48,7 @@ func (c *Client) SafeCreateMixAddressGhostKeys(ctx context.Context, txVer uint8,
 	gks, err := c.SafeCreateGhostKeys(ctx, []*SafeGhostKeyInput{
 		{
 			Receivers: ma.Members(),
-			Index:     int(ma.Threshold),
+			Index:     outputIndex,
 			Hint:      uuidHash([]byte(fmt.Sprintf("trace:%s;index:%d", trace, outputIndex))),
 		},
 	})
