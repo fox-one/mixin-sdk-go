@@ -102,15 +102,15 @@ func NewSafeTransactionBuilder(utxos []*SafeUtxo) *TransactionBuilder {
 }
 
 func (c *Client) MakeTransaction(ctx context.Context, b *TransactionBuilder, outputs []*TransactionOutput) (*mixinnet.Transaction, error) {
-	amount := b.TotalInputAmount()
+	remain := b.TotalInputAmount()
 	for _, output := range outputs {
-		amount = amount.Sub(output.Amount)
+		remain = remain.Sub(output.Amount)
 	}
 
-	if amount.IsPositive() {
+	if remain.IsPositive() {
 		outputs = append(outputs, &TransactionOutput{
 			Address: b.addr,
-			Amount:  amount,
+			Amount:  remain,
 		})
 	}
 
