@@ -25,46 +25,46 @@ type (
 	}
 )
 
-func (i *TransactionInput) Asset() Hash {
-	if len(i.Inputs) == 0 {
+func (input *TransactionInput) Asset() Hash {
+	if len(input.Inputs) == 0 {
 		return Hash{}
 	}
-	return i.Inputs[0].Asset
+	return input.Inputs[0].Asset
 }
 
-func (i *TransactionInput) TotalInputAmount() decimal.Decimal {
+func (input *TransactionInput) TotalInputAmount() decimal.Decimal {
 	var total decimal.Decimal
-	for _, input := range i.Inputs {
+	for _, input := range input.Inputs {
 		total = total.Add(input.Amount)
 	}
 	return total
 }
 
-func (i *TransactionInput) Validate() error {
-	if len(i.Inputs) == 0 {
+func (input *TransactionInput) Validate() error {
+	if len(input.Inputs) == 0 {
 		return errors.New("no input utxo")
 	}
 
 	var (
-		total = i.TotalInputAmount()
-		asset = i.Asset()
+		total = input.TotalInputAmount()
+		asset = input.Asset()
 	)
 
-	if len(i.Memo) > ExtraSizeGeneralLimit {
+	if len(input.Memo) > ExtraSizeGeneralLimit {
 		return errors.New("invalid memo, extra too long")
 	}
 
-	if len(i.Inputs) > SliceCountLimit || len(i.Outputs) > SliceCountLimit || len(i.References) > SliceCountLimit {
-		return fmt.Errorf("invalid tx inputs or outputs %d %d %d", len(i.Inputs), len(i.Outputs), len(i.References))
+	if len(input.Inputs) > SliceCountLimit || len(input.Outputs) > SliceCountLimit || len(input.References) > SliceCountLimit {
+		return fmt.Errorf("invalid tx inputs or outputs %d %d %d", len(input.Inputs), len(input.Outputs), len(input.References))
 	}
 
-	for _, input := range i.Inputs {
+	for _, input := range input.Inputs {
 		if asset != input.Asset {
 			return errors.New("invalid input utxo, asset not matched")
 		}
 	}
 
-	for _, output := range i.Outputs {
+	for _, output := range input.Outputs {
 		if total = total.Sub(decimal.RequireFromString(output.Amount.String())); total.IsNegative() {
 			return errors.New("invalid output: amount exceed")
 		}

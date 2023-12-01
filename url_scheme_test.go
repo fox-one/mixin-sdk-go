@@ -3,16 +3,30 @@ package mixin
 import (
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_urlScheme_Transfer(t *testing.T) {
+func TestUrlScheme_Transfer(t *testing.T) {
 	userID := newUUID()
 	url := URL.Transfer(userID)
 	assert.Equal(t, "mixin://transfer/"+userID, url)
 }
 
-func Test_urlScheme_Apps(t *testing.T) {
+func TestUrlScheme_SafePay(t *testing.T) {
+	input := &TransferInput{
+		AssetID:    newUUID(),
+		OpponentID: newUUID(),
+		Amount:     decimal.NewFromInt(100),
+		TraceID:    newUUID(),
+		Memo:       "test",
+	}
+
+	url := URL.SafePay(input)
+	t.Log(url)
+}
+
+func TestUrlScheme_Apps(t *testing.T) {
 	t.Run("default action", func(t *testing.T) {
 		appID := newUUID()
 		action := ""

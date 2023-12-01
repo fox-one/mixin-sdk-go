@@ -9,185 +9,165 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type (
-	TransactionOutputInput struct {
-		Address MixAddress      `json:"address,omitempty"`
-		Amount  decimal.Decimal `json:"amount,omitempty"`
-	}
-)
-
 func (c *Client) CreateGhostKeys(ctx context.Context, txVer uint8, inputs []*SafeGhostKeyInput) ([]*SafeGhostKeys, error) {
-	var resp []*SafeGhostKeys
+	path := "/safe/keys"
 	if txVer < mixinnet.TxVersionHashSignature {
-		// legacy
-		if err := c.Post(ctx, "/outputs", inputs, &resp); err != nil {
-			return nil, err
-		}
-	} else {
-		// safe
-		if err := c.Post(ctx, "/safe/keys", inputs, &resp); err != nil {
-			return nil, err
-		}
+		path = "/outputs"
 	}
+
+	var resp []*SafeGhostKeys
+	if err := c.Post(ctx, path, inputs, &resp); err != nil {
+		return nil, err
+	}
+
 	return resp, nil
 }
 
-func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.TransactionInput, outputs []*TransactionOutputInput) error {
-	if input == nil {
-		return nil
-	}
-	if input.Hint == "" {
-		return fmt.Errorf("empty hint: hint should be unique uuid string")
-	}
-
-	ghostInputs := make([]*SafeGhostKeyInput, 0, len(outputs))
-	for i, output := range outputs {
-		if len(output.Address.uuidMembers) > 0 {
-			ghostInputs = append(ghostInputs, &SafeGhostKeyInput{
-				Receivers: output.Address.Members(),
-				Index:     len(input.Outputs) + i,
-				Hint:      uuidHash([]byte(fmt.Sprintf("trace:%s;index:%d", input.Hint, len(input.Outputs)+i))),
-			})
-		}
-	}
-
-	var ghostKeys []*SafeGhostKeys
-	if len(ghostInputs) > 0 {
-		ghosts, err := c.CreateGhostKeys(ctx, input.TxVersion, ghostInputs)
-		if err != nil {
-			return err
-		}
-		ghostKeys = ghosts
-	}
-
-	if len(ghostKeys) != len(ghostInputs) {
-		return fmt.Errorf("invalid ghost keys count: %d", len(ghostKeys))
-	}
-
-	ghostKeyOffset := 0
-	for i, output := range outputs {
-		if len(output.Address.xinMembers) > 0 {
-			r := mixinnet.GenerateKey(rand.Reader)
-			keys := make([]mixinnet.Key, len(output.Address.xinMembers))
-			for i, addr := range output.Address.xinMembers {
-				keys[i] = *mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint64(len(input.Outputs)))
-			}
-			input.Outputs = append(input.Outputs, &mixinnet.Output{
-				Type:   mixinnet.OutputTypeScript,
-				Amount: mixinnet.IntegerFromDecimal(outputs[i].Amount),
-				Script: mixinnet.NewThresholdScript(outputs[i].Address.Threshold),
-				Keys:   keys,
-				Mask:   r.Public(),
-			})
-		} else {
-			ghost := ghostKeys[ghostKeyOffset]
-			ghostKeyOffset++
-			input.Outputs = append(input.Outputs, &mixinnet.Output{
-				Type:   mixinnet.OutputTypeScript,
-				Amount: mixinnet.IntegerFromDecimal(outputs[i].Amount),
-				Script: mixinnet.NewThresholdScript(outputs[i].Address.Threshold),
-				Keys:   ghost.Keys,
-				Mask:   ghost.Mask,
-			})
-		}
-	}
-	return nil
+type TransactionBuilder struct {
+	*mixinnet.TransactionInput
+	addr *MixAddress
 }
 
-func (c *Client) MakeLegacyTransaction(ctx context.Context, hint string, utxos []*MultisigUTXO, outputs []*TransactionOutputInput, references []mixinnet.Hash, memo string) (*mixinnet.Transaction, error) {
-	if len(utxos) == 0 {
-		return nil, fmt.Errorf("empty utxos")
+type TransactionOutput struct {
+	Address *MixAddress     `json:"address,omitempty"`
+	Amount  decimal.Decimal `json:"amount,omitempty"`
+}
+
+func NewLegacyTransactionBuilder(utxos []*MultisigUTXO) *TransactionBuilder {
+	b := &TransactionBuilder{
+		TransactionInput: &mixinnet.TransactionInput{
+			TxVersion: mixinnet.TxVersionLegacy,
+			Hint:      newUUID(),
+			Inputs:    make([]*mixinnet.InputUTXO, len(utxos)),
+		},
 	}
 
-	input := &mixinnet.TransactionInput{
-		TxVersion:  mixinnet.TxVersionLegacy,
-		Memo:       memo,
-		Hint:       hint,
-		References: references,
-		Inputs:     make([]*mixinnet.InputUTXO, len(utxos)),
-	}
 	for i, utxo := range utxos {
-		input.Inputs[i] = &mixinnet.InputUTXO{
+		b.Inputs[i] = &mixinnet.InputUTXO{
 			Input: mixinnet.Input{
 				Hash:  &utxo.TransactionHash,
-				Index: uint64(utxo.OutputIndex),
+				Index: uint8(utxo.OutputIndex),
 			},
 			Asset:  utxo.Asset(),
 			Amount: utxo.Amount,
 		}
-	}
 
-	// refund the change
-	{
-		change := input.TotalInputAmount()
-		for _, output := range outputs {
-			change = change.Sub(output.Amount)
+		addr, err := NewMixAddress(utxo.Members, utxo.Threshold)
+		if err != nil {
+			panic(err)
 		}
 
-		if change.IsPositive() {
-			mixAddr, err := NewMixAddress(utxos[0].Members, utxos[0].Threshold)
-			if err != nil {
-				return nil, err
-			}
-			outputs = append(outputs, &TransactionOutputInput{
-				Address: *mixAddr,
-				Amount:  change,
-			})
+		if i == 0 {
+			b.addr = addr
+		} else if b.addr.String() != addr.String() {
+			panic("invalid utxos")
 		}
 	}
 
-	if err := c.AppendOutputsToInput(ctx, input, outputs); err != nil {
-		return nil, err
-	}
-
-	return input.Build()
+	return b
 }
 
-func (c *Client) MakeSafeTransaction(ctx context.Context, hint string, utxos []*SafeUtxo, outputs []*TransactionOutputInput, references []mixinnet.Hash, memo string) (*mixinnet.Transaction, error) {
-	if len(utxos) == 0 {
-		return nil, fmt.Errorf("empty utxos")
+func NewSafeTransactionBuilder(utxos []*SafeUtxo) *TransactionBuilder {
+	b := &TransactionBuilder{
+		TransactionInput: &mixinnet.TransactionInput{
+			TxVersion: mixinnet.TxVersion,
+			Hint:      newUUID(),
+			Inputs:    make([]*mixinnet.InputUTXO, len(utxos)),
+		},
 	}
 
-	input := &mixinnet.TransactionInput{
-		TxVersion:  mixinnet.TxVersion,
-		Memo:       memo,
-		Hint:       hint,
-		References: references,
-		Inputs:     make([]*mixinnet.InputUTXO, len(utxos)),
-	}
 	for i, utxo := range utxos {
-		input.Inputs[i] = &mixinnet.InputUTXO{
+		b.Inputs[i] = &mixinnet.InputUTXO{
 			Input: mixinnet.Input{
 				Hash:  &utxo.TransactionHash,
-				Index: uint64(utxo.OutputIndex),
+				Index: utxo.OutputIndex,
 			},
 			Asset:  utxo.Asset,
 			Amount: utxo.Amount,
 		}
-	}
 
-	// refund the change
-	{
-		change := input.TotalInputAmount()
-		for _, output := range outputs {
-			change = change.Sub(output.Amount)
+		addr, err := NewMixAddress(utxo.Receivers, utxo.ReceiversThreshold)
+		if err != nil {
+			panic(err)
 		}
 
-		if change.IsPositive() {
-			mixAddr, err := NewMixAddress(utxos[0].Receivers, utxos[0].ReceiversThreshold)
-			if err != nil {
-				return nil, err
-			}
-			outputs = append(outputs, &TransactionOutputInput{
-				Address: *mixAddr,
-				Amount:  change,
-			})
+		if i == 0 {
+			b.addr = addr
+		} else if b.addr.String() != addr.String() {
+			panic("invalid utxos")
 		}
 	}
 
-	if err := c.AppendOutputsToInput(ctx, input, outputs); err != nil {
+	return b
+}
+
+func (c *Client) MakeTransaction(ctx context.Context, b *TransactionBuilder, outputs []*TransactionOutput) (*mixinnet.Transaction, error) {
+	remain := b.TotalInputAmount()
+	for _, output := range outputs {
+		remain = remain.Sub(output.Amount)
+	}
+
+	if remain.IsPositive() {
+		outputs = append(outputs, &TransactionOutput{
+			Address: b.addr,
+			Amount:  remain,
+		})
+	}
+
+	if err := c.AppendOutputsToInput(ctx, b.TransactionInput, outputs); err != nil {
 		return nil, err
 	}
 
-	return input.Build()
+	return b.Build()
+}
+
+func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.TransactionInput, outputs []*TransactionOutput) error {
+	var (
+		ghostInputs  []*SafeGhostKeyInput
+		ghostOutputs []*mixinnet.Output
+	)
+
+	for _, output := range outputs {
+		txOutput := &mixinnet.Output{
+			Type:   mixinnet.OutputTypeScript,
+			Amount: mixinnet.IntegerFromDecimal(output.Amount),
+			Script: mixinnet.NewThresholdScript(output.Address.Threshold),
+		}
+
+		if len(output.Address.xinMembers) > 0 {
+			r := mixinnet.GenerateKey(rand.Reader)
+			for _, addr := range output.Address.xinMembers {
+				key := mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint64(len(input.Outputs)))
+				txOutput.Keys = append(txOutput.Keys, *key)
+			}
+
+			txOutput.Mask = r.Public()
+		} else if len(output.Address.uuidMembers) > 0 {
+			index := len(input.Outputs)
+			ghostInputs = append(ghostInputs, &SafeGhostKeyInput{
+				Receivers: output.Address.Members(),
+				Index:     index,
+				Hint:      uuidHash([]byte(fmt.Sprintf("hint:%s;index:%d", input.Hint, index))),
+			})
+
+			ghostOutputs = append(ghostOutputs, txOutput)
+		}
+
+		input.Outputs = append(input.Outputs, txOutput)
+	}
+
+	if len(ghostInputs) > 0 {
+		keys, err := c.CreateGhostKeys(ctx, input.TxVersion, ghostInputs)
+		if err != nil {
+			return err
+		}
+
+		for i, key := range keys {
+			output := ghostOutputs[i]
+			output.Keys = key.Keys
+			output.Mask = key.Mask
+		}
+	}
+
+	return nil
 }

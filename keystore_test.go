@@ -18,8 +18,8 @@ import (
 type (
 	SpenderKeystore struct {
 		Keystore
-		SpendKey *mixinnet.Key `json:"spend_key"`
-		Pin      string        `json:"pin"`
+		SpendKey mixinnet.Key `json:"spend_key"`
+		Pin      string       `json:"pin"`
 	}
 )
 

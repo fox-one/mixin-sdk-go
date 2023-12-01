@@ -152,7 +152,7 @@ func (dec *Decoder) ReadInput() (*Input, error) {
 	if err != nil {
 		return nil, err
 	}
-	in.Index = uint64(ii)
+	in.Index = uint8(ii)
 
 	gb, err := dec.ReadBytes()
 	if err != nil {

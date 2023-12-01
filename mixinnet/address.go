@@ -137,7 +137,7 @@ func (c *Client) VerifyTransaction(ctx context.Context, addr *Address, txHash Ha
 			return false, errors.New("GetTransaction failed")
 		}
 
-		if input.Index >= uint64(len(preTx.Outputs)) {
+		if int(input.Index) >= len(preTx.Outputs) {
 			return false, errors.New("invalid output index")
 		}
 
@@ -145,7 +145,7 @@ func (c *Client) VerifyTransaction(ctx context.Context, addr *Address, txHash Ha
 		if len(output.Keys) != 1 {
 			return false, nil
 		}
-		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, input.Index)
+		k := ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, uint64(input.Index))
 		if !bytes.Equal(k[:], addr.PublicSpendKey[:]) {
 			return false, nil
 		}
