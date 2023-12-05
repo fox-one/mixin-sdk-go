@@ -31,26 +31,16 @@ func TestBuildTransaction(t *testing.T) {
 			return
 		}
 
-		addr := RequireNewMixAddress([]string{dapp.ClientID}, 1)
-		outputs := []*TransactionOutput{
-			{
-				Address: addr,
-				Amount:  decimal.New(1, -8),
-			},
-		}
-
-		if utxos[0].Amount.GreaterThan(decimal.New(1, -8)) {
-			outputs = append(outputs, &TransactionOutput{
-				Address: addr,
-				Amount:  utxos[0].Amount.Sub(decimal.New(1, -8)),
-			})
-		}
-
 		b := NewSafeTransactionBuilder(utxos)
 		b.Memo = "TestSafeMakeTransaction"
 
-		tx, err := dapp.MakeTransaction(ctx, b, outputs)
-		require.NoError(err, "MakeSafeTransaction")
+		tx, err := dapp.MakeTransaction(ctx, b, []*TransactionOutput{
+			{
+				Address: RequireNewMixAddress([]string{dapp.ClientID}, 1),
+				Amount:  decimal.New(1, -8),
+			},
+		})
+		require.NoError(err, "MakeTransaction")
 
 		raw, err := tx.Dump()
 		require.NoError(err, "Dump")
@@ -73,7 +63,7 @@ func TestBuildTransaction(t *testing.T) {
 		require.NoError(err, "tx.Dump")
 
 		request1, err := dapp.SafeSubmitTransactionRequest(ctx, &SafeTransactionRequestInput{
-			RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeSubmitTransactionRequest")),
+			RequestID:      request.RequestID,
 			RawTransaction: signedRaw,
 		})
 		require.NoError(err, "SafeSubmitTransactionRequest")

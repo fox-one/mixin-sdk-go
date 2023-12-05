@@ -18,7 +18,7 @@ func TestSafeUtxo(t *testing.T) {
 
 	utxos, err := dapp.SafeListUtxos(ctx, SafeListUtxoOption{
 		Members: []string{dapp.ClientID},
-		Limit:   5,
+		Limit:   50,
 		Order:   "ASC",
 		State:   SafeUtxoStateUnspent,
 	})
