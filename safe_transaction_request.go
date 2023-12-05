@@ -24,7 +24,8 @@ type (
 		RequestID        string                     `json:"request_id,omitempty"`
 		TransactionHash  string                     `json:"transaction_hash,omitempty"`
 		UserID           string                     `json:"user_id,omitempty"`
-		Asset            mixinnet.Hash              `json:"asset,omitempty"`
+		KernelAssetID    mixinnet.Hash              `json:"kernel_asset_id,omitempty"`
+		AssetID          mixinnet.Hash              `json:"asset_id,omitempty"`
 		Amount           decimal.Decimal            `json:"amount,omitempty"`
 		CreatedAt        time.Time                  `json:"created_at,omitempty"`
 		UpdatedAt        time.Time                  `json:"updated_at,omitempty"`
@@ -39,6 +40,9 @@ type (
 		State            SafeUtxoState              `json:"state,omitempty"`
 		RawTransaction   string                     `json:"raw_transaction"`
 		Views            []mixinnet.Key             `json:"views,omitempty"`
+
+		// TODO delete when asset_id is on
+		Asset mixinnet.Hash `json:"asset,omitempty"`
 	}
 )
 

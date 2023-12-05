@@ -10,16 +10,24 @@ import (
 )
 
 type (
+	SafeSnapshotDeposit struct {
+		DepositHash  string `json:"deposit_hash,omitempty"`
+		DepositIndex uint64 `json:"deposit_index,omitempty"`
+		Sender       string `json:"sender,omitempty"`
+	}
+
 	SafeSnapshot struct {
-		SnapshotID      string          `json:"snapshot_id,omitempty"`
-		RequestID       string          `json:"request_id,omitempty"`
-		UserID          string          `json:"user_id,omitempty"`
-		OpponentID      string          `json:"opponent_id,omitempty"`
-		TransactionHash *mixinnet.Hash  `json:"transaction_hash,omitempty"`
-		AssetID         string          `json:"asset_id,omitempty"`
-		Amount          decimal.Decimal `json:"amount,omitempty"`
-		Memo            string          `json:"memo,omitempty"`
-		CreatedAt       time.Time       `json:"created_at"`
+		SnapshotID      string               `json:"snapshot_id,omitempty"`
+		RequestID       string               `json:"request_id,omitempty"`
+		UserID          string               `json:"user_id,omitempty"`
+		OpponentID      string               `json:"opponent_id,omitempty"`
+		TransactionHash *mixinnet.Hash       `json:"transaction_hash,omitempty"`
+		AssetID         string               `json:"asset_id,omitempty"`
+		KernelAssetID   string               `json:"kernel_asset_id,omitempty"`
+		Amount          decimal.Decimal      `json:"amount,omitempty"`
+		Memo            string               `json:"memo,omitempty"`
+		CreatedAt       time.Time            `json:"created_at"`
+		Deposit         *SafeSnapshotDeposit `json:"deposit,omitempty"`
 	}
 )
 

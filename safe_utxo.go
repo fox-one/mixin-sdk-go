@@ -25,7 +25,8 @@ type (
 		RequestID          string          `json:"request_id,omitempty"`
 		TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
 		OutputIndex        uint8           `json:"output_index,omitempty"`
-		Asset              mixinnet.Hash   `json:"asset,omitempty"`
+		KernelAssetID      mixinnet.Hash   `json:"kernel_asset_id,omitempty"`
+		AssetID            string          `json:"asset_id,omitempty"`
 		Amount             decimal.Decimal `json:"amount,omitempty"`
 		Mask               mixinnet.Key    `json:"mask,omitempty"`
 		Keys               []mixinnet.Key  `json:"keys,omitempty"`
@@ -44,6 +45,9 @@ type (
 		SignedBy           string          `json:"signed_by,omitempty"`
 		SignedAt           *time.Time      `json:"signed_at,omitempty"`
 		SpentAt            *time.Time      `json:"spent_at,omitempty"`
+
+		// TODO delete when asset_id is on
+		Asset mixinnet.Hash `json:"asset,omitempty"`
 	}
 )
 
