@@ -99,7 +99,7 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 		params["asset"] = opt.Asset
 	}
 
-	var utxos = []*SafeUtxo{}
+	var utxos []*SafeUtxo
 	if err := c.Get(ctx, "/safe/outputs", params, &utxos); err != nil {
 		return nil, err
 	}
