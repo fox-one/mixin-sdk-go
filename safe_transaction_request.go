@@ -64,9 +64,9 @@ func (c *Client) SafeCreateTransactionRequest(ctx context.Context, input *SafeTr
 	return requests[0], nil
 }
 
-func (c *Client) SafeReadTransactionRequest(ctx context.Context, requestID string) (*SafeTransactionRequest, error) {
+func (c *Client) SafeReadTransactionRequest(ctx context.Context, idOrHash string) (*SafeTransactionRequest, error) {
 	var resp SafeTransactionRequest
-	if err := c.Get(ctx, "/safe/transactions/"+requestID, nil, &resp); err != nil {
+	if err := c.Get(ctx, "/safe/transactions/"+idOrHash, nil, &resp); err != nil {
 		return nil, err
 	}
 

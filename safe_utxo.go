@@ -45,9 +45,6 @@ type (
 		SignedBy           string          `json:"signed_by,omitempty"`
 		SignedAt           *time.Time      `json:"signed_at,omitempty"`
 		SpentAt            *time.Time      `json:"spent_at,omitempty"`
-
-		// TODO delete when asset_id is on
-		Asset mixinnet.Hash `json:"asset,omitempty"`
 	}
 )
 

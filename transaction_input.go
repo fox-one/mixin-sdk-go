@@ -82,7 +82,7 @@ func NewSafeTransactionBuilder(utxos []*SafeUtxo) *TransactionBuilder {
 				Hash:  &utxo.TransactionHash,
 				Index: utxo.OutputIndex,
 			},
-			Asset:  utxo.Asset,
+			Asset:  utxo.KernelAssetID,
 			Amount: utxo.Amount,
 		}
 

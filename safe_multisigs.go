@@ -42,6 +42,15 @@ func (c *Client) SafeCreateMultisigRequests(ctx context.Context, inputs []*SafeT
 	return resp, nil
 }
 
+func (c *Client) SafeReadMultisigRequests(ctx context.Context, idOrHash string) (*SafeMultisigRequest, error) {
+	var resp SafeMultisigRequest
+	if err := c.Get(ctx, "/safe/multisigs/"+idOrHash, nil, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
 func (c *Client) SafeCreateMultisigRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeMultisigRequest, error) {
 	requests, err := c.SafeCreateMultisigRequests(ctx, []*SafeTransactionRequestInput{input})
 	if err != nil {

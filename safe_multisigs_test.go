@@ -75,7 +75,7 @@ func TestSafeMultisigs(t *testing.T) {
 			utxos = []*SafeUtxo{
 				{
 					OutputID:           newUUID(),
-					Asset:              tx.Asset,
+					KernelAssetID:      tx.Asset,
 					TransactionHash:    *tx.Hash,
 					OutputIndex:        0,
 					Amount:             decimal.RequireFromString(tx.Outputs[0].Amount.String()),
@@ -114,6 +114,15 @@ func TestSafeMultisigs(t *testing.T) {
 			_, err = dapp.SafeUnlockMultisigRequests(ctx, request.RequestID)
 			require.NoError(err, "SafeUnlockMultisigRequests")
 
+			{
+				hash, err := tx.TransactionHash()
+				require.NoError(err, "TransactionHash")
+
+				request1, err := dapp.SafeReadMultisigRequests(ctx, request.RequestID)
+				require.NoError(err, "SafeReadMultisigRequests")
+				require.Equal(hash.String(), request1.TransactionHash)
+			}
+
 			err = SafeSignTransaction(
 				tx,
 				store.SpendKey,
@@ -126,7 +135,7 @@ func TestSafeMultisigs(t *testing.T) {
 			require.NoError(err, "tx.Dump")
 			t.Log("signed tx", signedRaw)
 
-			_, err = dapp.SafeSignMultisigRequests(ctx, &SafeTransactionRequestInput{
+			request, err = dapp.SafeSignMultisigRequests(ctx, &SafeTransactionRequestInput{
 				RequestID:      request.RequestID,
 				RawTransaction: signedRaw,
 			})

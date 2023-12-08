@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -16,6 +17,9 @@ func TestSafeSnapshots(t *testing.T) {
 	dapp, err := NewFromKeystore(&store.Keystore)
 	require.NoError(err, "init bot client")
 
-	_, err = dapp.ReadSafeSnapshots(ctx, "", time.Time{}, "ASC", 100)
+	snapshots, err := dapp.ReadSafeSnapshots(ctx, "", time.Time{}, "ASC", 10)
 	require.NoError(err, "ReadSafeSnapshots")
+
+	bts, _ := json.MarshalIndent(snapshots, "", "  ")
+	t.Log(string(bts))
 }
