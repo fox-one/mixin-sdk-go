@@ -2,7 +2,6 @@ package mixin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -30,10 +29,6 @@ type (
 )
 
 func (c *Client) SafeCreateMultisigRequests(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeMultisigRequest, error) {
-	{
-		bts, _ := json.Marshal(inputs)
-		fmt.Println(string(bts))
-	}
 	var resp []*SafeMultisigRequest
 	if err := c.Post(ctx, "/safe/multisigs", inputs, &resp); err != nil {
 		return nil, err
