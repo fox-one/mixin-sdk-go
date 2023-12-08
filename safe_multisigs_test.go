@@ -111,7 +111,7 @@ func TestSafeMultisigs(t *testing.T) {
 			})
 			require.NoError(err, "SafeCreateMultisigRequest")
 
-			_, err = dapp.SafeUnlockMultisigRequests(ctx, request.RequestID)
+			_, err = dapp.SafeUnlockMultisigRequest(ctx, request.RequestID)
 			require.NoError(err, "SafeUnlockMultisigRequests")
 
 			{
@@ -135,13 +135,13 @@ func TestSafeMultisigs(t *testing.T) {
 			require.NoError(err, "tx.Dump")
 			t.Log("signed tx", signedRaw)
 
-			request, err = dapp.SafeSignMultisigRequests(ctx, &SafeTransactionRequestInput{
+			request, err = dapp.SafeSignMultisigRequest(ctx, &SafeTransactionRequestInput{
 				RequestID:      request.RequestID,
 				RawTransaction: signedRaw,
 			})
 			require.NoError(err, "SafeSignMultisigRequests")
 
-			_, err = dapp.SafeUnlockMultisigRequests(ctx, request.RequestID)
+			_, err = dapp.SafeUnlockMultisigRequest(ctx, request.RequestID)
 			require.Error(err, "SafeUnlockMultisigRequests Forbidden")
 		}
 	})

@@ -55,7 +55,7 @@ func (c *Client) SafeCreateMultisigRequest(ctx context.Context, input *SafeTrans
 	return requests[0], nil
 }
 
-func (c *Client) SafeSignMultisigRequests(ctx context.Context, input *SafeTransactionRequestInput) (*SafeMultisigRequest, error) {
+func (c *Client) SafeSignMultisigRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeMultisigRequest, error) {
 	var resp SafeMultisigRequest
 	uri := fmt.Sprintf("/safe/multisigs/%s/sign", input.RequestID)
 	if err := c.Post(ctx, uri, input, &resp); err != nil {
@@ -64,7 +64,7 @@ func (c *Client) SafeSignMultisigRequests(ctx context.Context, input *SafeTransa
 	return &resp, nil
 }
 
-func (c *Client) SafeUnlockMultisigRequests(ctx context.Context, requestID string) (*SafeMultisigRequest, error) {
+func (c *Client) SafeUnlockMultisigRequest(ctx context.Context, requestID string) (*SafeMultisigRequest, error) {
 	var resp SafeMultisigRequest
 	uri := fmt.Sprintf("/safe/multisigs/%s/unlock", requestID)
 	if err := c.Post(ctx, uri, nil, &resp); err != nil {
