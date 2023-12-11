@@ -68,10 +68,22 @@ func (urlScheme) Pay(input *TransferInput) string {
 
 func (s urlScheme) SafePay(input *TransferInput) string {
 	q := url.Values{}
-	q.Set("asset", input.AssetID)
-	q.Set("trace", input.TraceID)
-	q.Set("amount", input.Amount.String())
-	q.Set("memo", input.Memo)
+
+	if input.AssetID != "" {
+		q.Set("asset", input.AssetID)
+	}
+
+	if input.TraceID != "" {
+		q.Set("trace", input.TraceID)
+	}
+
+	if input.Amount.IsPositive() {
+		q.Set("amount", input.Amount.String())
+	}
+
+	if input.Memo != "" {
+		q.Set("memo", input.Memo)
+	}
 
 	u := url.URL{
 		Scheme:   "https",
