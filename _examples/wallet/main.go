@@ -11,7 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -55,7 +56,7 @@ func main() {
 	}
 
 	{
-		createAndTestUser(ctx, client, mixin.NewKey(rand.Reader).String())
+		createAndTestUser(ctx, client, mixinnet.GenerateKey(rand.Reader).String())
 	}
 	{
 		_, privateKey, _ := ed25519.GenerateKey(rand.Reader)
@@ -83,7 +84,7 @@ func createAndTestUser(ctx context.Context, dapp *mixin.Client, userPin string) 
 		log.Panicf("ModifyPin (%s) failed: %v", newPin, err)
 	}
 
-	tipPin, err := mixin.KeyFromString(userPin)
+	tipPin, err := mixinnet.KeyFromString(userPin)
 	if err != nil {
 		log.Panicf("KeyFromString(%s) failed: %v", userPin, err)
 	}

@@ -3,10 +3,12 @@ package mixin
 import (
 	"context"
 	"fmt"
+
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 )
 
 func (c *Client) TransferOwnership(ctx context.Context, newOwner, pin string) error {
-	key, err := KeyFromString(pin)
+	key, err := mixinnet.KeyFromString(pin)
 	if err != nil {
 		return err
 	}

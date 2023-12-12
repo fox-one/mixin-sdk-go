@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -16,13 +17,13 @@ func TestSafeDeposits(t *testing.T) {
 	dapp, err := NewFromKeystore(&store.Keystore)
 	require.NoError(err, "init bot client")
 
-	assets, err := dapp.SafeReadAssets(ctx)
-	require.NoError(err, "ReadSafeAssets")
-	require.NotEmpty(assets, "/safe/assets return empty")
-
-	entries, err := dapp.SafeCreateDepositEntries(ctx, []string{dapp.ClientID}, 0, assets[0].AssetID)
+	entries, err := dapp.SafeCreateDepositEntries(ctx, []string{dapp.ClientID}, 0, "b91e18ff-a9ae-3dc7-8679-e935d9a4b34b")
 	require.NoError(err, "SafeCreateDepositEntries")
 	require.NotEmpty(entries)
+	{
+		bts, _ := json.MarshalIndent(entries, "", "    ")
+		t.Log(string(bts))
+	}
 
 	_, err = dapp.SafeListDeposits(ctx, entries[0], "", time.Time{}, 10)
 	require.NoError(err, "SafeListDeposits")

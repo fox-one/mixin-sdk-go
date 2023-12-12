@@ -12,7 +12,7 @@ type SafeAsset struct {
 	AssetID        string          `json:"asset_id"`
 	ChainID        string          `json:"chain_id"`
 	FeeAssetID     string          `json:"fee_asset_id"`
-	KernalAssetID  string          `json:"kernal_asset_id,omitempty"`
+	KernelAssetID  string          `json:"kernel_asset_id,omitempty"`
 	Symbol         string          `json:"symbol,omitempty"`
 	Name           string          `json:"name,omitempty"`
 	IconURL        string          `json:"icon_url,omitempty"`
@@ -24,9 +24,7 @@ type SafeAsset struct {
 	AssetKey       string          `json:"asset_key,omitempty"`
 	Precision      int32           `json:"precision,omitempty"`
 	Dust           decimal.Decimal `json:"dust,omitempty"`
-	Balance        decimal.Decimal `json:"balance,omitempty"`
 	Confirmations  int             `json:"confirmations,omitempty"`
-	KernelAssetID  string          `json:"kernel_asset_id,omitempty"`
 }
 
 func (c *Client) SafeReadAsset(ctx context.Context, assetID string) (*SafeAsset, error) {

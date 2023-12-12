@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/sirupsen/logrus"
 )
 
 type (
 	Monitor struct {
-		host string
+		host   string
+		client *mixinnet.Client
 
 		time     time.Time
 		work     uint64
@@ -21,12 +22,13 @@ type (
 
 func NewMonitor(host string) *Monitor {
 	return &Monitor{
-		host: host,
+		host:   host,
+		client: mixinnet.NewClient(mixinnet.Config{Safe: true, Hosts: []string{host}}),
 	}
 }
 
 func (m *Monitor) LoopHealthCheck(ctx context.Context) error {
-	ctx = mixin.WithMixinNetHost(ctx, m.host)
+	ctx = m.client.WithHost(ctx, m.host)
 	sleepDur := time.Millisecond
 
 	for {
@@ -50,7 +52,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 		"host": m.host,
 	})
 
-	info, err := mixin.ReadConsensusInfo(ctx)
+	info, err := m.client.ReadConsensusInfo(ctx)
 	if err != nil {
 		log.WithError(err).Info("ReadConsensusInfo failed")
 		return err
@@ -95,7 +97,7 @@ func (m *Monitor) healthCheck(ctx context.Context) error {
 
 		if !t.After(m.time) {
 			if now.UnixNano()-m.warnedAt > int64(600*time.Second) {
-				log.Infof("(%s) not working for %v", m.host, time.Now().Sub(t))
+				log.Infof("(%s) not working for %v", m.host, time.Since(t))
 				m.warnedAt = now.UnixNano()
 			}
 			continue

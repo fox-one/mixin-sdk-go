@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -14,16 +15,17 @@ type (
 	}
 
 	SafeTransactionReceiver struct {
-		Members    []string `json:"members,omitempty"`
-		MemberHash Hash     `json:"members_hash,omitempty"`
-		Threshold  uint8    `json:"threshold,omitempty"`
+		Members    []string      `json:"members,omitempty"`
+		MemberHash mixinnet.Hash `json:"members_hash,omitempty"`
+		Threshold  uint8         `json:"threshold,omitempty"`
 	}
 
 	SafeTransactionRequest struct {
 		RequestID        string                     `json:"request_id,omitempty"`
 		TransactionHash  string                     `json:"transaction_hash,omitempty"`
 		UserID           string                     `json:"user_id,omitempty"`
-		Asset            Hash                       `json:"asset,omitempty"`
+		KernelAssetID    mixinnet.Hash              `json:"kernel_asset_id,omitempty"`
+		AssetID          mixinnet.Hash              `json:"asset_id,omitempty"`
 		Amount           decimal.Decimal            `json:"amount,omitempty"`
 		CreatedAt        time.Time                  `json:"created_at,omitempty"`
 		UpdatedAt        time.Time                  `json:"updated_at,omitempty"`
@@ -37,11 +39,14 @@ type (
 		SnapshotAt       *time.Time                 `json:"snapshot_at,omitempty"`
 		State            SafeUtxoState              `json:"state,omitempty"`
 		RawTransaction   string                     `json:"raw_transaction"`
-		Views            []Key                      `json:"views,omitempty"`
+		Views            []mixinnet.Key             `json:"views,omitempty"`
+
+		// TODO delete when asset_id is on
+		Asset mixinnet.Hash `json:"asset,omitempty"`
 	}
 )
 
-func (c *Client) SafeCreateTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
+func (c *Client) SafeCreateTransactionRequests(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
 	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transaction/requests", inputs, &resp); err != nil {
 		return nil, err
@@ -50,20 +55,38 @@ func (c *Client) SafeCreateTransactionRequest(ctx context.Context, inputs []*Saf
 	return resp, nil
 }
 
-func (c *Client) SafeReadTransactionRequest(ctx context.Context, requestID string) (*SafeTransactionRequest, error) {
+func (c *Client) SafeCreateTransactionRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeTransactionRequest, error) {
+	requests, err := c.SafeCreateTransactionRequests(ctx, []*SafeTransactionRequestInput{input})
+	if err != nil {
+		return nil, err
+	}
+
+	return requests[0], nil
+}
+
+func (c *Client) SafeReadTransactionRequest(ctx context.Context, idOrHash string) (*SafeTransactionRequest, error) {
 	var resp SafeTransactionRequest
-	if err := c.Get(ctx, "/safe/transactions/"+requestID, nil, &resp); err != nil {
+	if err := c.Get(ctx, "/safe/transactions/"+idOrHash, nil, &resp); err != nil {
 		return nil, err
 	}
 
 	return &resp, nil
 }
 
-func (c *Client) SafeSubmitTransactionRequest(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
+func (c *Client) SafeSubmitTransactionRequests(ctx context.Context, inputs []*SafeTransactionRequestInput) ([]*SafeTransactionRequest, error) {
 	var resp []*SafeTransactionRequest
 	if err := c.Post(ctx, "/safe/transactions", inputs, &resp); err != nil {
 		return nil, err
 	}
 
 	return resp, nil
+}
+
+func (c *Client) SafeSubmitTransactionRequest(ctx context.Context, input *SafeTransactionRequestInput) (*SafeTransactionRequest, error) {
+	requests, err := c.SafeSubmitTransactionRequests(ctx, []*SafeTransactionRequestInput{input})
+	if err != nil {
+		return nil, err
+	}
+
+	return requests[0], nil
 }

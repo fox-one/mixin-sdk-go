@@ -2,6 +2,8 @@ package mixin
 
 import (
 	"crypto/sha256"
+
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 )
 
 const (
@@ -26,7 +28,7 @@ const (
 	TIPSequencerRegister        = "SEQUENCER:REGISTER:"
 )
 
-func (c *Client) EncryptTipPin(key Key, action string, params ...string) string {
+func (c *Client) EncryptTipPin(key mixinnet.Key, action string, params ...string) string {
 	hash := sha256.New()
 	hash.Write([]byte(action))
 	for _, p := range params {

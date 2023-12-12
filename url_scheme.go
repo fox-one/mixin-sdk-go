@@ -3,9 +3,12 @@ package mixin
 import (
 	"encoding/base64"
 	"net/url"
+	"path"
 )
 
-const Scheme = "mixin"
+const (
+	Scheme = "mixin"
+)
 
 type SendSchemeCategory = string
 
@@ -18,9 +21,13 @@ const (
 	SendSchemeCategoryPost    SendSchemeCategory = "post"
 )
 
-var URL urlScheme
+var URL = urlScheme{
+	host: "mixin.one",
+}
 
-type urlScheme struct{}
+type urlScheme struct {
+	host string
+}
 
 func (urlScheme) Users(userID string) string {
 	u := url.URL{
@@ -54,6 +61,41 @@ func (urlScheme) Pay(input *TransferInput) string {
 		Scheme:   Scheme,
 		Host:     "pay",
 		RawQuery: q.Encode(),
+	}
+
+	return u.String()
+}
+
+func (s urlScheme) SafePay(input *TransferInput) string {
+	q := url.Values{}
+
+	if input.AssetID != "" {
+		q.Set("asset", input.AssetID)
+	}
+
+	if input.TraceID != "" {
+		q.Set("trace", input.TraceID)
+	}
+
+	if input.Amount.IsPositive() {
+		q.Set("amount", input.Amount.String())
+	}
+
+	if input.Memo != "" {
+		q.Set("memo", input.Memo)
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     s.host,
+		Path:     "/pay",
+		RawQuery: q.Encode(),
+	}
+
+	if addr, err := NewMixAddress(input.OpponentMultisig.Receivers, input.OpponentMultisig.Threshold); err == nil {
+		u.Path = path.Join(u.Path, addr.String())
+	} else {
+		u.Path = path.Join(u.Path, input.OpponentID)
 	}
 
 	return u.String()

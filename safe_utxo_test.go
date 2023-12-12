@@ -17,8 +17,8 @@ func TestSafeUtxo(t *testing.T) {
 	require.NoError(err, "init bot client")
 
 	utxos, err := dapp.SafeListUtxos(ctx, SafeListUtxoOption{
-		Members: []string{dapp.ClientID},
-		Limit:   5,
+		Members: []string{dapp.ClientID, "6a00a4bc-229e-3c39-978a-91d2d6c382bf"},
+		Limit:   50,
 		Order:   "ASC",
 		State:   SafeUtxoStateUnspent,
 	})

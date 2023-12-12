@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,16 +23,17 @@ type (
 	SafeUtxo struct {
 		OutputID           string          `json:"output_id,omitempty"`
 		RequestID          string          `json:"request_id,omitempty"`
-		TransactionHash    Hash            `json:"transaction_hash,omitempty"`
-		OutputIndex        uint64          `json:"output_index,omitempty"`
-		Asset              Hash            `json:"asset,omitempty"`
+		TransactionHash    mixinnet.Hash   `json:"transaction_hash,omitempty"`
+		OutputIndex        uint8           `json:"output_index,omitempty"`
+		KernelAssetID      mixinnet.Hash   `json:"kernel_asset_id,omitempty"`
+		AssetID            string          `json:"asset_id,omitempty"`
 		Amount             decimal.Decimal `json:"amount,omitempty"`
-		Mask               Key             `json:"mask,omitempty"`
-		Keys               []Key           `json:"keys,omitempty"`
+		Mask               mixinnet.Key    `json:"mask,omitempty"`
+		Keys               []mixinnet.Key  `json:"keys,omitempty"`
 		SendersHash        string          `json:"senders_hash,omitempty"`
 		SendersThreshold   uint8           `json:"senders_threshold,omitempty"`
 		Senders            []string        `json:"senders,omitempty"`
-		ReceiversHash      Hash            `json:"receivers_hash,omitempty"`
+		ReceiversHash      mixinnet.Hash   `json:"receivers_hash,omitempty"`
 		ReceiversThreshold uint8           `json:"receivers_threshold,omitempty"`
 		Receivers          []string        `json:"receivers,omitempty"`
 		Extra              string          `json:"extra,omitempty"`
@@ -76,7 +78,7 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 	if int(opt.Threshold) > len(opt.Members) {
 		return nil, errors.New("invalid members")
 	}
-	params["members"] = HashMembers(opt.Members)
+	params["members"] = mixinnet.HashMembers(opt.Members)
 	params["threshold"] = fmt.Sprint(opt.Threshold)
 
 	switch opt.Order {
@@ -94,7 +96,7 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 		params["asset"] = opt.Asset
 	}
 
-	var utxos = []*SafeUtxo{}
+	var utxos []*SafeUtxo
 	if err := c.Get(ctx, "/safe/outputs", params, &utxos); err != nil {
 		return nil, err
 	}

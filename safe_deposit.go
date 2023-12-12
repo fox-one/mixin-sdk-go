@@ -16,6 +16,7 @@ type (
 		ChainID     string   `json:"chain_id,omitempty"`
 		Destination string   `json:"destination,omitempty"`
 		Tag         string   `json:"tag,omitempty"`
+		IsPrimary   bool     `json:"is_primary,omitempty"`
 		Signature   string   `json:"signature,omitempty"`
 	}
 
@@ -25,6 +26,7 @@ type (
 		Tag             string          `json:"tag,omitempty"`
 		ChainID         string          `json:"chain_id,omitempty"`
 		AssetID         string          `json:"asset_id,omitempty"`
+		KernelAssetID   string          `json:"kernel_asset_id,omitempty"`
 		AssetKey        string          `json:"chain_key,omitempty"`
 		Amount          decimal.Decimal `json:"amount,omitempty"`
 		TransactionHash string          `json:"transaction_hash,omitempty"`

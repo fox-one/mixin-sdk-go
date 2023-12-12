@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2"
 )
 
 var (

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -11,7 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go"
+	"github.com/fox-one/mixin-sdk-go/v2"
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/gofrs/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -22,12 +21,7 @@ var (
 )
 
 func newUUID() string {
-	u, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
-	}
-
-	return u.String()
+	return uuid.Must(uuid.NewV4()).String()
 }
 
 func main() {
@@ -48,7 +42,8 @@ func main() {
 		log.Panicln(err)
 	}
 
-	ctx := mixin.WithMixinNetHost(context.Background(), mixin.RandomMixinNetHost())
+	mnClient := mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
+	ctx := mnClient.WithHost(context.Background(), mnClient.RandomHost())
 
 	me, err := client.UserMe(ctx)
 	if err != nil {
@@ -56,7 +51,7 @@ func main() {
 	}
 
 	// create sub wallet
-	privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
+	privateKey := mixin.GenerateEd25519Key()
 	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
 	if err != nil {
 		log.Printf("CreateUser: %v", err)
@@ -119,32 +114,26 @@ func main() {
 		log.Panicln("No Unspent UTXO")
 	}
 
-	amount := utxo.Amount.Div(decimal.NewFromFloat(2)).Truncate(8)
-	if amount.IsZero() {
-		amount = utxo.Amount
-	}
-
-	tx, err := client.MakeMultisigTransaction(ctx, &mixin.TransactionInput{
-		Memo:   "multisig test",
-		Inputs: []*mixin.MultisigUTXO{utxo},
-		Outputs: []mixin.TransactionOutput{
-			{
-				Receivers: []string{client.ClientID},
-				Threshold: 1,
-				Amount:    amount,
-			},
+	builder := mixin.NewLegacyTransactionBuilder(
+		[]*mixin.MultisigUTXO{utxo},
+	)
+	builder.Memo = "multisig test"
+	tx, err := client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
+		{
+			Address: mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
+			Amount:  utxo.Amount,
 		},
-		Hint: newUUID(),
 	})
-
 	if err != nil {
-		log.Panicf("MakeMultisigTransaction: %v", err)
+		log.Panicf("TransactionBuilder.Build: %v", err)
 	}
 
-	raw, err := tx.DumpTransaction()
+	raw, err := tx.Dump()
 	if err != nil {
 		log.Panicf("DumpTransaction: %v", err)
 	}
+
+	log.Println("raw transaction", raw)
 
 	{
 		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
@@ -152,7 +141,7 @@ func main() {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
 
-		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
+		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
@@ -198,7 +187,7 @@ func main() {
 			log.Panicf("CreateMultisig: sign %v", err)
 		}
 
-		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
+		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
 		if err != nil {
 			log.Panicf("CreateMultisig: %v", err)
 		}
@@ -213,7 +202,7 @@ func main() {
 			log.Panicf("CreateMultisig: %v", err)
 		}
 
-		txHash, err := client.SendRawTransaction(ctx, req.RawTransaction)
+		txHash, err := mnClient.SendRawTransaction(ctx, req.RawTransaction)
 		if err != nil {
 			log.Panicf("SendRawTransaction: %v\n", err)
 		}

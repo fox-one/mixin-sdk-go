@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,7 +25,7 @@ type Authorization struct {
 }
 
 func (c *Client) Authorize(ctx context.Context, authorizationID string, scopes []string, pin string) (*Authorization, error) {
-	if key, err := KeyFromString(pin); err == nil {
+	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		pin = c.EncryptTipPin(
 			key,
 			TIPOAuthApprove,

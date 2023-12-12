@@ -25,6 +25,7 @@ const (
 	MessageCategoryMessageRecall         = "MESSAGE_RECALL"
 	MessageCategorySystemConversation    = "SYSTEM_CONVERSATION"
 	MessageCategorySystemAccountSnapshot = "SYSTEM_ACCOUNT_SNAPSHOT"
+	MessageCategorySystemSafeSnapshot    = "SYSTEM_SAFE_SNAPSHOT"
 
 	MessageStatusSent      = "SENT"
 	MessageStatusDelivered = "DELIVERED"

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,8 +18,8 @@ import (
 type (
 	SpenderKeystore struct {
 		Keystore
-		SpendKey *Key   `json:"spend_key"`
-		Pin      string `json:"pin"`
+		SpendKey mixinnet.Key `json:"spend_key"`
+		Pin      string       `json:"pin"`
 	}
 )
 
