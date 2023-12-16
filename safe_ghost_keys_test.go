@@ -16,7 +16,7 @@ func TestSafeGhostKeys(t *testing.T) {
 	dapp, err := NewFromKeystore(&store.Keystore)
 	require.NoError(err, "init bot client")
 
-	ghostKeys, err := dapp.SafeCreateGhostKeys(ctx, []*SafeGhostKeyInput{
+	ghostKeys, err := dapp.SafeCreateGhostKeys(ctx, []*GhostInput{
 		{
 			Receivers: []string{dapp.ClientID},
 			Hint:      uuid.Must(uuid.NewV4()).String(),

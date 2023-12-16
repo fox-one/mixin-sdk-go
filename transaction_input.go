@@ -2,25 +2,18 @@ package mixin
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 
 	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
-func (c *Client) CreateGhostKeys(ctx context.Context, txVer uint8, inputs []*SafeGhostKeyInput) ([]*SafeGhostKeys, error) {
-	path := "/safe/keys"
+func (c *Client) createGhostKeys(ctx context.Context, txVer uint8, inputs []*GhostInput, senders []string) ([]*GhostKeys, error) {
 	if txVer < mixinnet.TxVersionHashSignature {
-		path = "/outputs"
+		return c.BatchReadGhostKeys(ctx, inputs)
 	}
 
-	var resp []*SafeGhostKeys
-	if err := c.Post(ctx, path, inputs, &resp); err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return c.SafeCreateGhostKeys(ctx, inputs, senders...)
 }
 
 type TransactionBuilder struct {
@@ -114,16 +107,16 @@ func (c *Client) MakeTransaction(ctx context.Context, b *TransactionBuilder, out
 		})
 	}
 
-	if err := c.AppendOutputsToInput(ctx, b.TransactionInput, outputs); err != nil {
+	if err := c.AppendOutputsToInput(ctx, b, outputs); err != nil {
 		return nil, err
 	}
 
 	return b.Build()
 }
 
-func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.TransactionInput, outputs []*TransactionOutput) error {
+func (c *Client) AppendOutputsToInput(ctx context.Context, b *TransactionBuilder, outputs []*TransactionOutput) error {
 	var (
-		ghostInputs  []*SafeGhostKeyInput
+		ghostInputs  []*GhostInput
 		ghostOutputs []*mixinnet.Output
 	)
 
@@ -134,30 +127,26 @@ func (c *Client) AppendOutputsToInput(ctx context.Context, input *mixinnet.Trans
 			Script: mixinnet.NewThresholdScript(output.Address.Threshold),
 		}
 
+		index := uint8(len(b.Outputs))
 		if len(output.Address.xinMembers) > 0 {
-			r := mixinnet.GenerateKey(rand.Reader)
-			for _, addr := range output.Address.xinMembers {
-				key := mixinnet.DeriveGhostPublicKey(input.TxVersion, &r, &addr.PublicViewKey, &addr.PublicSpendKey, uint8(len(input.Outputs)))
-				txOutput.Keys = append(txOutput.Keys, *key)
-			}
-
-			txOutput.Mask = r.Public()
+			key := SafeCreateXinAddressGhostKeys(b.TxVersion, output.Address.xinMembers, index)
+			txOutput.Mask = key.Mask
+			txOutput.Keys = key.Keys
 		} else if len(output.Address.uuidMembers) > 0 {
-			index := uint8(len(input.Outputs))
-			ghostInputs = append(ghostInputs, &SafeGhostKeyInput{
+			ghostInputs = append(ghostInputs, &GhostInput{
 				Receivers: output.Address.Members(),
 				Index:     index,
-				Hint:      uuidHash([]byte(fmt.Sprintf("hint:%s;index:%d", input.Hint, index))),
+				Hint:      uuidHash([]byte(fmt.Sprintf("hint:%s;index:%d", b.Hint, index))),
 			})
 
 			ghostOutputs = append(ghostOutputs, txOutput)
 		}
 
-		input.Outputs = append(input.Outputs, txOutput)
+		b.Outputs = append(b.Outputs, txOutput)
 	}
 
 	if len(ghostInputs) > 0 {
-		keys, err := c.CreateGhostKeys(ctx, input.TxVersion, ghostInputs)
+		keys, err := c.createGhostKeys(ctx, b.TxVersion, ghostInputs, b.addr.Members())
 		if err != nil {
 			return err
 		}
