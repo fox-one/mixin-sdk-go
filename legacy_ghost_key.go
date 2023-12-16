@@ -15,16 +15,16 @@ type (
 
 	GhostInput struct {
 		Receivers []string `json:"receivers"`
-		Index     int      `json:"index"`
+		Index     uint8    `json:"index"`
 		Hint      string   `json:"hint"`
 	}
 )
 
-func (c *Client) ReadGhostKeys(ctx context.Context, receivers []string, index int) (*GhostKeys, error) {
+func (c *Client) ReadGhostKeys(ctx context.Context, receivers []string, index uint8) (*GhostKeys, error) {
 	input := &GhostInput{
 		Receivers: receivers,
 		Index:     index,
-		Hint:      "",
+		Hint:      newUUID(),
 	}
 
 	var resp GhostKeys
