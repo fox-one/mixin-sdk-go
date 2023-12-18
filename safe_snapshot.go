@@ -84,3 +84,12 @@ func buildReadSafeSnapshotsParams(assetID string, offset time.Time, order string
 
 	return params
 }
+
+func (c *Client) SafeNotifySnapshot(ctx context.Context, receiverID string, hash mixinnet.Hash, index uint8) error {
+	const uri = "/safe/snapshots/notifications"
+	return c.Post(ctx, uri, map[string]interface{}{
+		"transaction_hash": hash.String(),
+		"output_index":     index,
+		"receiver_id":      receiverID,
+	}, nil)
+}
