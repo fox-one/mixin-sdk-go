@@ -103,3 +103,19 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 
 	return utxos, nil
 }
+
+func (c *Client) SafeReadUtxo(ctx context.Context, id string) (*SafeUtxo, error) {
+	uri := fmt.Sprintf("/safe/outputs/%s", id)
+
+	var utxo SafeUtxo
+	if err := c.Get(ctx, uri, nil, &utxo); err != nil {
+		return nil, err
+	}
+
+	return &utxo, nil
+}
+
+func (c *Client) SafeReadUtxoByHash(ctx context.Context, hash mixinnet.Hash, index uint8) (*SafeUtxo, error) {
+	id := fmt.Sprintf("%s:%d", hash.String(), index)
+	return c.SafeReadUtxo(ctx, id)
+}
