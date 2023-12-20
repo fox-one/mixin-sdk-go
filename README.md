@@ -5,7 +5,7 @@ Golang sdk for Mixin Network & Mixin Messenger
 
 ## Install
 
-`go get -u github.com/fox-one/mixin-sdk-go`
+`go get -u github.com/fox-one/mixin-sdk-go/v2`
 
 ## Features
 
