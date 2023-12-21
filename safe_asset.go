@@ -54,3 +54,16 @@ func (c *Client) SafeReadAssets(ctx context.Context) ([]*SafeAsset, error) {
 func SafeReadAssets(ctx context.Context, accessToken string) ([]*SafeAsset, error) {
 	return NewFromAccessToken(accessToken).SafeReadAssets(ctx)
 }
+
+func (c *Client) SafeFetchAssets(ctx context.Context, assetIds []string) ([]*SafeAsset, error) {
+	var assets []*SafeAsset
+	if err := c.Post(ctx, "/safe/assets/fetch", assetIds, &assets); err != nil {
+		return nil, err
+	}
+
+	return assets, nil
+}
+
+func SafeFetchAssets(ctx context.Context, accessToken string, assetIds []string) ([]*SafeAsset, error) {
+	return NewFromAccessToken(accessToken).SafeFetchAssets(ctx, assetIds)
+}
