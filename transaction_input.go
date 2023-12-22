@@ -3,12 +3,18 @@ package mixin
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
 func (c *Client) createGhostKeys(ctx context.Context, txVer uint8, inputs []*GhostInput, senders []string) ([]*GhostKeys, error) {
+	// sort receivers
+	for _, input := range inputs {
+		sort.Strings(input.Receivers)
+	}
+
 	if txVer < mixinnet.TxVersionHashSignature {
 		return c.BatchReadGhostKeys(ctx, inputs)
 	}
