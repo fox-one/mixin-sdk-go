@@ -28,6 +28,8 @@ type Keystore struct {
 	PinToken   string `json:"pin_token"`
 	Scope      string `json:"scope"`
 
+	// AppID is equivalent to the ClientID
+	AppID string `json:"app_id"`
 	// ServerPublicKey is equivalent to the PinToken in hex format
 	ServerPublicKey string `json:"server_public_key"`
 	// SessionPrivateKey is equivalent to the PrivateKey in hex format
@@ -35,17 +37,22 @@ type Keystore struct {
 }
 
 func (k *Keystore) init() error {
+	if k.ClientID == "" && k.AppID != "" {
+		k.ClientID = k.AppID
+	}
+
 	if k.PrivateKey == "" && k.SessionPrivateKey != "" {
-		b, err := hex.DecodeString(k.SessionPrivateKey)
+		seed, err := hex.DecodeString(k.SessionPrivateKey)
 		if err != nil {
 			return err
 		}
 
-		if len(b) != ed25519.PrivateKeySize {
+		if len(seed) != ed25519.SeedSize {
 			return errors.New("invalid session private key")
 		}
 
-		k.PrivateKey = ed25519Encoding.EncodeToString(b)
+		key := ed25519.NewKeyFromSeed(seed)
+		k.PrivateKey = ed25519Encoding.EncodeToString(key)
 	}
 
 	if k.PinToken == "" && k.ServerPublicKey != "" {
@@ -90,7 +97,7 @@ func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
 	var decodePinToken func([]byte) ([]byte, error)
 
 	if b, err := ed25519Encoding.DecodeString(store.PrivateKey); err == nil && len(b) == ed25519.PrivateKeySize {
-		auth.signMethod = Ed25519SigningMethod
+		auth.signMethod = jwt.SigningMethodEdDSA
 		auth.signKey = ed25519.PrivateKey(b)
 
 		decodePinToken = func(token []byte) ([]byte, error) {
