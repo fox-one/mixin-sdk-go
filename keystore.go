@@ -27,6 +27,46 @@ type Keystore struct {
 	PrivateKey string `json:"private_key"`
 	PinToken   string `json:"pin_token"`
 	Scope      string `json:"scope"`
+
+	// ServerPublicKey is equivalent to the PinToken in hex format
+	ServerPublicKey string `json:"server_public_key"`
+	// SessionPrivateKey is equivalent to the PrivateKey in hex format
+	SessionPrivateKey string `json:"session_private_key"`
+}
+
+func (k *Keystore) init() error {
+	if k.PrivateKey == "" && k.SessionPrivateKey != "" {
+		b, err := hex.DecodeString(k.SessionPrivateKey)
+		if err != nil {
+			return err
+		}
+
+		if len(b) != ed25519.PrivateKeySize {
+			return errors.New("invalid session private key")
+		}
+
+		k.PrivateKey = ed25519Encoding.EncodeToString(b)
+	}
+
+	if k.PinToken == "" && k.ServerPublicKey != "" {
+		b, err := hex.DecodeString(k.ServerPublicKey)
+		if err != nil {
+			return err
+		}
+
+		if len(b) != ed25519.PublicKeySize {
+			return errors.New("invalid server public key")
+		}
+
+		pub, err := publicKeyToCurve25519(b)
+		if err != nil {
+			return err
+		}
+
+		k.PinToken = ed25519Encoding.EncodeToString(pub)
+	}
+
+	return nil
 }
 
 type KeystoreAuth struct {
@@ -42,8 +82,11 @@ type KeystoreAuth struct {
 
 // AuthFromKeystore produces a signer using both ed25519 & RSA keystore.
 func AuthFromKeystore(store *Keystore) (*KeystoreAuth, error) {
-	auth := &KeystoreAuth{Keystore: store}
+	if err := store.init(); err != nil {
+		return nil, err
+	}
 
+	auth := &KeystoreAuth{Keystore: store}
 	var decodePinToken func([]byte) ([]byte, error)
 
 	if b, err := ed25519Encoding.DecodeString(store.PrivateKey); err == nil && len(b) == ed25519.PrivateKeySize {
