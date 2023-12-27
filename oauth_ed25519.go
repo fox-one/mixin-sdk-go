@@ -55,7 +55,7 @@ type OauthKeystoreAuth struct {
 func AuthFromOauthKeystore(store *OauthKeystore) (*OauthKeystoreAuth, error) {
 	auth := &OauthKeystoreAuth{
 		OauthKeystore: store,
-		signMethod:    Ed25519SigningMethod,
+		signMethod:    jwt.SigningMethodEdDSA,
 	}
 
 	sign, err := ed25519Encoding.DecodeString(store.PrivateKey)
@@ -114,10 +114,6 @@ func (o *OauthKeystoreAuth) Verify(resp *resty.Response) error {
 	}
 
 	if _, err := jwt.ParseWithClaims(verifyToken, &claim, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*EdDSASigningMethod); !ok {
-			return nil, jwt.ErrInvalidKeyType
-		}
-
 		return o.verifyKey, nil
 	}); err != nil {
 		return err

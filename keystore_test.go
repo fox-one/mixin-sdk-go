@@ -94,7 +94,7 @@ func TestKeystoreAuth_SignTokenAt(t *testing.T) {
 	})
 
 	t.Run("ed25519", func(t *testing.T) {
-		auth.signMethod = Ed25519SigningMethod
+		auth.signMethod = jwt.SigningMethodEdDSA
 		auth.signKey = GenerateEd25519Key()
 
 		assert.Equal(
