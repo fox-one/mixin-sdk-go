@@ -18,6 +18,7 @@ const (
 	InvalidOutputKey = 2000001
 	InputLocked      = 2000002
 	InvalidSignature = 2000003
+	InvalidSpendKey  = 2000004
 )
 
 type Error struct {

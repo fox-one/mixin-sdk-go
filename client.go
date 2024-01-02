@@ -13,6 +13,9 @@ type Client struct {
 	MessageLocker
 
 	ClientID string
+
+	publicSpendKey string
+	publicTipKey   string
 }
 
 func newClient(id string) *Client {

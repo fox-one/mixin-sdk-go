@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"time"
@@ -40,6 +41,7 @@ type User struct {
 	PinTokenBase64           string    `json:"pin_token_base64,omitempty"`
 	SaltBase64               string    `json:"salt_base64,omitempty"`
 	TipKeyBase64             string    `json:"tip_key_base64,omitempty"`
+	SpendPublicKey           string    `json:"spend_public_key,omitempty"`
 	TipCounter               int       `json:"tip_counter,omitempty"`
 
 	App *App `json:"app,omitempty"`
@@ -55,6 +57,15 @@ func (c *Client) UserMe(ctx context.Context) (*User, error) {
 	var user User
 	if err := c.Get(ctx, "/me", nil, &user); err != nil {
 		return nil, err
+	}
+
+	if user.TipKeyBase64 != "" && c.publicTipKey == "" {
+		if key, err := base64.RawURLEncoding.DecodeString(user.TipKeyBase64); err == nil {
+			c.publicTipKey = hex.EncodeToString(key)
+		}
+	}
+	if user.SpendPublicKey != "" && c.publicSpendKey == "" {
+		c.publicSpendKey = user.SpendPublicKey
 	}
 
 	return &user, nil

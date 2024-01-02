@@ -39,7 +39,23 @@ func decodeKeystoreAndPinFromEnv(t *testing.T) *SpenderKeystore {
 	var store SpenderKeystore
 	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
 
-	store.SpendKey, _ = mixinnet.KeyFromSeed(store.SpendKey.String())
+	if store.SpendKey.HasValue() || len(store.Pin) > 6 {
+		client, err := NewFromKeystore(&store.Keystore)
+		require.NoError(t, err, "init client")
+
+		ctx := context.Background()
+		if store.SpendKey.HasValue() {
+			if spend, err := client.ParseSpendKey(ctx, store.SpendKey.String()); err == nil {
+				store.SpendKey = spend
+			}
+		}
+
+		if len(store.Pin) > 6 {
+			if pin, err := client.ParseTipPin(ctx, store.Pin); err == nil {
+				store.Pin = pin.String()
+			}
+		}
+	}
 
 	return &store
 }
