@@ -24,7 +24,7 @@ func GenerateEd25519Key() ed25519.PrivateKey {
 
 func GenerateKey(randReader io.Reader) Key {
 	var (
-		seed = make([]byte, 64)
+		seed = make([]byte, 32)
 		s    = 0
 	)
 
@@ -32,12 +32,44 @@ func GenerateKey(randReader io.Reader) Key {
 		n, _ := randReader.Read(seed[s:])
 		s += n
 	}
-	return KeyFromSeed(seed)
+	k, err := keyFromSeed(seed)
+	if err != nil {
+		panic(err)
+	}
+	return k
 }
 
-func KeyFromSeed(seed []byte) Key {
+func keyFromSeed(seed []byte) (Key, error) {
+	var key Key
+	h := sha512.Sum512(seed[:32])
+	x := h[:32]
+	var wideBytes [64]byte
+	copy(wideBytes[:], x[:])
+	wideBytes[0] &= 248
+	wideBytes[31] &= 63
+	wideBytes[31] |= 64
+	s, err := edwards25519.NewScalar().SetUniformBytes(wideBytes[:])
+	if err != nil {
+		return key, err
+	}
+	copy(key[:], s.Bytes())
+	return key, nil
+}
+
+func KeyFromSeed(seed string) (Key, error) {
+	var key Key
+
+	b, err := hex.DecodeString(seed)
+	if err != nil {
+		return key, err
+	}
+
+	return keyFromSeed(b)
+}
+
+func KeyFromBytes(bts []byte) Key {
 	var key [32]byte
-	s, err := edwards25519.NewScalar().SetUniformBytes(seed)
+	s, err := edwards25519.NewScalar().SetUniformBytes(bts)
 	if err != nil {
 		panic(err)
 	}
@@ -51,26 +83,16 @@ func KeyFromString(s string) (Key, error) {
 	if err != nil {
 		return key, err
 	}
-	if len(b) == len(key) {
-		copy(key[:], b)
-	} else if len(b) == 64 {
-		h := sha512.Sum512(b[:32])
-		x := h[:32]
-		var wideBytes [64]byte
-		copy(wideBytes[:], x[:])
-		wideBytes[0] &= 248
-		wideBytes[31] &= 63
-		wideBytes[31] |= 64
-		s, err := edwards25519.NewScalar().SetUniformBytes(wideBytes[:])
-		if err != nil {
-			return key, err
-		}
-		copy(key[:], s.Bytes())
 
-	} else {
+	switch len(b) {
+	case 32:
+		copy(key[:], b)
+		return key, nil
+	case 64:
+		return keyFromSeed(b[:32])
+	default:
 		return key, fmt.Errorf("invalid key size %d", len(b))
 	}
-	return key, nil
 }
 
 func (k Key) CheckKey() bool {
@@ -104,7 +126,7 @@ func (k Key) HasValue() bool {
 
 func (k Key) DeterministicHashDerive() Key {
 	seed := NewHash(k[:])
-	return KeyFromSeed(append(seed[:], seed[:]...))
+	return KeyFromBytes(append(seed[:], seed[:]...))
 }
 
 func KeyMultPubPriv(pub, priv *Key) *edwards25519.Point {
