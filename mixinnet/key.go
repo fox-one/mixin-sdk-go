@@ -78,21 +78,21 @@ func KeyFromBytes(bts []byte) Key {
 }
 
 func KeyFromString(s string) (Key, error) {
-	if len(s) == 128 {
-		return KeyFromSeed(s)
-	}
-
 	var key Key
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return key, err
 	}
-	if len(b) == len(key) {
+
+	switch len(b) {
+	case 32:
 		copy(key[:], b)
-	} else {
+		return key, nil
+	case 64:
+		return keyFromSeed(b[:32])
+	default:
 		return key, fmt.Errorf("invalid key size %d", len(b))
 	}
-	return key, nil
 }
 
 func (k Key) CheckKey() bool {
