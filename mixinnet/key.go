@@ -32,12 +32,39 @@ func GenerateKey(randReader io.Reader) Key {
 		n, _ := randReader.Read(seed[s:])
 		s += n
 	}
-	return KeyFromSeed(seed)
+	k, err := KeyFromSeed(hex.EncodeToString(seed))
+	if err != nil {
+		panic(err)
+	}
+	return k
 }
 
-func KeyFromSeed(seed []byte) Key {
+func KeyFromSeed(seed string) (Key, error) {
+	var key Key
+
+	b, err := hex.DecodeString(seed)
+	if err != nil {
+		return key, err
+	}
+
+	h := sha512.Sum512(b[:32])
+	x := h[:32]
+	var wideBytes [64]byte
+	copy(wideBytes[:], x[:])
+	wideBytes[0] &= 248
+	wideBytes[31] &= 63
+	wideBytes[31] |= 64
+	s, err := edwards25519.NewScalar().SetUniformBytes(wideBytes[:])
+	if err != nil {
+		return key, err
+	}
+	copy(key[:], s.Bytes())
+	return key, nil
+}
+
+func KeyFromBytes(bts []byte) Key {
 	var key [32]byte
-	s, err := edwards25519.NewScalar().SetUniformBytes(seed)
+	s, err := edwards25519.NewScalar().SetUniformBytes(bts)
 	if err != nil {
 		panic(err)
 	}
@@ -46,6 +73,10 @@ func KeyFromSeed(seed []byte) Key {
 }
 
 func KeyFromString(s string) (Key, error) {
+	if len(s) == 128 {
+		return KeyFromSeed(s)
+	}
+
 	var key Key
 	b, err := hex.DecodeString(s)
 	if err != nil {
@@ -53,20 +84,6 @@ func KeyFromString(s string) (Key, error) {
 	}
 	if len(b) == len(key) {
 		copy(key[:], b)
-	} else if len(b) == 64 {
-		h := sha512.Sum512(b[:32])
-		x := h[:32]
-		var wideBytes [64]byte
-		copy(wideBytes[:], x[:])
-		wideBytes[0] &= 248
-		wideBytes[31] &= 63
-		wideBytes[31] |= 64
-		s, err := edwards25519.NewScalar().SetUniformBytes(wideBytes[:])
-		if err != nil {
-			return key, err
-		}
-		copy(key[:], s.Bytes())
-
 	} else {
 		return key, fmt.Errorf("invalid key size %d", len(b))
 	}
@@ -104,7 +121,7 @@ func (k Key) HasValue() bool {
 
 func (k Key) DeterministicHashDerive() Key {
 	seed := NewHash(k[:])
-	return KeyFromSeed(append(seed[:], seed[:]...))
+	return KeyFromBytes(append(seed[:], seed[:]...))
 }
 
 func KeyMultPubPriv(pub, priv *Key) *edwards25519.Point {
