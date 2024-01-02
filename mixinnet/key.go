@@ -24,7 +24,7 @@ func GenerateEd25519Key() ed25519.PrivateKey {
 
 func GenerateKey(randReader io.Reader) Key {
 	var (
-		seed = make([]byte, 64)
+		seed = make([]byte, 32)
 		s    = 0
 	)
 
@@ -32,22 +32,16 @@ func GenerateKey(randReader io.Reader) Key {
 		n, _ := randReader.Read(seed[s:])
 		s += n
 	}
-	k, err := KeyFromSeed(hex.EncodeToString(seed))
+	k, err := keyFromSeed(seed)
 	if err != nil {
 		panic(err)
 	}
 	return k
 }
 
-func KeyFromSeed(seed string) (Key, error) {
+func keyFromSeed(seed []byte) (Key, error) {
 	var key Key
-
-	b, err := hex.DecodeString(seed)
-	if err != nil {
-		return key, err
-	}
-
-	h := sha512.Sum512(b[:32])
+	h := sha512.Sum512(seed[:32])
 	x := h[:32]
 	var wideBytes [64]byte
 	copy(wideBytes[:], x[:])
@@ -60,6 +54,17 @@ func KeyFromSeed(seed string) (Key, error) {
 	}
 	copy(key[:], s.Bytes())
 	return key, nil
+}
+
+func KeyFromSeed(seed string) (Key, error) {
+	var key Key
+
+	b, err := hex.DecodeString(seed)
+	if err != nil {
+		return key, err
+	}
+
+	return keyFromSeed(b)
 }
 
 func KeyFromBytes(bts []byte) Key {

@@ -39,6 +39,8 @@ func decodeKeystoreAndPinFromEnv(t *testing.T) *SpenderKeystore {
 	var store SpenderKeystore
 	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
 
+	store.SpendKey, _ = mixinnet.KeyFromSeed(store.SpendKey.String())
+
 	return &store
 }
 
