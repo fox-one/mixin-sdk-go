@@ -95,6 +95,18 @@ func KeyFromString(s string) (Key, error) {
 	}
 }
 
+func ParseKeyWithPub(s, pub string) (Key, error) {
+	if key, err := KeyFromString(s); err == nil && key.Public().String() == pub {
+		return key, nil
+	}
+
+	if key, err := KeyFromSeed(s); err == nil && key.Public().String() == pub {
+		return key, nil
+	}
+
+	return Key{}, fmt.Errorf("invalid key")
+}
+
 func (k Key) CheckKey() bool {
 	_, err := edwards25519.NewIdentityPoint().SetBytes(k[:])
 	return err == nil
