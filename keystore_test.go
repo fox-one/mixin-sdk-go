@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"testing"
@@ -24,6 +25,8 @@ type (
 )
 
 func decodeKeystoreAndPinFromEnv(t *testing.T) *SpenderKeystore {
+	ctx := context.Background()
+
 	env := "TEST_KEYSTORE_PATH"
 	path := os.Getenv(env)
 	if path == "" {
@@ -39,22 +42,22 @@ func decodeKeystoreAndPinFromEnv(t *testing.T) *SpenderKeystore {
 	var store SpenderKeystore
 	require.Nil(t, json.NewDecoder(f).Decode(&store), "decode keystore")
 
-	if store.SpendKey.HasValue() || len(store.Pin) > 6 {
-		client, err := NewFromKeystore(&store.Keystore)
-		require.NoError(t, err, "init client")
+	client, err := NewFromKeystore(&store.Keystore)
+	require.NoError(t, err, "init client")
 
-		ctx := context.Background()
-		if store.SpendKey.HasValue() {
-			if spend, err := client.ParseSpendKey(ctx, store.SpendKey.String()); err == nil {
-				store.SpendKey = spend
-			}
-		}
+	user, err := client.UserMe(ctx)
+	require.NoError(t, err, "UserMe")
 
-		if len(store.Pin) > 6 {
-			if pin, err := client.ParseTipPin(ctx, store.Pin); err == nil {
-				store.Pin = pin.String()
-			}
-		}
+	if store.SpendKey.HasValue() {
+		store.SpendKey, _ = mixinnet.ParseKeyWithPub(store.SpendKey.String(), user.SpendPublicKey)
+	}
+
+	if len(store.Pin) > 6 {
+		pub, err := ed25519Encoding.DecodeString(user.TipKeyBase64)
+		require.NoError(t, err, "decode tip key")
+
+		pin, _ := mixinnet.ParseKeyWithPub(store.Pin, hex.EncodeToString(pub))
+		store.Pin = pin.String()
 	}
 
 	return &store
