@@ -40,6 +40,7 @@ type User struct {
 	PinTokenBase64           string    `json:"pin_token_base64,omitempty"`
 	SaltBase64               string    `json:"salt_base64,omitempty"`
 	TipKeyBase64             string    `json:"tip_key_base64,omitempty"`
+	SpendPublicKey           string    `json:"spend_public_key,omitempty"`
 	TipCounter               int       `json:"tip_counter,omitempty"`
 
 	App *App `json:"app,omitempty"`
