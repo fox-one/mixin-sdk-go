@@ -115,7 +115,7 @@ func (k Key) CheckKey() bool {
 func (k Key) Public() Key {
 	x, err := edwards25519.NewScalar().SetCanonicalBytes(k[:])
 	if err != nil {
-		panic(k.String())
+		return Key{}
 	}
 	v := edwards25519.NewIdentityPoint().ScalarBaseMult(x)
 	var tmp Key
