@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -104,6 +105,10 @@ func (c *Client) MakeTransaction(ctx context.Context, b *TransactionBuilder, out
 	remain := b.TotalInputAmount()
 	for _, output := range outputs {
 		remain = remain.Sub(output.Amount)
+	}
+
+	if remain.IsNegative() {
+		return nil, errors.New("insufficient balance")
 	}
 
 	if remain.IsPositive() {
