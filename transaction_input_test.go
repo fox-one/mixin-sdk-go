@@ -47,7 +47,7 @@ func TestBuildTransaction(t *testing.T) {
 		t.Log(raw)
 
 		request, err := dapp.SafeCreateTransactionRequest(ctx, &SafeTransactionRequestInput{
-			RequestID:      uuidHash([]byte(utxos[0].OutputID + ":SafeCreateTransactionRequest")),
+			RequestID:      uuidHash([]byte(utxos[0].OutputID + dapp.ClientID)),
 			RawTransaction: raw,
 		})
 		require.NoError(err, "SafeCreateTransactionRequest")
