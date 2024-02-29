@@ -34,6 +34,9 @@ type Keystore struct {
 	ServerPublicKey string `json:"server_public_key"`
 	// SessionPrivateKey is equivalent to the PrivateKey in hex format
 	SessionPrivateKey string `json:"session_private_key"`
+
+	// ExtraClaims is used to store extra claims in the jwt token
+	ExtraClaims map[string]interface{} `json:"extra_claims"`
 }
 
 func (k *Keystore) init() error {
@@ -157,6 +160,12 @@ func (k *KeystoreAuth) SignTokenAt(signature, requestID string, at time.Time, ex
 
 	if k.Scope != "" {
 		jwtMap["scp"] = k.Scope
+	}
+
+	for k, v := range k.ExtraClaims {
+		if _, ok := jwtMap[k]; !ok {
+			jwtMap[k] = v
+		}
 	}
 
 	token, err := jwt.NewWithClaims(k.signMethod, jwtMap).SignedString(k.signKey)
