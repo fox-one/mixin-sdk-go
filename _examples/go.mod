@@ -6,6 +6,7 @@ replace github.com/fox-one/mixin-sdk-go/v2 => ../
 
 require (
 	github.com/fox-one/mixin-sdk-go/v2 v2.0.0-00010101000000-000000000000
+	github.com/fox-one/pkg/uuid v0.0.1
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
 	github.com/rs/cors v1.10.1
