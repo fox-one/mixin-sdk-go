@@ -25,6 +25,7 @@ type (
 		CreatedAt        time.Time       `json:"created_at,omitempty"`
 		UpdatedAt        time.Time       `json:"updated_at,omitempty"`
 		Views            []mixinnet.Key  `json:"views,omitempty"`
+		RevokedBy        string          `json:"revoked_by"`
 	}
 )
 

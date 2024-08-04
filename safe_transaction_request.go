@@ -40,6 +40,7 @@ type (
 		State            SafeUtxoState              `json:"state,omitempty"`
 		RawTransaction   string                     `json:"raw_transaction"`
 		Views            []mixinnet.Key             `json:"views,omitempty"`
+		RevokedBy        string                     `json:"revoked_by"`
 
 		// TODO delete when asset_id is on
 		Asset mixinnet.Hash `json:"asset,omitempty"`
