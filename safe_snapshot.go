@@ -45,7 +45,7 @@ func ReadSafeSnapshot(ctx context.Context, accessToken, snapshotID string) (*Saf
 }
 
 func (c *Client) ReadSafeSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*SafeSnapshot, error) {
-	params := buildReadSafeSnapshotsParams(assetID, offset, order, limit)
+	params := buildReadSafeSnapshotsParams("", assetID, offset, order, limit)
 
 	var snapshots []*SafeSnapshot
 	if err := c.Get(ctx, "/safe/snapshots", params, &snapshots); err != nil {
@@ -59,8 +59,24 @@ func ReadSafeSnapshots(ctx context.Context, accessToken string, assetID string, 
 	return NewFromAccessToken(accessToken).ReadSafeSnapshots(ctx, assetID, offset, order, limit)
 }
 
-func buildReadSafeSnapshotsParams(assetID string, offset time.Time, order string, limit int) map[string]string {
+// list safe snapshots of dapp & sub wallets created by this dapp
+func (c *Client) ReadSafeAppSnapshots(ctx context.Context, assetID string, offset time.Time, order string, limit int) ([]*SafeSnapshot, error) {
+	params := buildReadSafeSnapshotsParams(c.ClientID, assetID, offset, order, limit)
+
+	var snapshots []*SafeSnapshot
+	if err := c.Get(ctx, "/safe/snapshots", params, &snapshots); err != nil {
+		return nil, err
+	}
+
+	return snapshots, nil
+}
+
+func buildReadSafeSnapshotsParams(appID string, assetID string, offset time.Time, order string, limit int) map[string]string {
 	params := make(map[string]string)
+
+	if appID != "" {
+		params["app"] = appID
+	}
 
 	if assetID != "" {
 		params["asset"] = assetID
