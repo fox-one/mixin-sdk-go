@@ -49,13 +49,14 @@ type (
 )
 
 type SafeListUtxoOption struct {
-	Members   []string
-	Threshold uint8
-	Offset    uint64
-	Asset     string
-	Limit     int
-	Order     string
-	State     SafeUtxoState
+	Members           []string
+	Threshold         uint8
+	Offset            uint64
+	Asset             string
+	Limit             int
+	Order             string
+	State             SafeUtxoState
+	IncludeSubWallets bool
 }
 
 func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*SafeUtxo, error) {
@@ -80,6 +81,10 @@ func (c *Client) SafeListUtxos(ctx context.Context, opt SafeListUtxoOption) ([]*
 	}
 	params["members"] = mixinnet.HashMembers(opt.Members)
 	params["threshold"] = fmt.Sprint(opt.Threshold)
+
+	if opt.IncludeSubWallets {
+		params["app"] = c.ClientID
+	}
 
 	switch opt.Order {
 	case "ASC", "DESC":
