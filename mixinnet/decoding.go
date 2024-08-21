@@ -296,7 +296,6 @@ func (dec *Decoder) ReadOutput(ver uint8) (*Output, error) {
 			}
 			w.Tag = string(tb)
 		} else {
-			var w WithdrawalData
 			ab, err := dec.ReadBytes()
 			if err != nil {
 				return nil, err
