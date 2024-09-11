@@ -30,6 +30,7 @@ type (
 		Amount             decimal.Decimal `json:"amount,omitempty"`
 		Mask               mixinnet.Key    `json:"mask,omitempty"`
 		Keys               []mixinnet.Key  `json:"keys,omitempty"`
+		InscriptionHash    mixinnet.Hash   `json:"inscription_hash,omitempty"`
 		SendersHash        string          `json:"senders_hash,omitempty"`
 		SendersThreshold   uint8           `json:"senders_threshold,omitempty"`
 		Senders            []string        `json:"senders,omitempty"`
