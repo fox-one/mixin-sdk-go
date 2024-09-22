@@ -100,12 +100,14 @@ type (
 	}
 
 	AppCardMessage struct {
-		AppID       string `json:"app_id,omitempty"`
-		IconURL     string `json:"icon_url,omitempty"`
-		Title       string `json:"title,omitempty"`
-		Description string `json:"description,omitempty"`
-		Action      string `json:"action,omitempty"`
-		Shareable   bool   `json:"shareable,omitempty"`
+		AppID       string                `json:"app_id,omitempty"`
+		IconURL     string                `json:"icon_url,omitempty"`
+		CoverURL    string                `json:"cover_url,omitempty"`
+		Title       string                `json:"title,omitempty"`
+		Description string                `json:"description,omitempty"`
+		Action      string                `json:"action,omitempty"`
+		Actions     AppButtonGroupMessage `json:"actions,omitempty"`
+		Shareable   bool                  `json:"shareable,omitempty"`
 	}
 
 	AudioMessage struct {
