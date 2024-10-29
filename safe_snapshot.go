@@ -28,6 +28,7 @@ type (
 		Memo            string               `json:"memo,omitempty"`
 		CreatedAt       time.Time            `json:"created_at"`
 		Deposit         *SafeSnapshotDeposit `json:"deposit,omitempty"`
+		InscriptionHash *mixinnet.Hash       `json:"inscription_hash,omitempty"`
 	}
 )
 
