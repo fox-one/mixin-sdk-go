@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -48,4 +49,20 @@ func RandomPin() string {
 
 func RandomTraceID() string {
 	return newUUID()
+}
+
+func GenUuidFromStrings(uuids ...string) string {
+	if len(uuids) == 0 {
+		uuids = append(uuids, "00000000-0000-0000-0000-000000000000")
+	}
+
+	// Sort the UUIDs to ensure consistent ordering
+	sortedUUIDs := make([]string, len(uuids))
+	copy(sortedUUIDs, uuids)
+	sort.Strings(sortedUUIDs)
+
+	// Concatenate all sorted UUIDs
+	concatenatedUUIDs := strings.Join(sortedUUIDs, "")
+
+	return uuidHash([]byte(concatenatedUUIDs))
 }
