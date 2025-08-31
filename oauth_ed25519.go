@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type OauthKeystore struct {
@@ -21,7 +21,7 @@ type OauthKeystore struct {
 
 func AuthorizeEd25519(ctx context.Context, clientID, clientSecret string, code string, verifier string, privateKey ed25519.PrivateKey) (*OauthKeystore, error) {
 	public := privateKey.Public().(ed25519.PublicKey)
-	params := map[string]interface{}{
+	params := map[string]any{
 		"client_id":     clientID,
 		"client_secret": clientSecret,
 		"code":          code,
@@ -48,8 +48,8 @@ func AuthorizeEd25519(ctx context.Context, clientID, clientSecret string, code s
 type OauthKeystoreAuth struct {
 	*OauthKeystore
 	signMethod jwt.SigningMethod
-	signKey    interface{}
-	verifyKey  interface{}
+	signKey    any
+	verifyKey  any
 }
 
 func AuthFromOauthKeystore(store *OauthKeystore) (*OauthKeystoreAuth, error) {
@@ -109,17 +109,17 @@ func (o *OauthKeystoreAuth) Verify(resp *resty.Response) error {
 	}
 
 	var claim struct {
-		jwt.StandardClaims
+		jwt.RegisteredClaims
 		Sign string `json:"sig,omitempty"`
 	}
 
-	if _, err := jwt.ParseWithClaims(verifyToken, &claim, func(t *jwt.Token) (interface{}, error) {
+	if _, err := jwt.ParseWithClaims(verifyToken, &claim, func(t *jwt.Token) (any, error) {
 		return o.verifyKey, nil
 	}); err != nil {
 		return err
 	}
 
-	if expect, got := claim.Id, resp.Header().Get(xRequestID); expect != got {
+	if expect, got := claim.ID, resp.Header().Get(xRequestID); expect != got {
 		return fmt.Errorf("token.jti mismatch, expect %q but got %q", expect, got)
 	}
 
