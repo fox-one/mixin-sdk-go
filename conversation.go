@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 const (
@@ -52,7 +54,9 @@ type CreateConversationInput struct {
 	Category       string         `json:"category,omitempty"`
 	ConversationID string         `json:"conversation_id,omitempty"`
 	Name           string         `json:"name,omitempty"`
+	Announcement   string         `json:"announcement,omitempty"`
 	Participants   []*Participant `json:"participants,omitempty"`
+	RandomID       string         `json:"random_id,omitempty"`
 }
 
 type ConversationUpdate struct {
@@ -96,6 +100,23 @@ func (c *Client) CreateGroupConversation(ctx context.Context, conversationID, na
 		ConversationID: conversationID,
 		Name:           name,
 		Participants:   participants,
+	})
+}
+
+func (c *Client) SafeCreateGroupConversation(ctx context.Context, name, announcement string, participants []*Participant) (*Conversation, error) {
+	members := make([]string, len(participants))
+	for idx := range participants {
+		members[idx] = participants[idx].UserID
+	}
+
+	random := uuid.Must(uuid.NewV4())
+	return c.CreateConversation(ctx, &CreateConversationInput{
+		Category:       ConversationCategoryGroup,
+		ConversationID: UniqueGroupConversationID(c.ClientID, name, members, random),
+		Name:           name,
+		Announcement:   announcement,
+		Participants:   participants,
+		RandomID:       random.String(),
 	})
 }
 
