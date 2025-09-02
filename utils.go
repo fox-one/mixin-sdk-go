@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -21,6 +22,11 @@ func UniqueConversationID(userID, recipientID string) string {
 	}
 
 	return uuidHash([]byte(minID + maxID))
+}
+
+func BuildSnapshotID(hash string, index uint8, receiverID string) string {
+	b := fmt.Appendf(nil, "%s:%d%s", hash, index, receiverID)
+	return uuidHash(b)
 }
 
 func uuidHash(b []byte) string {
