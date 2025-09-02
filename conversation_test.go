@@ -104,4 +104,17 @@ func TestConversation(t *testing.T) {
 
 		assert.Equal(t, newAnnouncement, updated.Announcement, "announcement should changed")
 	})
+
+	t.Run("safe create group conversation", func(t *testing.T) {
+		conversation, err := c.SafeCreateGroupConversation(ctx, "test-group", "test-announcement", []*Participant{
+			{
+				UserID: me.App.CreatorID,
+			},
+		})
+
+		require.Nil(t, err, "safe create group conversation")
+		require.NotNil(t, conversation, "conversation should not be nil")
+		assert.Equal(t, "test-group", conversation.Name, "name should be test-group")
+		assert.Equal(t, "test-announcement", conversation.Announcement, "announcement should be test-announcement")
+	})
 }
