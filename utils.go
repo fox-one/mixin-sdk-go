@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -21,6 +23,22 @@ func UniqueConversationID(userID, recipientID string) string {
 	}
 
 	return uuidHash([]byte(minID + maxID))
+}
+
+func UniqueGroupConversationID(creator, name string, participants []string, random uuid.UUID) string {
+	id := UniqueConversationID(creator, name)
+	id = UniqueConversationID(id, random.String())
+
+	slices.Sort(participants)
+	for _, p := range participants {
+		id = UniqueConversationID(id, p)
+	}
+	return id
+}
+
+func BuildSnapshotID(hash string, index uint8, receiverID string) string {
+	b := fmt.Appendf(nil, "%s:%d%s", hash, index, receiverID)
+	return uuidHash(b)
 }
 
 func uuidHash(b []byte) string {
