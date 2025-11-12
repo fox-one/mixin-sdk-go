@@ -30,3 +30,21 @@ func TestReadSafeCollectible(t *testing.T) {
 	require.NotNil(inscription)
 	t.Log(inscription)
 }
+
+func TestReadSafeCollectibles(t *testing.T) {
+	ctx := context.Background()
+	require := require.New(t)
+
+	testCollectionHash := "1a06ab68776e79a95ce35da5f44fed0bdebdc34571f4ae1fde24876408403f8e"
+
+	collections, err := ReadSafeCollectibles(ctx, testCollectionHash, 50)
+	require.NoError(err, "ReadSafeCollection")
+	require.NotNil(collections)
+	require.Equal(len(collections), 100)
+
+	collections, err = ReadSafeCollectibles(ctx, testCollectionHash, 150)
+	require.NoError(err, "ReadSafeCollection")
+	require.NotNil(collections)
+	require.Equal(len(collections), 100)
+	t.Log(collections)
+}

@@ -2,6 +2,7 @@ package mixin
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
@@ -65,4 +66,24 @@ func ReadSafeCollectible(ctx context.Context, inscriptionHash string) (*SafeColl
 	}
 
 	return &collectible, nil
+}
+
+func ReadSafeCollectibles(ctx context.Context, collectionHash string, offset int) ([]*SafeCollectible, error) {
+	params := make(map[string]string)
+
+	if offset > 0 {
+		params["offset"] = strconv.Itoa(offset)
+	}
+
+	resp, err := Request(ctx).SetQueryParams(params).Get("/safe/inscriptions/collections/" + collectionHash + "/items")
+	if err != nil {
+		return nil, err
+	}
+
+	var response []*SafeCollectible
+	if err := UnmarshalResponse(resp, &response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
