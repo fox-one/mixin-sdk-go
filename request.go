@@ -66,7 +66,7 @@ func GetRestyClient() *resty.Client {
 }
 
 func checkResponseRequestID(r *resty.Response) error {
-	expect := r.Request.Header.Get(xRequestID)
+	expect := r.Request.RawRequest.Header.Get(xRequestID)
 	got := r.Header().Get(xRequestID)
 	if expect != got {
 		return fmt.Errorf("%s mismatch, expect %q but got %q", xRequestID, expect, got)
