@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,8 +22,18 @@ var (
 	ErrResponseVerifyFailed = errors.New("response verify failed")
 )
 
+func defaultUserAgent() string {
+	name := "unknown"
+	if len(os.Args) > 0 && os.Args[0] != "" {
+		name = filepath.Base(os.Args[0])
+	}
+	return fmt.Sprintf("%s mixin-sdk-go (%s; %s/%s)",
+		name, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+}
+
 var httpClient = resty.New().
 	SetHeader("Content-Type", "application/json").
+	SetHeader("User-Agent", defaultUserAgent()).
 	SetBaseURL(DefaultApiHost).
 	SetTimeout(10 * time.Second).
 	SetPreRequestHook(func(c *resty.Client, r *http.Request) error {
