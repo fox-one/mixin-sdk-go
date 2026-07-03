@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,7 +26,7 @@ type CreateAddressInput struct {
 }
 
 func (c *Client) CreateAddress(ctx context.Context, input CreateAddressInput, pin string) (*Address, error) {
-	var body interface{}
+	var body any
 	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		body = struct {
 			CreateAddressInput
@@ -91,7 +91,7 @@ func ReadAddresses(ctx context.Context, accessToken, assetID string) ([]*Address
 }
 
 func (c *Client) DeleteAddress(ctx context.Context, addressID, pin string) error {
-	body := map[string]interface{}{}
+	body := map[string]any{}
 	if key, err := mixinnet.KeyFromString(pin); err == nil {
 		body["pin_base64"] = c.EncryptTipPin(key, TIPAddressRemove, addressID)
 	} else {

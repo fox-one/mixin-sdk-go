@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -104,7 +104,7 @@ func buildReadSafeSnapshotsParams(appID string, assetID string, offset time.Time
 
 func (c *Client) SafeNotifySnapshot(ctx context.Context, receiverID string, hash mixinnet.Hash, index uint8) error {
 	const uri = "/safe/snapshots/notifications"
-	return c.Post(ctx, uri, map[string]interface{}{
+	return c.Post(ctx, uri, map[string]any{
 		"transaction_hash": hash.String(),
 		"output_index":     index,
 		"receiver_id":      receiverID,

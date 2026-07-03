@@ -60,7 +60,7 @@ func ReadNetworkInfo(ctx context.Context) (*NetworkInfo, error) {
 }
 
 // ReadNetworkAsset read mixin network asset by asset id
-func ReadNetworkAsset(ctx context.Context, assetID string) (*Asset, error) {
+func ReadNetworkAsset(ctx context.Context, assetID string) (*SafeAsset, error) {
 	uri := fmt.Sprintf("/network/assets/%s", assetID)
 
 	resp, err := Request(ctx).Get(uri)
@@ -68,7 +68,7 @@ func ReadNetworkAsset(ctx context.Context, assetID string) (*Asset, error) {
 		return nil, err
 	}
 
-	var asset Asset
+	var asset SafeAsset
 	if err := UnmarshalResponse(resp, &asset); err != nil {
 		return nil, err
 	}
@@ -77,13 +77,13 @@ func ReadNetworkAsset(ctx context.Context, assetID string) (*Asset, error) {
 }
 
 // ReadTopNetworkAssets read top network assets
-func ReadTopNetworkAssets(ctx context.Context) ([]*Asset, error) {
+func ReadTopNetworkAssets(ctx context.Context) ([]*SafeAsset, error) {
 	resp, err := Request(ctx).Get("/network/assets/top")
 	if err != nil {
 		return nil, err
 	}
 
-	var assets []*Asset
+	var assets []*SafeAsset
 	if err := UnmarshalResponse(resp, &assets); err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func ReadTopNetworkAssets(ctx context.Context) ([]*Asset, error) {
 }
 
 // ReadNetworkAssetsBySymbol read mixin network assets by symbol
-func ReadNetworkAssetsBySymbol(ctx context.Context, symbol string) ([]*Asset, error) {
+func ReadNetworkAssetsBySymbol(ctx context.Context, symbol string) ([]*SafeAsset, error) {
 	uri := fmt.Sprintf("/network/assets/search/%s", symbol)
 
 	resp, err := Request(ctx).Get(uri)
@@ -100,7 +100,7 @@ func ReadNetworkAssetsBySymbol(ctx context.Context, symbol string) ([]*Asset, er
 		return nil, err
 	}
 
-	var assets []*Asset
+	var assets []*SafeAsset
 	if err := UnmarshalResponse(resp, &assets); err != nil {
 		return nil, err
 	}

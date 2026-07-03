@@ -69,7 +69,7 @@ func (c *Client) Request(ctx context.Context) *resty.Request {
 	return Request(ctx)
 }
 
-func (c *Client) Get(ctx context.Context, uri string, params map[string]string, resp interface{}) error {
+func (c *Client) Get(ctx context.Context, uri string, params map[string]string, resp any) error {
 	r, err := c.Request(ctx).SetQueryParams(params).Get(uri)
 	if err != nil {
 		if requestID := extractRequestID(r); requestID != "" {
@@ -82,7 +82,7 @@ func (c *Client) Get(ctx context.Context, uri string, params map[string]string, 
 	return UnmarshalResponse(r, resp)
 }
 
-func (c *Client) Post(ctx context.Context, uri string, body interface{}, resp interface{}) error {
+func (c *Client) Post(ctx context.Context, uri string, body any, resp any) error {
 	r, err := c.Request(ctx).SetBody(body).Post(uri)
 	if err != nil {
 		if requestID := extractRequestID(r); requestID != "" {

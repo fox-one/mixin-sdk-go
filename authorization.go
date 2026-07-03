@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/gorilla/websocket"
 )
 
@@ -33,7 +33,7 @@ func (c *Client) Authorize(ctx context.Context, authorizationID string, scopes [
 		)
 	}
 
-	body := map[string]interface{}{
+	body := map[string]any{
 		"authorization_id": authorizationID,
 		"scopes":           scopes,
 		"pin_base64":       c.EncryptPin(pin),
@@ -60,7 +60,7 @@ func RequestAuthorization(ctx context.Context, clientID string, scopes []string,
 
 	defer conn.Close()
 
-	if err := writeMessage(conn, "REFRESH_OAUTH_CODE", map[string]interface{}{
+	if err := writeMessage(conn, "REFRESH_OAUTH_CODE", map[string]any{
 		"client_id":      clientID,
 		"scope":          strings.Join(scopes, " "),
 		"code_challenge": challenge,

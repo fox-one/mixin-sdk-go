@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/btcsuite/btcd/address/v2/base58"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/gofrs/uuid/v5"
 )
 

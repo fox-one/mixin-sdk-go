@@ -7,7 +7,7 @@ import (
 )
 
 func AuthorizeToken(ctx context.Context, clientID, clientSecret string, code string, verifier string) (string, string, error) {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"client_id":     clientID,
 		"client_secret": clientSecret,
 		"code":          code,

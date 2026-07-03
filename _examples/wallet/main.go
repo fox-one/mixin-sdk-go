@@ -2,27 +2,31 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"log"
 	"os"
-	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2"
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
-const (
-	ASSET_CNB = "965e5c6e-434c-3fa9-b780-c50f43cd955c"
-)
+// SpenderKeystore is the keystore of a Safe-enabled bot. On top of the regular
+// keystore it carries the Safe spend key that is used to sign UTXO based
+// transactions.
+type SpenderKeystore struct {
+	mixin.Keystore
+	SpendKey string `json:"spend_key"`
+}
 
 var (
-	config = flag.String("config", "", "keystore file path")
-	pin    = flag.String("pin", "", "pin")
+	config   = flag.String("config", "", "keystore file path")
+	pin      = flag.String("pin", "", "pin or tip key")
+	asset    = flag.String("asset", "965e5c6e-434c-3fa9-b780-c50f43cd955c", "asset id, default CNB")
+	receiver = flag.String("receiver", "", "receiver user id")
+	amount   = flag.String("amount", "0.0001", "transfer amount")
 
 	ctx = context.Background()
 )
@@ -34,133 +38,144 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
+	defer f.Close()
 
-	var store mixin.Keystore
+	var store SpenderKeystore
 	if err := json.NewDecoder(f).Decode(&store); err != nil {
 		log.Panicln(err)
 	}
 
-	client, err := mixin.NewFromKeystore(&store)
+	client, err := mixin.NewFromKeystore(&store.Keystore)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	if _, err := client.UserMe(ctx); err != nil {
-		log.Printf("UserMe: %v", err)
+	me, err := client.UserMe(ctx)
+	if err != nil {
+		log.Panicf("UserMe: %v", err)
+	}
+
+	if !me.HasSafe {
+		log.Panicln("the bot is not migrated to safe network yet, run SafeMigrate first")
+	}
+
+	// bind the spend key with its registered public key
+	spendKey, err := mixinnet.ParseKeyWithPub(store.SpendKey, me.SpendPublicKey)
+	if err != nil {
+		log.Panicf("parse spend key: %v", err)
+	}
+
+	if *pin != "" {
+		if err := client.VerifyPin(ctx, *pin); err != nil {
+			log.Panicf("VerifyPin: %v", err)
+		}
+	}
+
+	if *receiver == "" {
+		log.Println("no receiver specified, skip transfer")
 		return
 	}
 
-	if err := client.VerifyPin(ctx, *pin); err != nil {
-		log.Printf("VerifyPin: %v", err)
-		return
+	snapshotHash, err := safeTransfer(
+		ctx,
+		client,
+		spendKey,
+		*asset,
+		*receiver,
+		decimal.RequireFromString(*amount),
+		"mixin-sdk-go safe transfer example",
+	)
+	if err != nil {
+		log.Panicf("safeTransfer: %v", err)
 	}
 
-	{
-		createAndTestUser(ctx, client, mixinnet.GenerateKey(rand.Reader).String())
-	}
-	{
-		_, privateKey, _ := ed25519.GenerateKey(rand.Reader)
-		createAndTestUser(ctx, client, hex.EncodeToString(privateKey))
-	}
+	log.Println("transfer done, snapshot hash:", snapshotHash)
 }
 
-func createAndTestUser(ctx context.Context, dapp *mixin.Client, userPin string) {
-	// create sub wallet
-	// privateKey, _ := rsa.GenerateKey(rand.Reader, 1024)
-	_, privateKey, _ := ed25519.GenerateKey(rand.Reader)
-	sub, subStore, err := dapp.CreateUser(ctx, privateKey, "sub user")
+// safeTransfer sends `amount` of `assetID` to a single opponent user via the
+// Safe (UTXO) network and returns the resulting transaction hash.
+func safeTransfer(
+	ctx context.Context,
+	client *mixin.Client,
+	spendKey mixinnet.Key,
+	assetID, opponentID string,
+	amount decimal.Decimal,
+	memo string,
+) (string, error) {
+	// 1. list unspent outputs of the given asset
+	utxos, err := client.SafeListUtxos(ctx, mixin.SafeListUtxoOption{
+		Members: []string{client.ClientID},
+		Asset:   assetID,
+		State:   mixin.SafeUtxoStateUnspent,
+		Limit:   256,
+	})
 	if err != nil {
-		log.Panicf("CreateUser: %v", err)
-	}
-	log.Println("create sub user", sub.UserID)
-
-	testTransfer(ctx, dapp, *pin, sub.UserID, decimal.NewFromInt(100))
-
-	// set pin
-	newPin := mixin.RandomPin()
-	subClient, _ := mixin.NewFromKeystore(subStore)
-	log.Println("try ModifyPin", newPin)
-	if err := subClient.ModifyPin(ctx, "", newPin); err != nil {
-		log.Panicf("ModifyPin (%s) failed: %v", newPin, err)
+		return "", err
 	}
 
-	tipPin, err := mixinnet.KeyFromString(userPin)
+	// 2. select enough outputs to cover the amount
+	var (
+		inputs []*mixin.SafeUtxo
+		total  decimal.Decimal
+	)
+	for _, utxo := range utxos {
+		inputs = append(inputs, utxo)
+		total = total.Add(utxo.Amount)
+		if total.GreaterThanOrEqual(amount) {
+			break
+		}
+	}
+
+	if total.LessThan(amount) {
+		return "", errors.New("insufficient balance")
+	}
+
+	// 3. build the transaction, change is appended automatically
+	b := mixin.NewSafeTransactionBuilder(inputs)
+	b.Memo = memo
+
+	tx, err := client.MakeTransaction(ctx, b, []*mixin.TransactionOutput{
+		{
+			Address: mixin.RequireNewMixAddress([]string{opponentID}, 1),
+			Amount:  amount,
+		},
+	})
 	if err != nil {
-		log.Panicf("KeyFromString(%s) failed: %v", userPin, err)
-	}
-	log.Println("try ModifyPin", userPin, tipPin, tipPin.Public())
-	if err := subClient.ModifyPin(ctx, newPin, tipPin.Public().String()); err != nil {
-		log.Panicf("ModifyPin (%s) failed: %v", tipPin, err)
+		return "", err
 	}
 
-	if err := subClient.VerifyPin(ctx, userPin); err != nil {
-		log.Panicf("sub user VerifyPin: %v", err)
+	raw, err := tx.Dump()
+	if err != nil {
+		return "", err
 	}
 
-	testTransfer(ctx, subClient, userPin, dapp.ClientID, decimal.NewFromInt(99))
-}
-
-func testTransfer(ctx context.Context, dapp *mixin.Client, pin, opponent string, amount decimal.Decimal) {
-	{
-		input := &mixin.TransferInput{
-			AssetID:    ASSET_CNB, // CNB
-			OpponentID: opponent,
-			Amount:     amount,
-			// THIS IS AN EXAMPLE.
-			// NEVER USE A RANDOM TRACE ID IN YOU REAL PROJECT.
-			TraceID: mixin.RandomTraceID(),
-			Memo:    "test",
-		}
-
-		snapshot, err := dapp.Transfer(ctx, input, pin)
-		if err != nil {
-			switch {
-			case mixin.IsErrorCodes(err, mixin.InsufficientBalance):
-				log.Println("insufficient balance")
-			default:
-				log.Printf("transfer: %v", err)
-			}
-
-			return
-		}
-
-		log.Println("transfer done", snapshot.SnapshotID, snapshot.Memo)
-		log.Println("sleep 5 seconds")
-		time.Sleep(5 * time.Second)
-
-		transfer, err := dapp.ReadTransfer(ctx, snapshot.TraceID)
-		if err != nil {
-			log.Panicf("ReadTransfer: %v", err)
-		}
-
-		if transfer.SnapshotID != snapshot.SnapshotID {
-			log.Panicf("expect %v but got %v", snapshot.SnapshotID, transfer.SnapshotID)
-		}
-
-		if _, err := dapp.ReadSnapshot(ctx, snapshot.SnapshotID); err != nil {
-			log.Panicf("read snapshot: %v", err)
-		}
+	// 4. create the transaction request to fetch the ghost keys (views)
+	request, err := client.SafeCreateTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      mixin.BuildSnapshotID(inputs[0].TransactionHash.String(), inputs[0].OutputIndex, opponentID),
+		RawTransaction: raw,
+	})
+	if err != nil {
+		return "", err
 	}
 
-	{
-		input := mixin.CreateAddressInput{
-			AssetID:     ASSET_CNB,
-			Destination: "0xe20FE5C04Fa6b044b720F8CA019Cd896881ED13B",
-			Label:       "mixin-sdk-go wallet example test",
-		}
-		addr, err := dapp.CreateAddress(ctx, input, pin)
-		if err != nil {
-			log.Panicf("create address: %v", err)
-		}
-
-		winput := mixin.WithdrawInput{
-			AddressID: addr.AddressID,
-			Amount:    decimal.New(1, 0),
-			TraceID:   mixin.RandomTraceID(),
-			Memo:      "withdraw test",
-		}
-		if _, err := dapp.Withdraw(ctx, winput, pin); err != nil {
-			log.Panicf("withdraw: %v", err)
-		}
+	// 5. sign the transaction locally with the spend key
+	if err := mixin.SafeSignTransaction(tx, spendKey, request.Views, 0); err != nil {
+		return "", err
 	}
+
+	signedRaw, err := tx.Dump()
+	if err != nil {
+		return "", err
+	}
+
+	// 6. submit the signed transaction
+	submitted, err := client.SafeSubmitTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      request.RequestID,
+		RawTransaction: signedRaw,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return submitted.TransactionHash, nil
 }

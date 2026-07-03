@@ -2,27 +2,31 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"log"
 	"os"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2"
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
-	"github.com/gofrs/uuid"
+	"github.com/fox-one/mixin-sdk-go/v3"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
+// SpenderKeystore is the keystore of a Safe-enabled bot together with its Safe
+// spend key used to sign UTXO based transactions.
+type SpenderKeystore struct {
+	mixin.Keystore
+	SpendKey string `json:"spend_key"`
+}
+
 var (
 	config = flag.String("config", "", "keystore file path")
-	pin    = flag.String("pin", "", "pin")
+	pin    = flag.String("pin", "", "pin or tip key")
+	asset  = flag.String("asset", "965e5c6e-434c-3fa9-b780-c50f43cd955c", "asset id, default CNB")
+	// the extra member of the 1-of-2 multisig group besides the bot itself
+	partner = flag.String("partner", "6a00a4bc-229e-3c39-978a-91d2d6c382bf", "the other multisig member id")
 )
-
-func newUUID() string {
-	return uuid.Must(uuid.NewV4()).String()
-}
 
 func main() {
 	flag.Parse()
@@ -31,181 +35,184 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
+	defer f.Close()
 
-	var store mixin.Keystore
+	var store SpenderKeystore
 	if err := json.NewDecoder(f).Decode(&store); err != nil {
 		log.Panicln(err)
 	}
 
-	client, err := mixin.NewFromKeystore(&store)
+	client, err := mixin.NewFromKeystore(&store.Keystore)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	mnClient := mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
-	ctx := mnClient.WithHost(context.Background(), mnClient.RandomHost())
+	ctx := context.Background()
 
 	me, err := client.UserMe(ctx)
 	if err != nil {
-		log.Panicln(err)
+		log.Panicf("UserMe: %v", err)
 	}
 
-	// create sub wallet
-	privateKey := mixin.GenerateEd25519Key()
-	sub, subStore, err := client.CreateUser(ctx, privateKey, "sub user")
+	if !me.HasSafe {
+		log.Panicln("the bot is not migrated to safe network yet, run SafeMigrate first")
+	}
+
+	spendKey, err := mixinnet.ParseKeyWithPub(store.SpendKey, me.SpendPublicKey)
 	if err != nil {
-		log.Printf("CreateUser: %v", err)
-		return
+		log.Panicf("parse spend key: %v", err)
 	}
 
-	log.Println("create sub user", sub.UserID)
+	members := []string{client.ClientID, *partner}
+	var threshold uint8 = 1
 
-	subClient, _ := mixin.NewFromKeystore(subStore)
-	if err := subClient.ModifyPin(ctx, "", *pin); err != nil {
-		log.Printf("CreateUser: %v", err)
-		return
+	// Phase 1: fund the 1-of-2 multisig address from the bot's own wallet.
+	utxo := fundMultisig(ctx, client, spendKey, *asset, members, threshold)
+	log.Println("funded multisig utxo", utxo.OutputID)
+
+	// Phase 2: spend from the multisig address back to the bot.
+	spendFromMultisig(ctx, client, spendKey, utxo, members)
+}
+
+// fundMultisig transfers a small amount from the bot's wallet to the multisig
+// address and returns the newly created multisig utxo (synthesized locally).
+func fundMultisig(
+	ctx context.Context,
+	client *mixin.Client,
+	spendKey mixinnet.Key,
+	assetID string,
+	members []string,
+	threshold uint8,
+) *mixin.SafeUtxo {
+	utxos, err := client.SafeListUtxos(ctx, mixin.SafeListUtxoOption{
+		Members: []string{client.ClientID},
+		Asset:   assetID,
+		State:   mixin.SafeUtxoStateUnspent,
+		Limit:   1,
+	})
+	if err != nil {
+		log.Panicf("SafeListUtxos: %v", err)
+	}
+	if len(utxos) == 0 {
+		log.Panicln("empty unspent utxo")
 	}
 
-	members := []string{subClient.ClientID, client.ClientID, me.App.CreatorID}
-	var threshold uint8 = 2
+	b := mixin.NewSafeTransactionBuilder(utxos)
+	b.Memo = "Transfer To Multisig"
 
-	h, err := client.Transaction(ctx, &mixin.TransferInput{
-		AssetID: "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-		Amount:  decimal.New(1, -4),
-		TraceID: newUUID(),
-		Memo:    "send to multisig",
-		OpponentMultisig: struct {
-			Receivers []string `json:"receivers,omitempty"`
-			Threshold uint8    `json:"threshold,omitempty"`
-		}{
-			Receivers: members,
-			Threshold: threshold,
+	tx, err := client.MakeTransaction(ctx, b, []*mixin.TransactionOutput{
+		{
+			Address: mixin.RequireNewMixAddress(members, threshold),
+			Amount:  decimal.New(1, -8),
 		},
-	}, *pin)
+	})
 	if err != nil {
-		log.Panicln(err)
+		log.Panicf("MakeTransaction: %v", err)
 	}
-	time.Sleep(time.Second * 15)
 
-	var (
-		utxo   *mixin.MultisigUTXO
-		offset time.Time
-	)
-	const limit = 10
-	for utxo == nil {
-		outputs, err := client.ReadMultisigOutputs(ctx, members, threshold, offset, limit)
-		if err != nil {
-			log.Panicf("ReadMultisigOutputs: %v", err)
-		}
+	raw, err := tx.Dump()
+	if err != nil {
+		log.Panicf("Dump: %v", err)
+	}
 
-		for _, output := range outputs {
-			offset = output.UpdatedAt
-			if hex.EncodeToString(output.TransactionHash[:]) == h.TransactionHash {
-				utxo = output
-				break
-			}
-		}
-		if len(outputs) < limit {
+	request, err := client.SafeCreateTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      mixin.BuildSnapshotID(utxos[0].TransactionHash.String(), utxos[0].OutputIndex, "fund"),
+		RawTransaction: raw,
+	})
+	if err != nil {
+		log.Panicf("SafeCreateTransactionRequest: %v", err)
+	}
+
+	if err := mixin.SafeSignTransaction(tx, spendKey, request.Views, 0); err != nil {
+		log.Panicf("SafeSignTransaction: %v", err)
+	}
+
+	signedRaw, err := tx.Dump()
+	if err != nil {
+		log.Panicf("Dump: %v", err)
+	}
+
+	if _, err := client.SafeSubmitTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      request.RequestID,
+		RawTransaction: signedRaw,
+	}); err != nil {
+		log.Panicf("SafeSubmitTransactionRequest: %v", err)
+	}
+
+	// wait for the network to confirm, then synthesize the multisig utxo
+	time.Sleep(time.Second * 10)
+
+	return &mixin.SafeUtxo{
+		OutputID:           mixin.BuildSnapshotID(tx.Hash.String(), 0, "multisig"),
+		KernelAssetID:      tx.Asset,
+		TransactionHash:    *tx.Hash,
+		OutputIndex:        0,
+		Amount:             decimal.RequireFromString(tx.Outputs[0].Amount.String()),
+		ReceiversThreshold: threshold,
+		Receivers:          members,
+	}
+}
+
+// spendFromMultisig spends the multisig utxo back to the bot using the safe
+// multisig request flow: create request -> sign -> (repeat for each signer).
+func spendFromMultisig(
+	ctx context.Context,
+	client *mixin.Client,
+	spendKey mixinnet.Key,
+	utxo *mixin.SafeUtxo,
+	members []string,
+) {
+	// the signer index is the position of the bot within the (sorted) receivers
+	var k uint16
+	for i, member := range utxo.Receivers {
+		if member == client.ClientID {
+			k = uint16(i)
 			break
 		}
 	}
 
-	if utxo == nil {
-		log.Panicln("No Unspent UTXO")
-	}
+	b := mixin.NewSafeTransactionBuilder([]*mixin.SafeUtxo{utxo})
+	b.Memo = "Transfer From Multisig"
 
-	builder := mixin.NewLegacyTransactionBuilder(
-		[]*mixin.MultisigUTXO{utxo},
-	)
-	builder.Memo = "multisig test"
-	tx, err := client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
+	tx, err := client.MakeTransaction(ctx, b, []*mixin.TransactionOutput{
 		{
 			Address: mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
 			Amount:  utxo.Amount,
 		},
 	})
 	if err != nil {
-		log.Panicf("TransactionBuilder.Build: %v", err)
+		log.Panicf("MakeTransaction: %v", err)
 	}
 
 	raw, err := tx.Dump()
 	if err != nil {
-		log.Panicf("DumpTransaction: %v", err)
+		log.Panicf("Dump: %v", err)
 	}
 
-	log.Println("raw transaction", raw)
-
-	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
-		if err != nil {
-			log.Panicf("CreateMultisig: sign %v", err)
-		}
-
-		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
-		if err != nil {
-			log.Panicf("CreateMultisig: %v", err)
-		}
-
-		req, err = subClient.CreateMultisig(ctx, mixin.MultisigActionUnlock, raw)
-		if err != nil {
-			log.Panicf("CreateMultisig: sign %v", err)
-		}
-
-		err = subClient.CancelMultisig(ctx, req.RequestID)
-		if err != nil {
-			log.Panicf("CancelMultisig: %v", err)
-		}
+	request, err := client.SafeCreateMultisigRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      mixin.BuildSnapshotID(utxo.TransactionHash.String(), utxo.OutputIndex, "spend"),
+		RawTransaction: raw,
+	})
+	if err != nil {
+		log.Panicf("SafeCreateMultisigRequest: %v", err)
 	}
 
-	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
-		if err != nil {
-			log.Panicf("CreateMultisig: sign %v", err)
-		}
-
-		req, err = client.SignMultisig(ctx, req.RequestID, *pin)
-		if err != nil {
-			log.Panicf("CreateMultisig: %v", err)
-		}
-
-		if len(req.Signers) < int(req.Threshold) {
-			req, err = client.CreateMultisig(ctx, mixin.MultisigActionUnlock, raw)
-			if err != nil {
-				log.Panicf("CreateMultisig: unlock %v", err)
-			}
-
-			err = client.UnlockMultisig(ctx, req.RequestID, *pin)
-			if err != nil {
-				log.Panicf("UnlockMultisig: %v", err)
-			}
-		}
+	if err := mixin.SafeSignTransaction(tx, spendKey, request.Views, k); err != nil {
+		log.Panicf("SafeSignTransaction: %v", err)
 	}
 
-	{
-		req, err := client.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
-		if err != nil {
-			log.Panicf("CreateMultisig: sign %v", err)
-		}
-
-		_, err = client.SignMultisig(ctx, req.RequestID, *pin)
-		if err != nil {
-			log.Panicf("CreateMultisig: %v", err)
-		}
-
-		req, err = subClient.CreateMultisig(ctx, mixin.MultisigActionSign, raw)
-		if err != nil {
-			log.Panicf("CreateMultisig: sign %v", err)
-		}
-
-		req, err = subClient.SignMultisig(ctx, req.RequestID, *pin)
-		if err != nil {
-			log.Panicf("CreateMultisig: %v", err)
-		}
-
-		txHash, err := mnClient.SendRawTransaction(ctx, req.RawTransaction)
-		if err != nil {
-			log.Panicf("SendRawTransaction: %v\n", err)
-		}
-		log.Printf("submit transaction: %v", txHash)
+	signedRaw, err := tx.Dump()
+	if err != nil {
+		log.Panicf("Dump: %v", err)
 	}
+
+	request, err = client.SafeSignMultisigRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      request.RequestID,
+		RawTransaction: signedRaw,
+	})
+	if err != nil {
+		log.Panicf("SafeSignMultisigRequest: %v", err)
+	}
+
+	log.Println("multisig request signed", request.RequestID, "signers", request.Signers)
 }

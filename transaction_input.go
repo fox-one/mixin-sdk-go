@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,10 +13,6 @@ func (c *Client) createGhostKeys(ctx context.Context, txVer uint8, inputs []*Gho
 	// sort receivers
 	for _, input := range inputs {
 		sort.Strings(input.Receivers)
-	}
-
-	if txVer < mixinnet.TxVersionHashSignature {
-		return c.BatchReadGhostKeys(ctx, inputs)
 	}
 
 	return c.SafeCreateGhostKeys(ctx, inputs, senders...)
@@ -30,40 +26,6 @@ type TransactionBuilder struct {
 type TransactionOutput struct {
 	Address *MixAddress     `json:"address,omitempty"`
 	Amount  decimal.Decimal `json:"amount,omitempty"`
-}
-
-func NewLegacyTransactionBuilder(utxos []*MultisigUTXO) *TransactionBuilder {
-	b := &TransactionBuilder{
-		TransactionInput: &mixinnet.TransactionInput{
-			TxVersion: mixinnet.TxVersionLegacy,
-			Hint:      newUUID(),
-			Inputs:    make([]*mixinnet.InputUTXO, len(utxos)),
-		},
-	}
-
-	for i, utxo := range utxos {
-		b.Inputs[i] = &mixinnet.InputUTXO{
-			Input: mixinnet.Input{
-				Hash:  &utxo.TransactionHash,
-				Index: uint8(utxo.OutputIndex),
-			},
-			Asset:  utxo.Asset(),
-			Amount: utxo.Amount,
-		}
-
-		addr, err := NewMixAddress(utxo.Members, utxo.Threshold)
-		if err != nil {
-			panic(err)
-		}
-
-		if i == 0 {
-			b.addr = addr
-		} else if b.addr.String() != addr.String() {
-			panic("invalid utxos")
-		}
-	}
-
-	return b
 }
 
 func NewSafeTransactionBuilder(utxos []*SafeUtxo) *TransactionBuilder {

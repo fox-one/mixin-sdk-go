@@ -14,11 +14,11 @@ const (
 )
 
 type Error struct {
-	Status      int                    `json:"status"`
-	Code        int                    `json:"code"`
-	Description string                 `json:"description"`
-	Extra       map[string]interface{} `json:"extra,omitempty"`
-	RequestID   string                 `json:"request_id,omitempty"`
+	Status      int            `json:"status"`
+	Code        int            `json:"code"`
+	Description string         `json:"description"`
+	Extra       map[string]any `json:"extra,omitempty"`
+	RequestID   string         `json:"request_id,omitempty"`
 }
 
 func (e *Error) Error() string {

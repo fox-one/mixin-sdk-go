@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fox-one/mixin-sdk-go/v2"
+	"github.com/fox-one/mixin-sdk-go/v3"
 )
 
 var (

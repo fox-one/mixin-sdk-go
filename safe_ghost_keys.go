@@ -4,17 +4,31 @@ import (
 	"context"
 	"crypto/rand"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
+)
+
+type (
+	// GhostKeys transaction ghost keys
+	GhostKeys struct {
+		Mask mixinnet.Key   `json:"mask"`
+		Keys []mixinnet.Key `json:"keys"`
+	}
+
+	GhostInput struct {
+		Receivers []string `json:"receivers"`
+		Index     uint8    `json:"index"`
+		Hint      string   `json:"hint"`
+	}
 )
 
 func (c *Client) SafeCreateGhostKeys(ctx context.Context, inputs []*GhostInput, senders ...string) ([]*GhostKeys, error) {
 	var (
-		body interface{} = inputs
+		body any = inputs
 		resp []*GhostKeys
 	)
 
 	if len(senders) > 0 {
-		body = map[string]interface{}{
+		body = map[string]any{
 			"keys":    inputs,
 			"senders": senders,
 		}

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fox-one/msgpack"
 	"github.com/shopspring/decimal"
 )
 
@@ -22,7 +21,6 @@ type (
 )
 
 func init() {
-	msgpack.RegisterExt(0, (*Integer)(nil))
 	Zero = NewInteger(0)
 }
 

@@ -2,7 +2,7 @@ package mixin
 
 import (
 	"filippo.io/edwards25519"
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 )
 
 func SafeSignTransaction(tx *mixinnet.Transaction, spendKey mixinnet.Key, views []mixinnet.Key, k uint16) error {

@@ -125,7 +125,7 @@ func (c *Client) CreateUser(ctx context.Context, key crypto.Signer, fullname str
 		return nil, nil, fmt.Errorf("unexpected public key type: %T", key)
 	}
 
-	paras := map[string]interface{}{
+	paras := map[string]any{
 		"session_secret": base64.StdEncoding.EncodeToString(pub),
 		"full_name":      fullname,
 	}

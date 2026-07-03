@@ -60,7 +60,7 @@ type UpdateCircleParams struct {
 
 func (c *Client) UpdateCircle(ctx context.Context, args UpdateCircleParams) (*Circle, error) {
 	var circle Circle
-	body := map[string]interface{}{
+	body := map[string]any{
 		"name": args.Name,
 	}
 
@@ -93,7 +93,7 @@ type CircleItem struct {
 func (c *Client) ManageCircle(ctx context.Context, args ManageCircleParams) (*CircleItem, error) {
 	var items []*CircleItem
 	uri := fmt.Sprintf("%s/%s/circles", args.ItemType, args.ItemID)
-	body := []interface{}{map[string]interface{}{
+	body := []any{map[string]any{
 		"action":    args.Action,
 		"circle_id": args.CircleID,
 	}}

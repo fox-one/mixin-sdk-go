@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -10,16 +9,27 @@ import (
 	"os"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2"
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"github.com/shopspring/decimal"
 )
 
+// SpenderKeystore is the keystore of a Safe-enabled bot together with its Safe
+// spend key used to sign UTXO based transactions.
+type SpenderKeystore struct {
+	mixin.Keystore
+	SpendKey string `json:"spend_key"`
+}
+
 var (
 	config = flag.String("config", "", "keystore file path")
-	pin    = flag.String("pin", "", "pin")
+	asset  = flag.String("asset", "965e5c6e-434c-3fa9-b780-c50f43cd955c", "asset id, default CNB")
 )
 
+// This example demonstrates the low level mixin kernel primitives:
+//   - transfer to a raw mixin kernel address via the Safe network;
+//   - fetch the on-chain transaction from a kernel node;
+//   - verify the ghost output key and derive its private key.
 func main() {
 	flag.Parse()
 
@@ -27,274 +37,137 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
+	defer f.Close()
 
-	var store mixin.Keystore
+	var store SpenderKeystore
 	if err := json.NewDecoder(f).Decode(&store); err != nil {
 		log.Panicln(err)
 	}
 
-	client, err := mixin.NewFromKeystore(&store)
+	client, err := mixin.NewFromKeystore(&store.Keystore)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	var (
-		addr      = mixinnet.GenerateAddress(rand.Reader)
-		tx        *mixinnet.Transaction
-		privGhost *mixinnet.Key
-		mnClient  = mixinnet.NewClient(mixinnet.DefaultLegacyConfig)
+	mnClient := mixinnet.NewClient(mixinnet.DefaultSafeConfig)
+	ctx := mnClient.WithHost(context.Background(), mnClient.RandomHost())
 
-		ctx = mnClient.WithHost(context.Background(), mnClient.RandomHost())
-	)
-
-	log.Println("addr.private_spend", addr.PrivateSpendKey, "addr.private_view", addr.PrivateViewKey)
-
-	{
-		snapshot, err := client.Transaction(ctx, &mixin.TransferInput{
-			AssetID:     "965e5c6e-434c-3fa9-b780-c50f43cd955c", // cnb
-			Amount:      decimal.NewFromFloat(1),
-			TraceID:     mixin.RandomTraceID(),
-			Memo:        "send to mixin net address",
-			OpponentKey: addr.String(),
-		}, *pin)
-
-		if err != nil {
-			log.Printf("Transaction: %v\n", err)
-			return
-		}
-		log.Printf("send to address: %v; hash: %v\n", addr, snapshot.TransactionHash)
-
-		h, err := mixinnet.HashFromString(snapshot.TransactionHash)
-		if err != nil {
-			log.Printf("HashFromString (%s): %v\n", snapshot.TransactionHash, err)
-			return
-		}
-
-		for {
-			if tx, err = mnClient.GetTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
-				log.Printf("GetTransaction %v failed: %v\n", h, err)
-				time.Sleep(time.Second)
-				continue
-			}
-			break
-		}
-
-		{
-			tx.Hash = nil
-			hash1, err := tx.TransactionHash()
-			if err != nil {
-				log.Printf("tx.TransactionHash: %v\n", err)
-				return
-			}
-			if !bytes.Equal(h[:], hash1[:]) {
-				log.Println("transaction hash verify failed", h, hash1)
-			}
-		}
-
-		// verify output
-		if key := mixinnet.ViewGhostOutputKey(tx.Version, &tx.Outputs[0].Keys[0], &addr.PrivateViewKey, &tx.Outputs[0].Mask, 0); key.String() != addr.PublicSpendKey.String() {
-			log.Printf("ViewGhostOutputKey check failed: %v != %v\n", key, addr.PublicSpendKey)
-			return
-		}
-		log.Println("ViewGhostOutputKey passed")
-
-		privGhost = mixinnet.DeriveGhostPrivateKey(tx.Version, &tx.Outputs[0].Mask, &addr.PrivateViewKey, &addr.PrivateSpendKey, 0)
-		if privGhost.Public().String() != tx.Outputs[0].Keys[0].String() {
-			log.Printf("DeriveGhostPrivateKey check failed: expect %v; got priv ghost %v, public %v\n", tx.Outputs[0].Keys[0], privGhost, privGhost.Public())
-			return
-		}
-
-		{
-			raw, err := tx.Dump()
-			if err != nil {
-				log.Printf("Dump failed: %v\n", err)
-				return
-			}
-
-			tx1, err := mixinnet.TransactionFromRaw(raw)
-			if err != nil {
-				log.Printf("TransactionFromRaw failed: %v\n", err)
-				return
-			}
-
-			hash, err := tx1.TransactionHash()
-			if err != nil {
-				log.Printf("TransactionHash failed: %v\n", err)
-				return
-			}
-
-			if !bytes.Equal(h[:], hash[:]) {
-				log.Println("Marshal & Unmarshal failed, hash not matched")
-				return
-			}
-			log.Println("Marshal & Unmarshal passed")
-		}
+	me, err := client.UserMe(ctx)
+	if err != nil {
+		log.Panicf("UserMe: %v", err)
+	}
+	if !me.HasSafe {
+		log.Panicln("the bot is not migrated to safe network yet, run SafeMigrate first")
 	}
 
-	{
-		builder := mixin.NewLegacyTransactionBuilder([]*mixin.MultisigUTXO{
-			{
-				AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-				TransactionHash: *tx.Hash,
-				OutputIndex:     0,
-				Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-				Members:         []string{client.ClientID},
-				Threshold:       1,
-			},
-		})
-		builder.Memo = "transaction test to mixinnet address"
-		tx, err = client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
-			{
-				Address: mixin.RequireNewMainnetMixAddress([]string{addr.String()}, 1),
-				Amount:  decimal.New(1, -8),
-			},
-		})
-		if err != nil {
-			log.Printf("MakeTransaction failed: %v\n", err)
-			return
-		}
-
-		if pub := mixinnet.ViewGhostOutputKey(tx.Version, &tx.Outputs[0].Keys[0], &addr.PrivateViewKey, &tx.Outputs[0].Mask, 0); pub.String() != addr.PublicSpendKey.String() {
-			log.Printf("ViewGhostOutputKey check failed: %v != %v\n", pub, addr.PublicSpendKey)
-			return
-		}
-		log.Println("ViewGhostOutputKey passed")
-
-		{
-			raw, err := tx.DumpPayload()
-			if err != nil {
-				log.Printf("DumpPayload: %v\n", err)
-				return
-			}
-
-			sig := privGhost.Sign(raw)
-			tx.Signatures = []map[uint16]*mixinnet.Signature{
-				{
-					0: &sig,
-				},
-			}
-		}
-
-		raw, err := tx.Dump()
-		log.Println("tx.Dump", raw, err)
-		if err != nil {
-			return
-		}
-
-		for {
-			_, err := mnClient.SendRawTransaction(ctx, raw)
-			if err == nil || mixin.IsErrorCodes(err, mixin.InvalidOutputKey) {
-				break
-			}
-			log.Printf("SendRawTransaction: %v\n", err)
-			time.Sleep(time.Second)
-		}
-
-		h, err := tx.TransactionHash()
-		if err != nil {
-			log.Printf("TransactionHash: %v\n", err)
-			return
-		}
-		log.Println("Transaction sent,", h)
-
-		for i := 0; i < 5; i++ {
-			if tx, err = mnClient.GetTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
-				log.Printf("GetTransaction %v failed: %v\n", h, err)
-				time.Sleep(time.Second)
-				continue
-			}
-			break
-		}
-
-		if ok, err := mnClient.VerifyTransaction(ctx, addr, *tx.Hash); !ok || err != nil {
-			log.Printf("VerifyTransaction %v failed: %v; expect true but got %v", tx.Hash, err, ok)
-			return
-		}
-		log.Println("VerifyTransaction passed")
-
-		privGhost = mixinnet.DeriveGhostPrivateKey(tx.Version, &tx.Outputs[0].Mask, &addr.PrivateViewKey, &addr.PrivateSpendKey, 0)
-		if privGhost.Public().String() != tx.Outputs[0].Keys[0].String() {
-			log.Printf("DeriveGhostPrivateKey check failed: expect %v; got priv ghost %v, public %v\n", tx.Outputs[0].Keys[0], privGhost, privGhost.Public())
-			return
-		}
-		log.Println("DeriveGhostPrivateKey passed")
+	spendKey, err := mixinnet.ParseKeyWithPub(store.SpendKey, me.SpendPublicKey)
+	if err != nil {
+		log.Panicf("parse spend key: %v", err)
 	}
 
-	{
-		builder := mixin.NewLegacyTransactionBuilder([]*mixin.MultisigUTXO{
-			{
-				AssetID:         "965e5c6e-434c-3fa9-b780-c50f43cd955c",
-				TransactionHash: *tx.Hash,
-				OutputIndex:     0,
-				Amount:          decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-				Members:         []string{client.ClientID},
-				Threshold:       1,
-			},
-		})
-		builder.Memo = "transaction test to mixinnet address"
-		tx, err = client.MakeTransaction(ctx, builder, []*mixin.TransactionOutput{
-			{
-				Address: mixin.RequireNewMixAddress([]string{client.ClientID}, 1),
-				Amount:  decimal.RequireFromString(tx.Outputs[0].Amount.String()),
-			},
-		})
-		if err != nil {
-			log.Printf("MakeTransaction failed: %v\n", err)
-			return
-		}
+	// a fresh kernel address we fully control the keys of
+	addr := mixinnet.GenerateAddress(rand.Reader)
+	log.Println("kernel address", addr.String())
 
-		{
-			raw, err := tx.DumpPayload()
-			if err != nil {
-				log.Printf("DumpPayload: %v\n", err)
-				return
-			}
+	// 1. transfer to the raw kernel address via the safe network
+	txHash := transferToAddress(ctx, client, spendKey, *asset, addr)
+	log.Println("transfer sent, transaction hash:", txHash)
 
-			sig := privGhost.Sign(raw)
-			tx.Signatures = []map[uint16]*mixinnet.Signature{
-				{
-					0: &sig,
-				},
-			}
-		}
-
-		raw, err := tx.Dump()
-		log.Println("tx.Dump:", raw, err)
-		if err != nil {
-			return
-		}
-
-		for {
-			_, err := mnClient.SendRawTransaction(ctx, raw)
-			if err == nil || mixin.IsErrorCodes(err, mixin.InvalidOutputKey) {
-				break
-			}
-			log.Printf("SendRawTransaction: %v\n", err)
-			time.Sleep(time.Second)
-		}
-
-		h, err := tx.TransactionHash()
-		if err != nil {
-			log.Printf("TransactionHash: %v\n", err)
-			return
-		}
-		log.Println("Transaction sent,", h)
-
-		for i := 0; i < 5; i++ {
-			if tx, err = mnClient.GetTransaction(ctx, h); err != nil || !tx.Asset.HasValue() {
-				log.Printf("GetTransaction %v failed: %v\n", h, err)
-				time.Sleep(time.Second)
-				continue
-			}
-			break
-		}
-
-		if ok, err := mnClient.VerifyTransaction(ctx, addr, *tx.Hash); !ok || err != nil {
-			log.Printf("VerifyTransaction %v failed: %v; expect true but got %v", tx.Hash, err, ok)
-			return
-		}
-		log.Println("VerifyTransaction passed")
+	hash, err := mixinnet.HashFromString(txHash)
+	if err != nil {
+		log.Panicf("HashFromString: %v", err)
 	}
 
-	log.Println("all passed")
+	// 2. poll the kernel node until the transaction is confirmed
+	var tx *mixinnet.Transaction
+	for i := 0; i < 30; i++ {
+		if tx, err = mnClient.GetTransaction(ctx, hash); err == nil && tx != nil && tx.Asset.HasValue() {
+			break
+		}
+		log.Printf("waiting for transaction %v ...", hash)
+		time.Sleep(time.Second * 2)
+	}
+	if tx == nil || !tx.Asset.HasValue() {
+		log.Panicln("transaction not confirmed in time")
+	}
+
+	// 3. verify the ghost output key belongs to our address
+	output := tx.Outputs[0]
+	if key := mixinnet.ViewGhostOutputKey(tx.Version, &output.Keys[0], &addr.PrivateViewKey, &output.Mask, 0); key.String() != addr.PublicSpendKey.String() {
+		log.Panicf("ViewGhostOutputKey mismatch: %v != %v", key, addr.PublicSpendKey)
+	}
+	log.Println("ViewGhostOutputKey passed")
+
+	// 4. derive the ghost private key that can spend this output
+	privGhost := mixinnet.DeriveGhostPrivateKey(tx.Version, &output.Mask, &addr.PrivateViewKey, &addr.PrivateSpendKey, 0)
+	if privGhost.Public().String() != output.Keys[0].String() {
+		log.Panicf("DeriveGhostPrivateKey mismatch: expect %v got %v", output.Keys[0], privGhost.Public())
+	}
+	log.Println("DeriveGhostPrivateKey passed, all checks ok")
+}
+
+func transferToAddress(
+	ctx context.Context,
+	client *mixin.Client,
+	spendKey mixinnet.Key,
+	assetID string,
+	addr *mixinnet.Address,
+) string {
+	utxos, err := client.SafeListUtxos(ctx, mixin.SafeListUtxoOption{
+		Members: []string{client.ClientID},
+		Asset:   assetID,
+		State:   mixin.SafeUtxoStateUnspent,
+		Limit:   1,
+	})
+	if err != nil {
+		log.Panicf("SafeListUtxos: %v", err)
+	}
+	if len(utxos) == 0 {
+		log.Panicln("empty unspent utxo")
+	}
+
+	b := mixin.NewSafeTransactionBuilder(utxos)
+	b.Memo = "send to mixin kernel address"
+
+	tx, err := client.MakeTransaction(ctx, b, []*mixin.TransactionOutput{
+		{
+			Address: mixin.RequireNewMainnetMixAddress([]string{addr.String()}, 1),
+			Amount:  decimal.New(1, -8),
+		},
+	})
+	if err != nil {
+		log.Panicf("MakeTransaction: %v", err)
+	}
+
+	raw, err := tx.Dump()
+	if err != nil {
+		log.Panicf("Dump: %v", err)
+	}
+
+	request, err := client.SafeCreateTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      mixin.BuildSnapshotID(utxos[0].TransactionHash.String(), utxos[0].OutputIndex, addr.String()),
+		RawTransaction: raw,
+	})
+	if err != nil {
+		log.Panicf("SafeCreateTransactionRequest: %v", err)
+	}
+
+	if err := mixin.SafeSignTransaction(tx, spendKey, request.Views, 0); err != nil {
+		log.Panicf("SafeSignTransaction: %v", err)
+	}
+
+	signedRaw, err := tx.Dump()
+	if err != nil {
+		log.Panicf("Dump: %v", err)
+	}
+
+	submitted, err := client.SafeSubmitTransactionRequest(ctx, &mixin.SafeTransactionRequestInput{
+		RequestID:      request.RequestID,
+		RawTransaction: signedRaw,
+	})
+	if err != nil {
+		log.Panicf("SafeSubmitTransactionRequest: %v", err)
+	}
+
+	return submitted.TransactionHash
 }

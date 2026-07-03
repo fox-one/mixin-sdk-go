@@ -1,11 +1,8 @@
 package mixinnet
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
-
-	"github.com/fox-one/msgpack"
 )
 
 const (
@@ -92,7 +89,7 @@ type (
 		Type       uint8           `json:"type"`
 		Amount     Integer         `json:"amount"`
 		Keys       []Key           `json:"keys,omitempty"`
-		Withdrawal *WithdrawalData `json:"withdrawal,omitempty" msgpack:",omitempty"`
+		Withdrawal *WithdrawalData `json:"withdrawal,omitempty"`
 
 		Script Script `json:"script"`
 		Mask   Key    `json:"mask,omitempty"`
@@ -104,16 +101,16 @@ type (
 	}
 
 	Transaction struct {
-		Hash                *Hash                   `json:"hash,omitempty" msgpack:"-"`
-		Snapshot            *Hash                   `json:"snapshot,omitempty" msgpack:"-"`
-		Signatures          []map[uint16]*Signature `json:"signatures,omitempty" msgpack:"-"`
-		AggregatedSignature *AggregatedSignature    `json:"aggregated_signature,omitempty" msgpack:"-"`
+		Hash                *Hash                   `json:"hash,omitempty"`
+		Snapshot            *Hash                   `json:"snapshot,omitempty"`
+		Signatures          []map[uint16]*Signature `json:"signatures,omitempty"`
+		AggregatedSignature *AggregatedSignature    `json:"aggregated_signature,omitempty"`
 
-		Version    uint8            `json:"version"`
-		Asset      Hash             `json:"asset"`
-		Inputs     []*Input         `json:"inputs"`
-		Outputs    []*Output        `json:"outputs"`
-		References []Hash           `msgpack:"-"`
+		Version    uint8     `json:"version"`
+		Asset      Hash      `json:"asset"`
+		Inputs     []*Input  `json:"inputs"`
+		Outputs    []*Output `json:"outputs"`
+		References []Hash
 		Extra      TransactionExtra `json:"extra,omitempty"`
 	}
 )
@@ -128,38 +125,11 @@ func TransactionFromRaw(raw string) (*Transaction, error) {
 }
 
 func TransactionFromData(data []byte) (*Transaction, error) {
-	txVer := checkTxVersion(data)
-	if txVer < TxVersionCommonEncoding {
-		return transactionV1FromRaw(data)
-	}
-
 	return NewDecoder(data).DecodeTransaction()
 }
 
 func (t *Transaction) DumpData() ([]byte, error) {
 	switch t.Version {
-	case 0, 1:
-		tx := TransactionV1{
-			Transaction: *t,
-		}
-		if len(t.Signatures) > 0 {
-			tx.Signatures = make([][]*Signature, len(t.Signatures))
-			for i, sigs := range t.Signatures {
-				tx.Signatures[i] = make([]*Signature, len(sigs))
-				for k, sig := range sigs {
-					tx.Signatures[i][k] = sig
-				}
-			}
-		}
-
-		var buf bytes.Buffer
-		enc := msgpack.NewEncoder(&buf).UseCompactEncoding(true)
-		err := enc.Encode(tx)
-		if err != nil {
-			return nil, err
-		}
-		return buf.Bytes(), nil
-
 	case TxVersionCommonEncoding, TxVersionBlake3Hash, TxVersionReferences, TxVersionHashSignature:
 		return NewEncoder().EncodeTransaction(t), nil
 

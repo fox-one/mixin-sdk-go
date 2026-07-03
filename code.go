@@ -55,28 +55,6 @@ func (c *Code) Payment() *Payment {
 	return &payment
 }
 
-func (c *Code) Multisig() *MultisigRequest {
-	if c.Type != TypeMultisig {
-		return nil
-	}
-	var multisig MultisigRequest
-	if err := json.Unmarshal(c.RawData, &multisig); err != nil {
-		return nil
-	}
-	return &multisig
-}
-
-func (c *Code) Collectible() *CollectibleRequest {
-	if c.Type != TypeCollectible {
-		return nil
-	}
-	var collectible CollectibleRequest
-	if err := json.Unmarshal(c.RawData, &collectible); err != nil {
-		return nil
-	}
-	return &collectible
-}
-
 func (c *Code) Authorization() *Authorization {
 	if c.Type != TypeAuthorization {
 		return nil

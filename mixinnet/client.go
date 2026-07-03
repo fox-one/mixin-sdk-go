@@ -49,8 +49,8 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) CallMixinNetRPC(ctx context.Context, resp interface{}, method string, params ...interface{}) error {
-	bts, err := json.Marshal(map[string]interface{}{
+func (c *Client) CallMixinNetRPC(ctx context.Context, resp any, method string, params ...any) error {
+	bts, err := json.Marshal(map[string]any{
 		"method": method,
 		"params": params,
 	})
@@ -86,7 +86,7 @@ func DecodeResponse(resp *http.Response) ([]byte, error) {
 	return body.Data, nil
 }
 
-func UnmarshalResponse(resp *http.Response, v interface{}) error {
+func UnmarshalResponse(resp *http.Response, v any) error {
 	data, err := DecodeResponse(resp)
 	if err != nil {
 		return err

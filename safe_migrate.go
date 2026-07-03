@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 
-	"github.com/fox-one/mixin-sdk-go/v2/mixinnet"
+	"github.com/fox-one/mixin-sdk-go/v3/mixinnet"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -20,7 +20,7 @@ func (c *Client) SafeMigrate(ctx context.Context, priv string, pin string) (*Use
 	}
 
 	sig := privKey.SignHash(sha3.Sum256([]byte(c.ClientID)))
-	paras := map[string]interface{}{
+	paras := map[string]any{
 		"public_key": pubKey.String(),
 		"signature":  base64.RawURLEncoding.EncodeToString(sig[:]),
 		"pin_base64": c.EncryptTipPin(pinKey, TIPSequencerRegister, c.ClientID, pubKey.String()),

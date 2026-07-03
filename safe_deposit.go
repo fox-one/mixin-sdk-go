@@ -48,7 +48,7 @@ func (c *Client) SafeCreateDepositEntries(ctx context.Context, receivers []strin
 	} else if threshold > len(receivers) {
 		return nil, fmt.Errorf("invalid threshold %d, expect [1 %d)", threshold, len(receivers))
 	}
-	paras := map[string]interface{}{
+	paras := map[string]any{
 		"members":   receivers,
 		"threshold": threshold,
 		"chain_id":  chain,

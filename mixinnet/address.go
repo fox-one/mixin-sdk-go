@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/btcsuite/btcutil/base58"
+	"github.com/btcsuite/btcd/address/v2/base58"
 	"github.com/shopspring/decimal"
 )
 

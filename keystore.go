@@ -36,7 +36,7 @@ type Keystore struct {
 	SessionPrivateKey string `json:"session_private_key"`
 
 	// ExtraClaims is used to store extra claims in the jwt token
-	ExtraClaims map[string]interface{} `json:"extra_claims"`
+	ExtraClaims map[string]any `json:"extra_claims"`
 }
 
 func (k *Keystore) init() error {
@@ -82,7 +82,7 @@ func (k *Keystore) init() error {
 type KeystoreAuth struct {
 	*Keystore
 	signMethod jwt.SigningMethod
-	signKey    interface{}
+	signKey    any
 	pinCipher  cipher.Block
 
 	// seq is increasing number

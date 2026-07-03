@@ -26,11 +26,11 @@ const (
 )
 
 type BlazeMessage struct {
-	Id     string                 `json:"id"`
-	Action string                 `json:"action"`
-	Params map[string]interface{} `json:"params,omitempty"`
-	Data   json.RawMessage        `json:"data,omitempty"`
-	Error  *Error                 `json:"error,omitempty"`
+	Id     string          `json:"id"`
+	Action string          `json:"action"`
+	Params map[string]any  `json:"params,omitempty"`
+	Data   json.RawMessage `json:"data,omitempty"`
+	Error  *Error          `json:"error,omitempty"`
 }
 
 type MessageView struct {
@@ -237,7 +237,7 @@ func tick(ctx context.Context, conn *websocket.Conn) error {
 	}
 }
 
-func writeMessage(coon *websocket.Conn, action string, params map[string]interface{}) error {
+func writeMessage(coon *websocket.Conn, action string, params map[string]any) error {
 	blazeMessage, err := json.Marshal(BlazeMessage{
 		Id:     newUUID(),
 		Action: action,

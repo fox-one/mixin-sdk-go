@@ -13,7 +13,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fox-one/mixin-sdk-go/v2"
+	"github.com/fox-one/mixin-sdk-go/v3"
 	"github.com/oxtoacart/bpool"
 	"github.com/rs/cors"
 )
