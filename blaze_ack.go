@@ -25,8 +25,8 @@ func (q *AckQueue) pushBack(requests ...*AcknowledgementRequest) {
 
 func (q *AckQueue) pushFront(requests ...*AcknowledgementRequest) {
 	q.mux.Lock()
-	for _, req := range requests {
-		q.list.PushFront(req)
+	for i := len(requests) - 1; i >= 0; i-- {
+		q.list.PushFront(requests[i])
 	}
 	q.mux.Unlock()
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,12 +53,6 @@ type MessageView struct {
 	ack bool
 }
 
-func (m *MessageView) reset() {
-	m.ack = false
-	m.RepresentativeID = ""
-	m.QuoteMessageID = ""
-}
-
 // Ack mark messageView as acked
 // otherwise sdk will ack this message
 func (m *MessageView) Ack() {
@@ -90,6 +85,10 @@ type BlazeListener interface {
 type BlazeOption func(dialer *websocket.Dialer)
 
 func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...BlazeOption) error {
+	if listener == nil {
+		return errors.New("mixin: nil BlazeListener")
+	}
+
 	conn, err := connectMixinBlaze(c, opts...)
 	if err != nil {
 		return err
@@ -101,7 +100,9 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 		Client: c,
 	}
 
-	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		return fmt.Errorf("set blaze read deadline: %w", err)
+	}
 	conn.SetPongHandler(func(s string) error {
 		return conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
@@ -121,20 +122,19 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 	})
 
 	g.Go(func() error {
-		var (
-			blazeMessage BlazeMessage
-			message      MessageView
-		)
+		var blazeMessage BlazeMessage
 
 		for {
-			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+			if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+				return fmt.Errorf("set blaze read deadline: %w", err)
+			}
 			typ, r, err := conn.NextReader()
 			if err != nil {
 				if ctxErr := ctx.Err(); ctxErr != nil {
 					return ctxErr
 				}
 
-				return err
+				return fmt.Errorf("read blaze message: %w", err)
 			}
 
 			if typ != websocket.BinaryMessage {
@@ -142,56 +142,74 @@ func (c *Client) LoopBlaze(ctx context.Context, listener BlazeListener, opts ...
 			}
 
 			if err := parseBlazeMessage(r, &blazeMessage); err != nil {
+				return fmt.Errorf("parse blaze message: %w", err)
+			}
+
+			if err := b.handleMessage(ctx, listener, &blazeMessage); err != nil {
 				return err
-			}
-
-			if err := blazeMessage.Error; err != nil {
-				return err
-			}
-
-			message.reset()
-			if err := json.Unmarshal(blazeMessage.Data, &message); err != nil {
-				continue
-			}
-
-			if IsEncryptedMessageCategory(message.Category) {
-				data, err := base64.RawURLEncoding.DecodeString(message.DataBase64)
-				if err != nil {
-					return err
-				}
-
-				rawData, err := c.Unlock(data)
-				if err != nil {
-					return err
-				}
-
-				message.Category = DecryptMessageCategory(message.Category)
-				message.DataBase64 = base64.RawURLEncoding.EncodeToString(rawData)
-				message.Data = base64.StdEncoding.EncodeToString(rawData)
-			}
-
-			switch blazeMessage.Action {
-			case CreateMessageAction:
-				messageID := message.MessageID
-				if err := listener.OnMessage(ctx, &message, b.ClientID); err != nil {
-					return err
-				}
-
-				if !message.ack {
-					b.queue.pushBack(&AcknowledgementRequest{
-						MessageID: messageID,
-						Status:    MessageStatusRead,
-					})
-				}
-			case AcknowledgeReceiptAction:
-				if err := listener.OnAckReceipt(ctx, &message, b.ClientID); err != nil {
-					return err
-				}
 			}
 		}
 	})
 
 	return g.Wait()
+}
+
+func (b *blazeHandler) handleMessage(ctx context.Context, listener BlazeListener, envelope *BlazeMessage) error {
+	if err := envelope.Error; err != nil {
+		return err
+	}
+
+	switch envelope.Action {
+	case CreateMessageAction, AcknowledgeReceiptAction:
+	default:
+		return nil
+	}
+
+	message := &MessageView{}
+	if err := json.Unmarshal(envelope.Data, message); err != nil {
+		return fmt.Errorf("decode blaze action %q id %q data: %w", envelope.Action, envelope.Id, err)
+	}
+
+	if IsEncryptedMessageCategory(message.Category) {
+		data, err := base64.RawURLEncoding.DecodeString(message.DataBase64)
+		if err != nil {
+			return fmt.Errorf("decode encrypted blaze message %q: %w", message.MessageID, err)
+		}
+
+		rawData, err := b.Unlock(data)
+		if err != nil {
+			return fmt.Errorf("decrypt blaze message %q: %w", message.MessageID, err)
+		}
+
+		message.Category = DecryptMessageCategory(message.Category)
+		message.DataBase64 = base64.RawURLEncoding.EncodeToString(rawData)
+		message.Data = base64.StdEncoding.EncodeToString(rawData)
+	}
+
+	switch envelope.Action {
+	case CreateMessageAction:
+		if message.MessageID == "" {
+			return fmt.Errorf("blaze action %q id %q missing message_id", envelope.Action, envelope.Id)
+		}
+
+		messageID := message.MessageID
+		if err := listener.OnMessage(ctx, message, b.ClientID); err != nil {
+			return err
+		}
+
+		if !message.ack {
+			b.queue.pushBack(&AcknowledgementRequest{
+				MessageID: messageID,
+				Status:    MessageStatusRead,
+			})
+		}
+	case AcknowledgeReceiptAction:
+		if err := listener.OnAckReceipt(ctx, message, b.ClientID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func connectMixinBlaze(s Signer, opts ...BlazeOption) (*websocket.Conn, error) {
@@ -278,14 +296,28 @@ func writeGzipToConn(conn *websocket.Conn, msg []byte) error {
 }
 
 func parseBlazeMessage(r io.Reader, msg *BlazeMessage) error {
+	*msg = BlazeMessage{}
+
 	gzReader, err := gzip.NewReader(r)
 	if err != nil {
 		return err
 	}
+	defer gzReader.Close()
 
-	err = json.NewDecoder(gzReader).Decode(msg)
-	_ = gzReader.Close()
-	return err
+	dec := json.NewDecoder(gzReader)
+	if err := dec.Decode(msg); err != nil {
+		return err
+	}
+
+	var extra json.RawMessage
+	switch err := dec.Decode(&extra); {
+	case err == io.EOF:
+		return nil
+	case err == nil:
+		return errors.New("blaze message contains multiple JSON values")
+	default:
+		return err
+	}
 }
 
 type BlazeListenFunc func(ctx context.Context, msg *MessageView, userID string) error
