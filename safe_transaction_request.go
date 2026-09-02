@@ -15,9 +15,12 @@ type (
 	}
 
 	SafeTransactionReceiver struct {
-		Members    []string      `json:"members,omitempty"`
-		MemberHash mixinnet.Hash `json:"members_hash,omitempty"`
-		Threshold  uint8         `json:"threshold,omitempty"`
+		Members        []string      `json:"members,omitempty"`
+		MemberHash     mixinnet.Hash `json:"members_hash,omitempty"`
+		Threshold      uint8         `json:"threshold,omitempty"`
+		Destination    string        `json:"destination,omitempty"`
+		Tag            string        `json:"tag,omitempty"`
+		WithdrawalHash string        `json:"withdrawal_hash,omitempty"`
 	}
 
 	SafeTransactionRequest struct {
