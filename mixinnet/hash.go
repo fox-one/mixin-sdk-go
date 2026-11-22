@@ -2,12 +2,12 @@ package mixinnet
 
 import (
 	"bytes"
+	"crypto/sha3"
 	"encoding/hex"
 	"fmt"
 	"strconv"
 
 	"github.com/zeebo/blake3"
-	"golang.org/x/crypto/sha3"
 )
 
 type (
